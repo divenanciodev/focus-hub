@@ -16,6 +16,8 @@ import Objetivos from "./pages/Objetivos";
 import Banco from "./pages/Banco";
 import Planos from "./pages/Planos";
 import Perfil from "./pages/Perfil";
+import Habitos from "./pages/Habitos";
+import Cronograma from "./pages/Cronograma";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +42,8 @@ const App = () => (
             <Route path="/banco" element={<Banco />} />
             <Route path="/planos" element={<Planos />} />
             <Route path="/perfil" element={<Perfil />} />
+            <Route path="/habitos" element={<Habitos />} />
+            <Route path="/cronograma" element={<Cronograma />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayout>

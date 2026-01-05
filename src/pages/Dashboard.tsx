@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { ProgressBar } from '@/components/ui/progress-bar';
+import { HabitsDashboardWidget } from '@/components/habits/HabitsDashboardWidget';
 import { mockDashboardStats, mockObjectives, mockDisciplines } from '@/data/mockData';
 import {
   Clock,
@@ -12,6 +13,7 @@ import {
   BookOpen,
   AlertCircle,
   CheckCircle2,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -144,8 +146,13 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Habits Section */}
+      <div className="mt-8">
+        <HabitsDashboardWidget />
+      </div>
+
       {/* Quick Actions */}
-      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-3">
         <Button
           variant="outline"
           className="h-auto py-4 flex flex-col items-center gap-2"
@@ -153,6 +160,14 @@ export default function Dashboard() {
         >
           <BookOpen className="w-5 h-5" />
           <span className="text-sm">Estudar agora</span>
+        </Button>
+        <Button
+          variant="outline"
+          className="h-auto py-4 flex flex-col items-center gap-2"
+          onClick={() => navigate('/cronograma')}
+        >
+          <Calendar className="w-5 h-5" />
+          <span className="text-sm">Cronograma</span>
         </Button>
         <Button
           variant="outline"
