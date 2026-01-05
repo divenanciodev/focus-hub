@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { CreateDisciplineModal } from '@/components/modals/CreateDisciplineModal';
 import { mockDisciplines } from '@/data/mockData';
 import { Discipline } from '@/types';
-import { Plus, BookOpen, Clock, TrendingUp } from 'lucide-react';
+import { Plus, BookOpen, Clock, TrendingUp, Calendar } from 'lucide-react';
 
 export default function Estudos() {
   const navigate = useNavigate();
@@ -33,10 +33,16 @@ export default function Estudos() {
         title="Estudos"
         description="Gerencie suas disciplinas e materiais de estudo"
         actions={
-          <Button onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Criar disciplina
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate('/cronograma')}>
+              <Calendar className="w-4 h-4 mr-2" />
+              Cronograma
+            </Button>
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Criar disciplina
+            </Button>
+          </div>
         }
       />
 
