@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
 import { AddStudyLinkModal } from '@/components/modals/AddStudyLinkModal';
-import { mockDisciplines } from '@/data/mockData';
-import { StudyLink, Task, Flashcard } from '@/types';
+import { VideoPlaylist } from '@/components/studies/VideoPlaylist';
+import { SummarySection } from '@/components/studies/SummarySection';
+import { mockDisciplines, mockTrainings } from '@/data/mockData';
+import { StudyLink, Task, Flashcard, VideoLink, Summary, Training } from '@/types';
 import {
   ArrowLeft,
   Plus,
@@ -18,9 +21,12 @@ import {
   File,
   Trash2,
   Edit2,
+  Sparkles,
+  PlayCircle,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function DisciplineDetail() {
   const { id } = useParams();
@@ -37,6 +43,27 @@ export default function DisciplineDetail() {
     { id: '1', title: 'Aula de introdução', type: 'youtube', url: 'https://youtube.com' },
     { id: '2', title: 'Artigo complementar', type: 'article', url: 'https://example.com' },
   ]);
+
+  const [videos, setVideos] = useState<VideoLink[]>([
+    {
+      id: '1',
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      title: 'Aula 01 - Introdução ao tema',
+      thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
+      status: 'completed',
+      notes: 'Excelente introdução, revisar aos 15:30.',
+    },
+    {
+      id: '2',
+      url: 'https://www.youtube.com/watch?v=abc123',
+      title: 'Aula 02 - Conceitos avançados',
+      thumbnail: 'https://img.youtube.com/vi/abc123/mqdefault.jpg',
+      status: 'in_progress',
+      notes: '',
+    },
+  ]);
+
+  const [summaries, setSummaries] = useState<Summary[]>([]);
 
   const [flashcards, setFlashcards] = useState<Flashcard[]>([
     { id: '1', question: 'O que é princípio da legalidade?', answer: 'Ninguém será obrigado a fazer ou deixar de fazer alguma coisa senão em virtude de lei.' },
@@ -109,6 +136,34 @@ export default function DisciplineDetail() {
     }
   };
 
+  const handleGenerateQuestions = (summaryContent: string) => {
+    // Mock: Generate questions from summary content
+    const mockQuestions = [
+      {
+        type: 'multiple_choice',
+        question: `Sobre o tema abordado no resumo, qual afirmativa está correta?`,
+        options: [
+          'Opção A baseada no conteúdo',
+          'Opção B incorreta',
+          'Opção C incorreta',
+          'Opção D incorreta',
+        ],
+      },
+      {
+        type: 'true_false',
+        question: `Baseado no resumo: "${summaryContent.slice(0, 50)}..." - esta afirmação está correta.`,
+      },
+    ];
+
+    toast.success('Questões geradas com sucesso!', {
+      description: `${mockQuestions.length} questões foram criadas e enviadas para Treinos & Simulados.`,
+      action: {
+        label: 'Ver Treinos',
+        onClick: () => navigate('/treinos'),
+      },
+    });
+  };
+
   return (
     <div className="fade-in">
       <Button variant="ghost" onClick={() => navigate('/estudos')} className="mb-4">
@@ -118,18 +173,41 @@ export default function DisciplineDetail() {
 
       <PageHeader
         title={discipline.name}
-        description={`${discipline.subject} • ${discipline.grade}`}
+        description={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>{discipline.subject}</span>
+            {discipline.specificSubject && (
+              <>
+                <span className="text-muted-foreground">›</span>
+                <span>{discipline.specificSubject}</span>
+              </>
+            )}
+            <span className="text-muted-foreground">•</span>
+            <span>{discipline.grade}</span>
+            {discipline.tags && discipline.tags.length > 0 && (
+              <>
+                <span className="text-muted-foreground">•</span>
+                {discipline.tags.map(tag => (
+                  <Badge key={tag} variant="outline" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </>
+            )}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="tasks" className="w-full">
-            <TabsList className="mb-4">
+            <TabsList className="mb-4 flex-wrap h-auto gap-1">
               <TabsTrigger value="tasks">Tarefas</TabsTrigger>
+              <TabsTrigger value="videos">Vídeos</TabsTrigger>
               <TabsTrigger value="links">Links</TabsTrigger>
-              <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
               <TabsTrigger value="resumos">Resumos</TabsTrigger>
+              <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
             </TabsList>
 
             <TabsContent value="tasks" className="mt-0">
@@ -182,6 +260,12 @@ export default function DisciplineDetail() {
               </div>
             </TabsContent>
 
+            <TabsContent value="videos" className="mt-0">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <VideoPlaylist videos={videos} onUpdateVideos={setVideos} />
+              </div>
+            </TabsContent>
+
             <TabsContent value="links" className="mt-0">
               <div className="bg-card border border-border rounded-xl p-5">
                 <Button onClick={() => setIsAddLinkModalOpen(true)} className="mb-4">
@@ -224,6 +308,16 @@ export default function DisciplineDetail() {
               </div>
             </TabsContent>
 
+            <TabsContent value="resumos" className="mt-0">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <SummarySection
+                  summaries={summaries}
+                  onUpdateSummaries={setSummaries}
+                  onGenerateQuestions={handleGenerateQuestions}
+                />
+              </div>
+            </TabsContent>
+
             <TabsContent value="flashcards" className="mt-0">
               <div className="bg-card border border-border rounded-xl p-5">
                 <Button className="mb-4">
@@ -254,21 +348,6 @@ export default function DisciplineDetail() {
                 </div>
               </div>
             </TabsContent>
-
-            <TabsContent value="resumos" className="mt-0">
-              <div className="bg-card border border-border rounded-xl p-5">
-                <Button className="mb-4">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo resumo
-                </Button>
-
-                <div className="text-center py-8 text-muted-foreground">
-                  <Edit2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>Nenhum resumo criado ainda.</p>
-                  <p className="text-sm">Crie seu primeiro resumo para esta disciplina.</p>
-                </div>
-              </div>
-            </TabsContent>
           </Tabs>
         </div>
 
@@ -294,9 +373,42 @@ export default function DisciplineDetail() {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Vídeos assistidos</span>
+                <span className="font-medium text-foreground">
+                  {videos.filter(v => v.status === 'completed').length}/{videos.length}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Resumos</span>
+                <span className="font-medium text-foreground">{summaries.length}</span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Links salvos</span>
                 <span className="font-medium text-foreground">{links.length}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h3 className="font-semibold text-foreground mb-4">Ações Rápidas</h3>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate('/treinos')}
+              >
+                <PlayCircle className="w-4 h-4 mr-2" />
+                Ir para Treinos
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate('/cronograma')}
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Editar Cronograma
+              </Button>
             </div>
           </div>
         </div>

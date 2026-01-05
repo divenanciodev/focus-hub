@@ -13,11 +13,66 @@ import {
 } from '@/types';
 
 export const mockDisciplines: Discipline[] = [
-  { id: '1', name: 'Direito Constitucional', subject: 'Direito', grade: 'Superior', progress: 65, hoursStudied: 42, createdAt: new Date('2024-01-15') },
-  { id: '2', name: 'Português', subject: 'Línguas', grade: 'Superior', progress: 78, hoursStudied: 56, createdAt: new Date('2024-01-10') },
-  { id: '3', name: 'Matemática Financeira', subject: 'Exatas', grade: 'Superior', progress: 45, hoursStudied: 28, createdAt: new Date('2024-02-01') },
-  { id: '4', name: 'Raciocínio Lógico', subject: 'Exatas', grade: 'Superior', progress: 52, hoursStudied: 35, createdAt: new Date('2024-01-20') },
-  { id: '5', name: 'Informática', subject: 'Tecnologia', grade: 'Médio', progress: 88, hoursStudied: 20, createdAt: new Date('2024-02-10') },
+  { 
+    id: '1', 
+    name: 'Direito Constitucional', 
+    subject: 'Direito', 
+    specificSubject: 'Constitucional',
+    grade: 'Superior', 
+    progress: 65, 
+    hoursStudied: 42, 
+    createdAt: new Date('2024-01-15'),
+    tags: ['Princípios', 'Direitos Fundamentais', 'Organização do Estado'],
+    color: '#3b82f6',
+    studyPlan: { days: ['monday', 'wednesday', 'friday'], hoursPerDay: 2, blockDuration: 30 }
+  },
+  { 
+    id: '2', 
+    name: 'Gramática', 
+    subject: 'Português', 
+    specificSubject: 'Gramática',
+    grade: 'Superior', 
+    progress: 78, 
+    hoursStudied: 56, 
+    createdAt: new Date('2024-01-10'),
+    tags: ['Verbos', 'Sintaxe', 'Concordância'],
+    color: '#22c55e',
+    studyPlan: { days: ['tuesday', 'thursday'], hoursPerDay: 1.5, blockDuration: 45 }
+  },
+  { 
+    id: '3', 
+    name: 'Matemática Financeira', 
+    subject: 'Exatas', 
+    specificSubject: 'Matemática Financeira',
+    grade: 'Superior', 
+    progress: 45, 
+    hoursStudied: 28, 
+    createdAt: new Date('2024-02-01'),
+    tags: ['Juros', 'Investimentos'],
+    color: '#f97316'
+  },
+  { 
+    id: '4', 
+    name: 'Raciocínio Lógico', 
+    subject: 'Exatas', 
+    grade: 'Superior', 
+    progress: 52, 
+    hoursStudied: 35, 
+    createdAt: new Date('2024-01-20'),
+    tags: ['Lógica', 'Proposições'],
+    color: '#8b5cf6',
+    studyPlan: { days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], hoursPerDay: 1, blockDuration: 25 }
+  },
+  { 
+    id: '5', 
+    name: 'Informática', 
+    subject: 'Tecnologia', 
+    grade: 'Médio', 
+    progress: 88, 
+    hoursStudied: 20, 
+    createdAt: new Date('2024-02-10'),
+    color: '#ec4899'
+  },
 ];
 
 export const mockTrainings: Training[] = [

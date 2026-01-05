@@ -5,6 +5,7 @@ interface ProgressBarProps {
   max?: number;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
+  color?: string;
   className?: string;
 }
 
@@ -13,6 +14,7 @@ export function ProgressBar({
   max = 100,
   size = 'md',
   showLabel = false,
+  color,
   className,
 }: ProgressBarProps) {
   const percentage = Math.min((value / max) * 100, 100);
@@ -27,15 +29,18 @@ export function ProgressBar({
       )}
       <div
         className={cn(
-          'w-full bg-progress-bg rounded-full overflow-hidden',
+          'w-full bg-secondary rounded-full overflow-hidden',
           size === 'sm' && 'h-1.5',
           size === 'md' && 'h-2',
           size === 'lg' && 'h-3'
         )}
       >
         <div
-          className="h-full bg-progress-fill rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${percentage}%` }}
+          className="h-full rounded-full transition-all duration-500 ease-out"
+          style={{
+            width: `${percentage}%`,
+            backgroundColor: color || 'hsl(var(--foreground))',
+          }}
         />
       </div>
     </div>

@@ -4,10 +4,38 @@ export interface Discipline {
   id: string;
   name: string;
   subject: string;
+  specificSubject?: string; // Área específica (ex: Gramática)
   grade: string;
   progress: number;
   hoursStudied: number;
   createdAt: Date;
+  tags?: string[];
+  color?: string;
+  studyPlan?: StudyPlan;
+}
+
+export interface StudyPlan {
+  days: string[]; // ['monday', 'tuesday', ...]
+  hoursPerDay: number;
+  blockDuration: number; // minutes
+}
+
+export interface VideoLink {
+  id: string;
+  url: string;
+  title: string;
+  thumbnail?: string;
+  status: 'not_started' | 'in_progress' | 'completed';
+  notes: string;
+}
+
+export interface Summary {
+  id: string;
+  title: string;
+  content: string;
+  audioUrl?: string;
+  createdAt: Date;
+  isVoice: boolean;
 }
 
 export interface Task {
