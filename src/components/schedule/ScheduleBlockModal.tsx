@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +16,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScheduleBlock } from '@/types/schedule';
-import { BookOpen, Dumbbell } from 'lucide-react';
 
 const activityTypes = [
   'Estudo',
@@ -44,7 +42,6 @@ export function ScheduleBlockModal({
   onSave,
   onDelete,
 }: ScheduleBlockModalProps) {
-  const navigate = useNavigate();
   const [subject, setSubject] = useState(block?.subject || '');
   const [activityTypeSelection, setActivityTypeSelection] = useState(() => {
     if (!block?.activityType) return '';
@@ -86,16 +83,6 @@ export function ScheduleBlockModal({
       duration: parseInt(duration) || 60,
     });
     onOpenChange(false);
-  };
-
-  const handleNavigateToStudies = () => {
-    onOpenChange(false);
-    navigate('/estudos');
-  };
-
-  const handleNavigateToTraining = () => {
-    onOpenChange(false);
-    navigate('/treinos');
   };
 
   return (
@@ -162,11 +149,7 @@ export function ScheduleBlockModal({
                 type="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="w-12 h-12 rounded-full cursor-pointer border-0 p-0 overflow-hidden"
-                style={{ 
-                  WebkitAppearance: 'none',
-                  appearance: 'none',
-                }}
+                className="w-12 h-12 rounded-lg cursor-pointer border border-border p-1 overflow-hidden"
               />
               <div className="flex flex-col gap-1">
                 <span className="text-sm text-muted-foreground">Clique para escolher</span>
@@ -177,38 +160,8 @@ export function ScheduleBlockModal({
                   className="w-28 h-8 text-xs font-mono"
                 />
               </div>
-              <div
-                className="w-10 h-10 rounded-lg border border-border shadow-sm"
-                style={{ backgroundColor: color }}
-              />
             </div>
           </div>
-
-          {block && subject.trim() && (
-            <div className="space-y-2 pt-2 border-t border-border">
-              <Label>Navegação Rápida</Label>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNavigateToStudies}
-                  className="flex-1"
-                >
-                  <BookOpen className="w-4 h-4 mr-2" />
-                  Ir para Estudos
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNavigateToTraining}
-                  className="flex-1"
-                >
-                  <Dumbbell className="w-4 h-4 mr-2" />
-                  Ir para Treinos
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="flex gap-2">
