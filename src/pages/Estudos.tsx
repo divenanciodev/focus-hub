@@ -51,6 +51,7 @@ export default function Estudos() {
     tags: string[];
     color: string;
     studyPlan: StudyPlan;
+    coverImage?: string;
   }) => {
     addDiscipline(data);
   };
@@ -63,6 +64,7 @@ export default function Estudos() {
     tags: string[];
     color: string;
     studyPlan: StudyPlan;
+    coverImage?: string;
   }) => {
     if (editingDiscipline) {
       updateDiscipline(editingDiscipline.id, data);
@@ -185,18 +187,28 @@ export default function Estudos() {
                 borderColor: discipline.color || 'var(--border)',
               }}
             >
-              {/* Image placeholder */}
-              <div 
-                className="h-32 w-full flex items-center justify-center"
-                style={{
-                  backgroundColor: discipline.color ? `${discipline.color}15` : 'hsl(var(--secondary))',
-                }}
-              >
-                <BookOpen 
-                  className="w-12 h-12 opacity-30" 
-                  style={{ color: discipline.color || 'currentColor' }}
-                />
-              </div>
+              {/* Image / Placeholder */}
+              {discipline.coverImage ? (
+                <div className="h-32 w-full overflow-hidden">
+                  <img
+                    src={discipline.coverImage}
+                    alt={discipline.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div 
+                  className="h-32 w-full flex items-center justify-center"
+                  style={{
+                    backgroundColor: discipline.color ? `${discipline.color}15` : 'hsl(var(--secondary))',
+                  }}
+                >
+                  <BookOpen 
+                    className="w-12 h-12 opacity-30" 
+                    style={{ color: discipline.color || 'currentColor' }}
+                  />
+                </div>
+              )}
 
               <div className="p-4 flex flex-col flex-1">
                 {/* Header with name and actions */}

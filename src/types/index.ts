@@ -12,6 +12,7 @@ export interface Discipline {
   tags?: string[];
   color?: string;
   studyPlan?: StudyPlan;
+  coverImage?: string; // URL da imagem de capa (base64 ou URL)
 }
 
 export interface StudyPlan {

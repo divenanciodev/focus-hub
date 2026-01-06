@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { subjectColors, weekDays } from '@/types/schedule';
 import { StudyPlan, Discipline } from '@/types';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CreateDisciplineData {
@@ -30,6 +30,7 @@ interface CreateDisciplineData {
   tags: string[];
   color: string;
   studyPlan: StudyPlan;
+  coverImage?: string;
 }
 
 interface CreateDisciplineModalEnhancedProps {
@@ -76,6 +77,7 @@ export function CreateDisciplineModalEnhanced({
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [hoursPerDay, setHoursPerDay] = useState('2');
   const [blockDuration, setBlockDuration] = useState('30');
+  const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
 
   // Initialize form with initial data when editing
   useEffect(() => {
@@ -89,10 +91,30 @@ export function CreateDisciplineModalEnhanced({
       setSelectedDays(initialData.studyPlan?.days || []);
       setHoursPerDay(initialData.studyPlan?.hoursPerDay?.toString() || '2');
       setBlockDuration(initialData.studyPlan?.blockDuration?.toString() || '30');
+      setCoverImage(initialData.coverImage);
     } else if (open && !initialData) {
       resetForm();
     }
   }, [open, initialData]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('A imagem deve ter no máximo 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setCoverImage(undefined);
+  };
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -133,6 +155,7 @@ export function CreateDisciplineModalEnhanced({
           hoursPerDay: parseFloat(hoursPerDay) || 2,
           blockDuration: parseInt(blockDuration) || 30,
         },
+        coverImage,
       });
       if (!initialData) {
         resetForm();
@@ -152,6 +175,7 @@ export function CreateDisciplineModalEnhanced({
     setSelectedDays([]);
     setHoursPerDay('2');
     setBlockDuration('30');
+    setCoverImage(undefined);
   };
 
   const isValid = name.trim().length > 0;
@@ -164,6 +188,52 @@ export function CreateDisciplineModalEnhanced({
           <DialogTitle>{isEditing ? 'Editar Disciplina' : 'Criar Disciplina'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Imagem de Capa */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-foreground border-b pb-2">🖼️ Imagem de Capa</h3>
+            
+            <div className="flex items-center gap-4">
+              {coverImage ? (
+                <div className="relative group">
+                  <img
+                    src={coverImage}
+                    alt="Capa"
+                    className="w-24 h-24 object-cover rounded-lg border-2 border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-24 h-24 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-secondary/50">
+                  <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                </div>
+              )}
+              
+              <div className="flex-1">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors w-fit">
+                    <Upload className="w-4 h-4" />
+                    <span className="text-sm">{coverImage ? 'Trocar imagem' : 'Enviar imagem'}</span>
+                  </div>
+                </label>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Formatos: JPG, PNG, WebP. Máx: 5MB
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Hierarquia */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground border-b pb-2">📚 Hierarquia da Disciplina</h3>
