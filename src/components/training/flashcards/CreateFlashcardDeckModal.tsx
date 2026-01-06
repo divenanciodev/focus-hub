@@ -20,8 +20,62 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FlashcardDeck, FlashcardItem, FlashcardType } from '@/types/training';
-import { Plus, Trash2, Upload } from 'lucide-react';
+import { Plus, Trash2, Upload, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Componente de preview interativo do cartão
+function InteractiveCardPreview({ 
+  card, 
+  index, 
+  onRemove 
+}: { 
+  card: FlashcardItem; 
+  index: number; 
+  onRemove: () => void;
+}) {
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  return (
+    <div 
+      className="relative group cursor-pointer"
+      onClick={() => setIsFlipped(!isFlipped)}
+    >
+      <div 
+        className={`bg-card border border-border rounded-xl p-4 min-h-[100px] transition-all duration-300 ${
+          isFlipped ? 'bg-primary/5 border-primary/30' : ''
+        }`}
+      >
+        <div className="flex items-start justify-between mb-2">
+          <span className="text-xs font-medium bg-secondary px-2 py-0.5 rounded-full">
+            {index + 1}
+          </span>
+          <div className="flex items-center gap-1">
+            <RotateCcw className={`w-3 h-3 text-muted-foreground transition-transform ${isFlipped ? 'rotate-180' : ''}`} />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+            >
+              <Trash2 className="w-3 h-3 text-destructive" />
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">
+            {isFlipped ? 'Resposta:' : 'Pergunta:'}
+          </p>
+          <p className="text-sm font-medium line-clamp-3">
+            {isFlipped ? card.back : card.front}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface CreateFlashcardDeckModalProps {
   open: boolean;
@@ -259,16 +313,15 @@ export function CreateFlashcardDeckModal({
               <div className="flex items-end gap-3">
                 <div className="space-y-2">
                   <Label>Quantidade</Label>
-                  <Select value={cardCount} onValueChange={setCardCount}>
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[5, 10, 15, 20].map(n => (
-                        <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={cardCount}
+                    onChange={(e) => setCardCount(e.target.value)}
+                    className="w-24"
+                    placeholder="10"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Dificuldade</Label>
@@ -294,29 +347,21 @@ export function CreateFlashcardDeckModal({
             </TabsContent>
           </Tabs>
 
-          {/* Cards Preview */}
+          {/* Interactive Cards Preview */}
           {cards.length > 0 && (
-            <div className="space-y-2">
-              <Label>Cartões ({cards.length})</Label>
-              <div className="max-h-48 overflow-y-auto space-y-2 border border-border rounded-lg p-3">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Cartões criados ({cards.length})</Label>
+                <span className="text-xs text-muted-foreground">Clique para virar</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto p-1">
                 {cards.map((card, index) => (
-                  <div
+                  <InteractiveCardPreview
                     key={card.id}
-                    className="flex items-center justify-between bg-secondary/50 rounded-lg p-3"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{index + 1}. {card.front}</p>
-                      <p className="text-xs text-muted-foreground truncate">{card.back}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveCard(card.id)}
-                      className="shrink-0 ml-2"
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
+                    card={card}
+                    index={index}
+                    onRemove={() => handleRemoveCard(card.id)}
+                  />
                 ))}
               </div>
             </div>

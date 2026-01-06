@@ -211,21 +211,20 @@ export default function Treinos() {
     if (selectedMethod === 'flashcards') {
       return (
         <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-            <div>
-              <h3 className="font-semibold text-foreground text-lg">Flashcards</h3>
-              <p className="text-sm text-muted-foreground">Gerencie seus decks de cartões</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+              <div>
+                <h3 className="font-semibold text-foreground text-lg">Flashcards</h3>
+                <p className="text-sm text-muted-foreground">Gerencie seus decks de cartões</p>
+              </div>
             </div>
-          </div>
-
-          <div className="flex justify-end">
             <Button onClick={() => setIsCreateDeckOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Novo Deck
+              Criar Deck
             </Button>
           </div>
 
