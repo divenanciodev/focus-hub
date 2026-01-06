@@ -19,8 +19,10 @@ import {
 } from '@/components/ui/select';
 import { subjectColors, weekDays } from '@/types/schedule';
 import { StudyPlan, Discipline } from '@/types';
-import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Plus, Upload, Image as ImageIcon, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CreateDisciplineData {
   name: string;
@@ -78,6 +80,7 @@ export function CreateDisciplineModalEnhanced({
   const [hoursPerDay, setHoursPerDay] = useState('2');
   const [blockDuration, setBlockDuration] = useState('30');
   const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   // Initialize form with initial data when editing
   useEffect(() => {
@@ -101,7 +104,7 @@ export function CreateDisciplineModalEnhanced({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 5MB');
+        toast.error('A imagem deve ter no máximo 5MB');
         return;
       }
       const reader = new FileReader();
@@ -114,6 +117,38 @@ export function CreateDisciplineModalEnhanced({
 
   const handleRemoveImage = () => {
     setCoverImage(undefined);
+  };
+
+  const handleGenerateImage = async () => {
+    if (!name.trim()) {
+      toast.error('Digite o nome da disciplina primeiro');
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-discipline-cover', {
+        body: { disciplineName: name },
+      });
+
+      if (error) {
+        console.error('Error generating image:', error);
+        toast.error('Erro ao gerar imagem. Tente novamente.');
+        return;
+      }
+
+      if (data?.imageUrl) {
+        setCoverImage(data.imageUrl);
+        toast.success('Imagem gerada com sucesso!');
+      } else {
+        toast.error('Não foi possível gerar a imagem');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Erro ao gerar imagem');
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
 
   const handleAddTag = () => {
@@ -214,21 +249,39 @@ export function CreateDisciplineModalEnhanced({
                 </div>
               )}
               
-              <div className="flex-1">
-                <label className="cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <div className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-secondary transition-colors w-fit">
-                    <Upload className="w-4 h-4" />
-                    <span className="text-sm">{coverImage ? 'Trocar imagem' : 'Enviar imagem'}</span>
-                  </div>
-                </label>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Formatos: JPG, PNG, WebP. Máx: 5MB
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2">
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <div className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors">
+                      <Upload className="w-4 h-4" />
+                      <span className="text-sm">{coverImage ? 'Trocar' : 'Enviar'}</span>
+                    </div>
+                  </label>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateImage}
+                    disabled={isGeneratingImage || !name.trim()}
+                    className="flex items-center gap-2"
+                  >
+                    {isGeneratingImage ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    <span>{isGeneratingImage ? 'Gerando...' : 'Gerar com IA'}</span>
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Envie uma imagem ou gere automaticamente com IA
                 </p>
               </div>
             </div>
