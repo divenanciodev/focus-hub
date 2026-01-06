@@ -3,7 +3,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrainingTypeSelector } from '@/components/training/TrainingTypeSelector';
-import { TrainingMetricsDashboard } from '@/components/training/TrainingMetricsDashboard';
 import { FlashcardDeckList } from '@/components/training/flashcards/FlashcardDeckList';
 import { CreateFlashcardDeckModal } from '@/components/training/flashcards/CreateFlashcardDeckModal';
 import { FlashcardStudyMode } from '@/components/training/flashcards/FlashcardStudyMode';
@@ -156,8 +155,6 @@ export default function Treinos() {
           </Button>
         }
       />
-
-      <TrainingMetricsDashboard metrics={metrics} />
 
       {/* Main Tabs: Criar vs Praticar */}
       <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'criar' | 'praticar')} className="mt-6">

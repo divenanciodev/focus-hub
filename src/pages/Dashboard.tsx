@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { HabitsDashboardWidget } from '@/components/habits/HabitsDashboardWidget';
+import { TrainingMetricsDashboard } from '@/components/training/TrainingMetricsDashboard';
 import { mockDashboardStats, mockObjectives, mockDisciplines } from '@/data/mockData';
 import {
   Clock,
@@ -16,6 +17,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TrainingMetrics } from '@/types/training';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -23,6 +25,23 @@ export default function Dashboard() {
 
   const pendingObjectives = mockObjectives.filter(o => o.status !== 'completed');
   const recentDisciplines = mockDisciplines.slice(0, 3);
+
+  // Mock training metrics for dashboard
+  const trainingMetrics: TrainingMetrics = {
+    totalTrainings: 12,
+    totalStudyTimeMinutes: 480,
+    byType: {
+      'flashcards': 5,
+      'simulado': 4,
+      'activity': 1,
+      'mindmap': 1,
+      'summary': 1,
+      'handwriting': 0,
+      'memory-palace': 0,
+      'audio-explanation': 0,
+    },
+    completedToday: 2,
+  };
 
   return (
     <div className="fade-in">
@@ -146,8 +165,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Habits Section */}
+      {/* Training Metrics Section */}
       <div className="mt-8">
+        <TrainingMetricsDashboard metrics={trainingMetrics} />
+      </div>
+
+      {/* Habits Section */}
+      <div className="mt-6">
         <HabitsDashboardWidget />
       </div>
 
