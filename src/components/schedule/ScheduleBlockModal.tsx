@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -8,15 +9,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { ScheduleBlock, activityTypes, subjectColors } from '@/types/schedule';
+import { ScheduleBlock } from '@/types/schedule';
 import { cn } from '@/lib/utils';
+import { BookOpen, Dumbbell } from 'lucide-react';
 
 interface ScheduleBlockModalProps {
   open: boolean;
@@ -33,11 +28,10 @@ export function ScheduleBlockModal({
   onSave,
   onDelete,
 }: ScheduleBlockModalProps) {
+  const navigate = useNavigate();
   const [subject, setSubject] = useState(block?.subject || '');
-  const [activityType, setActivityType] = useState<ScheduleBlock['activityType']>(
-    block?.activityType || 'study'
-  );
-  const [color, setColor] = useState(block?.color || subjectColors[0]);
+  const [activityType, setActivityType] = useState(block?.activityType || '');
+  const [color, setColor] = useState(block?.color || '#3b82f6');
   const [duration, setDuration] = useState(block?.duration?.toString() || '60');
 
   const handleSave = () => {
@@ -45,11 +39,21 @@ export function ScheduleBlockModal({
     onSave({
       id: block?.id || Date.now().toString(),
       subject: subject.trim(),
-      activityType,
+      activityType: activityType.trim() || 'study',
       color,
       duration: parseInt(duration) || 60,
     });
     onOpenChange(false);
+  };
+
+  const handleNavigateToStudies = () => {
+    onOpenChange(false);
+    navigate('/estudos');
+  };
+
+  const handleNavigateToTraining = () => {
+    onOpenChange(false);
+    navigate('/treinos');
   };
 
   return (
@@ -73,19 +77,13 @@ export function ScheduleBlockModal({
           </div>
 
           <div className="space-y-2">
-            <Label>Tipo de Atividade</Label>
-            <Select value={activityType} onValueChange={(v) => setActivityType(v as ScheduleBlock['activityType'])}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {activityTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.icon} {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="activityType">Tipo de Atividade</Label>
+            <Input
+              id="activityType"
+              placeholder="Ex: Estudo, Revisão, Simulado..."
+              value={activityType}
+              onChange={(e) => setActivityType(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
@@ -103,21 +101,58 @@ export function ScheduleBlockModal({
 
           <div className="space-y-2">
             <Label>Cor</Label>
-            <div className="flex flex-wrap gap-2">
-              {subjectColors.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={cn(
-                    "w-8 h-8 rounded-full transition-all",
-                    color === c && "ring-2 ring-offset-2 ring-foreground"
-                  )}
-                  style={{ backgroundColor: c }}
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="w-12 h-12 rounded-full cursor-pointer border-0 p-0 overflow-hidden"
+                style={{ 
+                  WebkitAppearance: 'none',
+                  appearance: 'none',
+                }}
+              />
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-muted-foreground">Clique para escolher</span>
+                <Input
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  placeholder="#000000"
+                  className="w-28 h-8 text-xs font-mono"
                 />
-              ))}
+              </div>
+              <div
+                className="w-10 h-10 rounded-lg border border-border shadow-sm"
+                style={{ backgroundColor: color }}
+              />
             </div>
           </div>
+
+          {block && subject.trim() && (
+            <div className="space-y-2 pt-2 border-t border-border">
+              <Label>Navegação Rápida</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNavigateToStudies}
+                  className="flex-1"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Ir para Estudos
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNavigateToTraining}
+                  className="flex-1"
+                >
+                  <Dumbbell className="w-4 h-4 mr-2" />
+                  Ir para Treinos
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2">

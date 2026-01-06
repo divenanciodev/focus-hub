@@ -3,7 +3,7 @@
 export interface ScheduleBlock {
   id: string;
   subject: string;
-  activityType: 'study' | 'review' | 'simulado' | 'redacao' | 'reading' | 'rest';
+  activityType: string; // Free text for any activity type
   color: string;
   duration: number; // in minutes
 }
