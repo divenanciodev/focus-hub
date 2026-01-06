@@ -102,12 +102,12 @@ export function CreateDisciplineModalEnhanced({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name && subject && grade) {
+    if (name) {
       onSubmit({
         name,
-        subject,
+        subject: subject || 'Outros',
         specificSubject,
-        grade,
+        grade: grade || 'Superior',
         tags,
         color,
         studyPlan: {
@@ -134,7 +134,7 @@ export function CreateDisciplineModalEnhanced({
     setBlockDuration('30');
   };
 
-  const isValid = name && subject && grade;
+  const isValid = name.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,7 +149,7 @@ export function CreateDisciplineModalEnhanced({
             
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Área Geral *</Label>
+                <Label>Área Geral</Label>
                 <Select value={subject} onValueChange={setSubject}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione..." />
@@ -186,7 +186,7 @@ export function CreateDisciplineModalEnhanced({
             </div>
 
             <div className="space-y-2">
-              <Label>Grau de Escolaridade *</Label>
+              <Label>Grau de Escolaridade</Label>
               <Select value={grade} onValueChange={setGrade}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
@@ -258,19 +258,6 @@ export function CreateDisciplineModalEnhanced({
               ))}
             </div>
 
-            {/* Preview */}
-            <div
-              className="p-3 rounded-lg border-2"
-              style={{
-                borderColor: color,
-                backgroundColor: `${color}15`,
-              }}
-            >
-              <p className="text-sm font-medium">Preview do card</p>
-              <p className="text-xs text-muted-foreground">
-                {subject}{specificSubject && ` > ${specificSubject}`}
-              </p>
-            </div>
           </div>
 
           {/* Planejamento */}

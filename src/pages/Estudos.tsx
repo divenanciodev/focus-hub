@@ -115,16 +115,10 @@ export default function Estudos() {
         title="Estudos"
         description="Gerencie suas disciplinas e materiais de estudo"
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate('/cronograma')}>
-              <Calendar className="w-4 h-4 mr-2" />
-              Cronograma
-            </Button>
-            <Button onClick={() => setIsCreateModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Criar disciplina
-            </Button>
-          </div>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Criar disciplina
+          </Button>
         }
       />
 
