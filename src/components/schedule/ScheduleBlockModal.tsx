@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -9,9 +9,25 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ScheduleBlock } from '@/types/schedule';
-import { cn } from '@/lib/utils';
 import { BookOpen, Dumbbell } from 'lucide-react';
+
+const activityTypes = [
+  'Estudo',
+  'Revisão',
+  'Simulado',
+  'Exercícios',
+  'Leitura',
+  'Descanso',
+  'Outro',
+];
 
 interface ScheduleBlockModalProps {
   open: boolean;
@@ -30,16 +46,42 @@ export function ScheduleBlockModal({
 }: ScheduleBlockModalProps) {
   const navigate = useNavigate();
   const [subject, setSubject] = useState(block?.subject || '');
-  const [activityType, setActivityType] = useState(block?.activityType || '');
+  const [activityTypeSelection, setActivityTypeSelection] = useState(() => {
+    if (!block?.activityType) return '';
+    return activityTypes.includes(block.activityType) ? block.activityType : 'Outro';
+  });
+  const [customActivityType, setCustomActivityType] = useState(() => {
+    if (!block?.activityType) return '';
+    return activityTypes.includes(block.activityType) ? '' : block.activityType;
+  });
   const [color, setColor] = useState(block?.color || '#3b82f6');
   const [duration, setDuration] = useState(block?.duration?.toString() || '60');
+
+  const finalActivityType = activityTypeSelection === 'Outro' ? customActivityType : activityTypeSelection;
+
+  useEffect(() => {
+    if (open && block) {
+      setSubject(block.subject || '');
+      const isPreset = activityTypes.includes(block.activityType || '');
+      setActivityTypeSelection(isPreset ? (block.activityType || '') : 'Outro');
+      setCustomActivityType(isPreset ? '' : (block.activityType || ''));
+      setColor(block.color || '#3b82f6');
+      setDuration(block.duration?.toString() || '60');
+    } else if (open && !block) {
+      setSubject('');
+      setActivityTypeSelection('');
+      setCustomActivityType('');
+      setColor('#3b82f6');
+      setDuration('60');
+    }
+  }, [open, block]);
 
   const handleSave = () => {
     if (!subject.trim()) return;
     onSave({
       id: block?.id || Date.now().toString(),
       subject: subject.trim(),
-      activityType: activityType.trim() || 'study',
+      activityType: finalActivityType.trim() || 'Estudo',
       color,
       duration: parseInt(duration) || 60,
     });
@@ -77,13 +119,27 @@ export function ScheduleBlockModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="activityType">Tipo de Atividade</Label>
-            <Input
-              id="activityType"
-              placeholder="Ex: Estudo, Revisão, Simulado..."
-              value={activityType}
-              onChange={(e) => setActivityType(e.target.value)}
-            />
+            <Label>Tipo de Atividade</Label>
+            <Select value={activityTypeSelection} onValueChange={setActivityTypeSelection}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                {activityTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {activityTypeSelection === 'Outro' && (
+              <Input
+                placeholder="Digite o tipo de atividade..."
+                value={customActivityType}
+                onChange={(e) => setCustomActivityType(e.target.value)}
+                className="mt-2"
+              />
+            )}
           </div>
 
           <div className="space-y-2">

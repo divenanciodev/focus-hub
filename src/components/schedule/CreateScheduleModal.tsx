@@ -40,17 +40,20 @@ export function CreateScheduleModal({
 }: CreateScheduleModalProps) {
   const [name, setName] = useState('');
   const [objective, setObjective] = useState('');
+  const [customObjective, setCustomObjective] = useState('');
   const [hoursPerDay, setHoursPerDay] = useState('8');
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('18:00');
   const [blockDuration, setBlockDuration] = useState('60');
   const [restDuration, setRestDuration] = useState('15');
 
+  const finalObjective = objective === 'Outro' ? customObjective : objective;
+
   const handleSubmit = () => {
-    if (!name.trim() || !objective) return;
+    if (!name.trim() || !finalObjective) return;
     onSubmit({
       name: name.trim(),
-      objective,
+      objective: finalObjective,
       hoursPerDay: parseInt(hoursPerDay),
       startTime,
       endTime,
@@ -61,6 +64,7 @@ export function CreateScheduleModal({
     // Reset form
     setName('');
     setObjective('');
+    setCustomObjective('');
     setHoursPerDay('8');
     setStartTime('08:00');
     setEndTime('18:00');
@@ -100,6 +104,14 @@ export function CreateScheduleModal({
                 ))}
               </SelectContent>
             </Select>
+            {objective === 'Outro' && (
+              <Input
+                placeholder="Digite seu objetivo personalizado..."
+                value={customObjective}
+                onChange={(e) => setCustomObjective(e.target.value)}
+                className="mt-2"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -173,7 +185,7 @@ export function CreateScheduleModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={!name.trim() || !objective}>
+          <Button onClick={handleSubmit} disabled={!name.trim() || !finalObjective}>
             Criar Cronograma
           </Button>
         </div>
