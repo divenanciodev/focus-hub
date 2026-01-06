@@ -4,13 +4,11 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { CreateDisciplineModalEnhanced } from '@/components/modals/CreateDisciplineModalEnhanced';
 import { DisciplineSearch } from '@/components/studies/DisciplineSearch';
 import { useDisciplines } from '@/contexts/DisciplinesContext';
 import { Discipline, StudyPlan } from '@/types';
-import { Plus, BookOpen, Clock, TrendingUp, Edit2, Trash2 } from 'lucide-react';
-import { weekDays } from '@/types/schedule';
+import { Plus, BookOpen, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -142,11 +140,6 @@ export default function Estudos() {
     });
   }, [disciplines, searchFilters]);
 
-  const getStudyDaysLabel = (days: string[]) => {
-    if (days.length === 7) return 'Todos os dias';
-    if (days.length === 0) return 'Sem dias definidos';
-    return days.map(d => weekDays.find(wd => wd.key === d)?.label.slice(0, 3)).join(', ');
-  };
 
   return (
     <div className="fade-in">
@@ -187,24 +180,31 @@ export default function Estudos() {
             <div
               key={discipline.id}
               onClick={() => navigate(`/estudos/${discipline.id}`)}
-              className="bg-card border-2 rounded-xl p-5 cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
+              className="bg-card border-2 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
               style={{
                 borderColor: discipline.color || 'var(--border)',
-                backgroundColor: discipline.color ? `${discipline.color}08` : undefined,
               }}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  {/* Hierarchy */}
-                  <p className="text-xs text-muted-foreground mb-1">
-                    {discipline.subject}
-                    {discipline.specificSubject && ` > ${discipline.specificSubject}`}
-                  </p>
-                  <h3 className="font-semibold text-foreground truncate">{discipline.name}</h3>
-                </div>
-                <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+              {/* Image placeholder */}
+              <div 
+                className="h-32 w-full flex items-center justify-center"
+                style={{
+                  backgroundColor: discipline.color ? `${discipline.color}15` : 'hsl(var(--secondary))',
+                }}
+              >
+                <BookOpen 
+                  className="w-12 h-12 opacity-30" 
+                  style={{ color: discipline.color || 'currentColor' }}
+                />
+              </div>
+
+              <div className="p-4">
+                {/* Header with name and actions */}
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="font-semibold text-foreground line-clamp-2">{discipline.name}</h3>
+                  
                   {/* Edit/Delete buttons - visible on hover */}
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
                     <button
                       onClick={(e) => handleEditClick(e, discipline)}
                       className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
@@ -220,51 +220,10 @@ export default function Estudos() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                    {discipline.grade}
-                  </span>
                 </div>
-              </div>
 
-              {/* Tags */}
-              {discipline.tags && discipline.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {discipline.tags.slice(0, 3).map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {discipline.tags.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{discipline.tags.length - 3}
-                    </Badge>
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-3">
+                {/* Progress */}
                 <ProgressBar value={discipline.progress} showLabel color={discipline.color} />
-
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{discipline.hoursStudied}h estudadas</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>{discipline.progress}%</span>
-                  </div>
-                </div>
-
-                {/* Study Plan Info */}
-                {discipline.studyPlan && discipline.studyPlan.days.length > 0 && (
-                  <div className="pt-2 border-t border-border text-xs text-muted-foreground">
-                    <div className="flex items-center justify-between">
-                      <span>📅 {getStudyDaysLabel(discipline.studyPlan.days)}</span>
-                      <span>{discipline.studyPlan.hoursPerDay}h/dia</span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           ))}
