@@ -8,8 +8,8 @@ import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
 import { AddStudyLinkModal } from '@/components/modals/AddStudyLinkModal';
 import { VideoPlaylist } from '@/components/studies/VideoPlaylist';
 import { SummarySection } from '@/components/studies/SummarySection';
-import { mockDisciplines, mockTrainings } from '@/data/mockData';
-import { StudyLink, Task, Flashcard, VideoLink, Summary, Training } from '@/types';
+import { useDisciplines } from '@/contexts/DisciplinesContext';
+import { StudyLink, Task, Flashcard, VideoLink, Summary } from '@/types';
 import {
   ArrowLeft,
   Plus,
@@ -21,57 +21,39 @@ import {
   File,
   Trash2,
   Edit2,
-  Sparkles,
   PlayCircle,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { CreateDisciplineModalEnhanced } from '@/components/modals/CreateDisciplineModalEnhanced';
 
 export default function DisciplineDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const discipline = mockDisciplines.find((d) => d.id === id);
+  const { getDiscipline, deleteDiscipline, updateDiscipline } = useDisciplines();
+  const discipline = getDiscipline(id || '');
 
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', title: 'Ler capítulo 1', completed: true, priority: 'high' },
-    { id: '2', title: 'Fazer exercícios página 45', completed: false, priority: 'medium' },
-    { id: '3', title: 'Revisar anotações', completed: false, priority: 'low' },
-  ]);
-
-  const [links, setLinks] = useState<StudyLink[]>([
-    { id: '1', title: 'Aula de introdução', type: 'youtube', url: 'https://youtube.com' },
-    { id: '2', title: 'Artigo complementar', type: 'article', url: 'https://example.com' },
-  ]);
-
-  const [videos, setVideos] = useState<VideoLink[]>([
-    {
-      id: '1',
-      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      title: 'Aula 01 - Introdução ao tema',
-      thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
-      status: 'completed',
-      notes: 'Excelente introdução, revisar aos 15:30.',
-    },
-    {
-      id: '2',
-      url: 'https://www.youtube.com/watch?v=abc123',
-      title: 'Aula 02 - Conceitos avançados',
-      thumbnail: 'https://img.youtube.com/vi/abc123/mqdefault.jpg',
-      status: 'in_progress',
-      notes: '',
-    },
-  ]);
-
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [links, setLinks] = useState<StudyLink[]>([]);
+  const [videos, setVideos] = useState<VideoLink[]>([]);
   const [summaries, setSummaries] = useState<Summary[]>([]);
-
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([
-    { id: '1', question: 'O que é princípio da legalidade?', answer: 'Ninguém será obrigado a fazer ou deixar de fazer alguma coisa senão em virtude de lei.' },
-    { id: '2', question: 'Quais são os fundamentos da República?', answer: 'Soberania, cidadania, dignidade da pessoa humana, valores sociais do trabalho e da livre iniciativa, e pluralismo político.' },
-  ]);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
 
   const [newTask, setNewTask] = useState('');
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
 
   if (!discipline) {
@@ -137,7 +119,6 @@ export default function DisciplineDetail() {
   };
 
   const handleGenerateQuestions = (summaryContent: string) => {
-    // Mock: Generate questions from summary content
     const mockQuestions = [
       {
         type: 'multiple_choice',
@@ -164,12 +145,69 @@ export default function DisciplineDetail() {
     });
   };
 
+  const handleDeleteDiscipline = () => {
+    deleteDiscipline(discipline.id);
+    toast.success('Disciplina excluída com sucesso!');
+    navigate('/estudos');
+  };
+
+  const handleEditDiscipline = (data: {
+    name: string;
+    subject: string;
+    specificSubject: string;
+    grade: string;
+    tags: string[];
+    color: string;
+    studyPlan: { days: string[]; hoursPerDay: number; blockDuration: number };
+  }) => {
+    updateDiscipline(discipline.id, {
+      name: data.name,
+      subject: data.subject,
+      specificSubject: data.specificSubject,
+      grade: data.grade,
+      tags: data.tags,
+      color: data.color,
+      studyPlan: data.studyPlan,
+    });
+    toast.success('Disciplina atualizada com sucesso!');
+  };
+
   return (
     <div className="fade-in">
-      <Button variant="ghost" onClick={() => navigate('/estudos')} className="mb-4">
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Voltar
-      </Button>
+      <div className="flex items-center justify-between mb-4">
+        <Button variant="ghost" onClick={() => navigate('/estudos')}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
+            <Edit2 className="w-4 h-4 mr-2" />
+            Editar
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir disciplina?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. A disciplina "{discipline.name}" e todos os seus dados serão permanentemente excluídos.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteDiscipline} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
 
       <PageHeader
         title={discipline.name}
@@ -224,39 +262,45 @@ export default function DisciplineDetail() {
                   </Button>
                 </form>
 
-                <div className="space-y-2">
-                  {tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className={cn(
-                        'flex items-center gap-3 p-3 rounded-lg transition-colors',
-                        task.completed ? 'bg-muted/50' : 'bg-secondary/50 hover:bg-secondary'
-                      )}
-                    >
-                      <button onClick={() => toggleTask(task.id)}>
-                        {task.completed ? (
-                          <CheckCircle2 className="w-5 h-5 text-success" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-muted-foreground" />
-                        )}
-                      </button>
-                      <span
+                {tasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Nenhuma tarefa adicionada. Comece adicionando sua primeira tarefa acima.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {tasks.map((task) => (
+                      <div
+                        key={task.id}
                         className={cn(
-                          'flex-1 text-sm',
-                          task.completed && 'line-through text-muted-foreground'
+                          'flex items-center gap-3 p-3 rounded-lg transition-colors',
+                          task.completed ? 'bg-muted/50' : 'bg-secondary/50 hover:bg-secondary'
                         )}
                       >
-                        {task.title}
-                      </span>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <button onClick={() => toggleTask(task.id)}>
+                          {task.completed ? (
+                            <CheckCircle2 className="w-5 h-5 text-success" />
+                          ) : (
+                            <Circle className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </button>
+                        <span
+                          className={cn(
+                            'flex-1 text-sm',
+                            task.completed && 'line-through text-muted-foreground'
+                          )}
+                        >
+                          {task.title}
+                        </span>
+                        <button
+                          onClick={() => deleteTask(task.id)}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -273,38 +317,44 @@ export default function DisciplineDetail() {
                   Adicionar link
                 </Button>
 
-                <div className="space-y-2">
-                  {links.map((link) => (
-                    <div
-                      key={link.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group"
-                    >
-                      <div className="flex items-center justify-center w-8 h-8 rounded bg-muted">
-                        {getLinkIcon(link.type)}
+                {links.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Nenhum link adicionado. Adicione links de vídeos, artigos ou PDFs.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {links.map((link) => (
+                      <div
+                        key={link.id}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group"
+                      >
+                        <div className="flex items-center justify-center w-8 h-8 rounded bg-muted">
+                          {getLinkIcon(link.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-foreground truncate">{link.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{link.url}</p>
+                        </div>
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                          <button
+                            onClick={() => deleteLink(link.id)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-foreground truncate">{link.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{link.url}</p>
-                      </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-muted-foreground hover:text-foreground"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                        <button
-                          onClick={() => deleteLink(link.id)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </TabsContent>
 
@@ -325,27 +375,33 @@ export default function DisciplineDetail() {
                   Novo flashcard
                 </Button>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {flashcards.map((card) => (
-                    <div
-                      key={card.id}
-                      onClick={() => toggleFlashcard(card.id)}
-                      className="min-h-32 p-4 rounded-lg bg-secondary cursor-pointer transition-all duration-300 hover:shadow-md"
-                    >
-                      {flippedCards.has(card.id) ? (
-                        <div className="scale-in">
-                          <p className="text-xs text-muted-foreground mb-2">Resposta</p>
-                          <p className="text-sm text-foreground">{card.answer}</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-2">Pergunta</p>
-                          <p className="text-sm text-foreground font-medium">{card.question}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                {flashcards.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Nenhum flashcard adicionado. Crie flashcards para revisar o conteúdo.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {flashcards.map((card) => (
+                      <div
+                        key={card.id}
+                        onClick={() => toggleFlashcard(card.id)}
+                        className="min-h-32 p-4 rounded-lg bg-secondary cursor-pointer transition-all duration-300 hover:shadow-md"
+                      >
+                        {flippedCards.has(card.id) ? (
+                          <div className="scale-in">
+                            <p className="text-xs text-muted-foreground mb-2">Resposta</p>
+                            <p className="text-sm text-foreground">{card.answer}</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-2">Pergunta</p>
+                            <p className="text-sm text-foreground font-medium">{card.question}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
@@ -418,6 +474,13 @@ export default function DisciplineDetail() {
         open={isAddLinkModalOpen}
         onOpenChange={setIsAddLinkModalOpen}
         onSubmit={handleAddLink}
+      />
+
+      <CreateDisciplineModalEnhanced
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        onSubmit={handleEditDiscipline}
+        initialData={discipline}
       />
     </div>
   );

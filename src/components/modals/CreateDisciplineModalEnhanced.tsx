@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -19,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { subjectColors, weekDays } from '@/types/schedule';
-import { StudyPlan } from '@/types';
+import { StudyPlan, Discipline } from '@/types';
 import { X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +36,7 @@ interface CreateDisciplineModalEnhancedProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: CreateDisciplineData) => void;
+  initialData?: Discipline;
 }
 
 const subjects = [
@@ -64,6 +64,7 @@ export function CreateDisciplineModalEnhanced({
   open,
   onOpenChange,
   onSubmit,
+  initialData,
 }: CreateDisciplineModalEnhancedProps) {
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('');
@@ -75,6 +76,23 @@ export function CreateDisciplineModalEnhanced({
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [hoursPerDay, setHoursPerDay] = useState('2');
   const [blockDuration, setBlockDuration] = useState('30');
+
+  // Initialize form with initial data when editing
+  useEffect(() => {
+    if (open && initialData) {
+      setName(initialData.name);
+      setSubject(initialData.subject);
+      setSpecificSubject(initialData.specificSubject || '');
+      setGrade(initialData.grade);
+      setTags(initialData.tags || []);
+      setColor(initialData.color || subjectColors[0]);
+      setSelectedDays(initialData.studyPlan?.days || []);
+      setHoursPerDay(initialData.studyPlan?.hoursPerDay?.toString() || '2');
+      setBlockDuration(initialData.studyPlan?.blockDuration?.toString() || '30');
+    } else if (open && !initialData) {
+      resetForm();
+    }
+  }, [open, initialData]);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -116,7 +134,9 @@ export function CreateDisciplineModalEnhanced({
           blockDuration: parseInt(blockDuration) || 30,
         },
       });
-      resetForm();
+      if (!initialData) {
+        resetForm();
+      }
       onOpenChange(false);
     }
   };
@@ -135,12 +155,13 @@ export function CreateDisciplineModalEnhanced({
   };
 
   const isValid = name.trim().length > 0;
+  const isEditing = !!initialData;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Criar Disciplina</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Disciplina' : 'Criar Disciplina'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Hierarquia */}
@@ -341,7 +362,7 @@ export function CreateDisciplineModalEnhanced({
               Cancelar
             </Button>
             <Button type="submit" disabled={!isValid}>
-              Criar Disciplina
+              {isEditing ? 'Salvar Alterações' : 'Criar Disciplina'}
             </Button>
           </DialogFooter>
         </form>
