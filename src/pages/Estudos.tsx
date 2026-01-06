@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CreateDisciplineModalEnhanced } from '@/components/modals/CreateDisciplineModalEnhanced';
 import { DisciplineSearch } from '@/components/studies/DisciplineSearch';
-import { mockDisciplines } from '@/data/mockData';
-import { Discipline, StudyPlan } from '@/types';
-import { Plus, BookOpen, Clock, TrendingUp, Calendar } from 'lucide-react';
+import { useDisciplines } from '@/contexts/DisciplinesContext';
+import { StudyPlan } from '@/types';
+import { Plus, BookOpen, Clock, TrendingUp } from 'lucide-react';
 import { weekDays } from '@/types/schedule';
 
 interface SearchFilters {
@@ -21,7 +21,7 @@ interface SearchFilters {
 
 export default function Estudos() {
   const navigate = useNavigate();
-  const [disciplines, setDisciplines] = useState<Discipline[]>(mockDisciplines);
+  const { disciplines, addDiscipline } = useDisciplines();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     query: '',
@@ -39,20 +39,7 @@ export default function Estudos() {
     color: string;
     studyPlan: StudyPlan;
   }) => {
-    const newDiscipline: Discipline = {
-      id: Date.now().toString(),
-      name: data.name,
-      subject: data.subject,
-      specificSubject: data.specificSubject,
-      grade: data.grade,
-      progress: 0,
-      hoursStudied: 0,
-      createdAt: new Date(),
-      tags: data.tags,
-      color: data.color,
-      studyPlan: data.studyPlan,
-    };
-    setDisciplines([newDiscipline, ...disciplines]);
+    addDiscipline(data);
   };
 
   // Collect all tags
