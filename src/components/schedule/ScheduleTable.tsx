@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Plus, Trash2, RotateCcw, Copy } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Copy, RotateCcw, Eye, EyeOff, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScheduleBlockModal } from './ScheduleBlockModal';
-import { Schedule, ScheduleBlock, weekDays, timeSlots, activityTypes } from '@/types/schedule';
+import { Schedule, ScheduleBlock, weekDays, activityTypes } from '@/types/schedule';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -11,11 +11,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ScheduleTableProps {
   schedule: Schedule;
@@ -27,18 +28,33 @@ export function ScheduleTable({ schedule, onUpdateBlocks }: ScheduleTableProps) 
   const [editingBlock, setEditingBlock] = useState<ScheduleBlock | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draggedBlock, setDraggedBlock] = useState<{ key: string; block: ScheduleBlock } | null>(null);
+  const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'compact' | 'normal'>('compact');
+  const [showActivityType, setShowActivityType] = useState(true);
+  const [blockInterval, setBlockInterval] = useState<'30' | '60'>('60');
 
-  const getBlockKey = (day: string, time: string) => `${day}-${time}`;
+  // Generate time slots based on schedule start/end time and interval
+  const timeSlots = useMemo(() => {
+    const slots: string[] = [];
+    const startHour = parseInt(schedule.startTime.split(':')[0]);
+    const endHour = parseInt(schedule.endTime.split(':')[0]);
+    const interval = parseInt(blockInterval);
+
+    for (let hour = startHour; hour < endHour; hour++) {
+      if (interval === 30) {
+        slots.push(`${hour.toString().padStart(2, '0')}:00`);
+        slots.push(`${hour.toString().padStart(2, '0')}:30`);
+      } else {
+        slots.push(`${hour.toString().padStart(2, '0')}:00`);
+      }
+    }
+    return slots;
+  }, [schedule.startTime, schedule.endTime, blockInterval]);
 
   const handleCellClick = (day: string, time: string) => {
-    const key = getBlockKey(day, time);
-    const existingBlock = schedule.blocks[key];
-    if (existingBlock) {
-      setEditingBlock(existingBlock);
-    } else {
-      setEditingBlock(null);
-    }
+    const key = `${day}-${time}`;
     setSelectedCell(key);
+    setEditingBlock(schedule.blocks[key] || null);
     setIsModalOpen(true);
   };
 
@@ -47,8 +63,6 @@ export function ScheduleTable({ schedule, onUpdateBlocks }: ScheduleTableProps) 
     const newBlocks = { ...schedule.blocks, [selectedCell]: block };
     onUpdateBlocks(newBlocks);
     setIsModalOpen(false);
-    setSelectedCell(null);
-    setEditingBlock(null);
   };
 
   const handleDeleteBlock = () => {
@@ -57,151 +71,192 @@ export function ScheduleTable({ schedule, onUpdateBlocks }: ScheduleTableProps) 
     delete newBlocks[selectedCell];
     onUpdateBlocks(newBlocks);
     setIsModalOpen(false);
-    setSelectedCell(null);
-    setEditingBlock(null);
   };
 
-  const handleDragStart = (e: React.DragEvent, day: string, time: string) => {
-    const key = getBlockKey(day, time);
-    const block = schedule.blocks[key];
-    if (block) {
-      setDraggedBlock({ key, block });
-      e.dataTransfer.effectAllowed = 'move';
+  const handleDragStart = (e: React.DragEvent, key: string, block: ScheduleBlock) => {
+    setDraggedBlock({ key, block });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, key: string) => {
+    e.preventDefault();
+    if (draggedBlock && draggedBlock.key !== key) {
+      setDragOverCell(key);
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, targetKey: string) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, day: string, time: string) => {
-    e.preventDefault();
-    if (!draggedBlock) return;
-
-    const targetKey = getBlockKey(day, time);
-    if (targetKey === draggedBlock.key) return;
+    if (!draggedBlock || draggedBlock.key === targetKey) {
+      setDraggedBlock(null);
+      setDragOverCell(null);
+      return;
+    }
 
     const newBlocks = { ...schedule.blocks };
+    newBlocks[targetKey] = { ...draggedBlock.block };
     delete newBlocks[draggedBlock.key];
-    newBlocks[targetKey] = draggedBlock.block;
+    
     onUpdateBlocks(newBlocks);
     setDraggedBlock(null);
+    setDragOverCell(null);
   };
 
-  const handleReset = () => {
-    onUpdateBlocks({});
+  const handleReset = () => onUpdateBlocks({});
+
+  const handleCopyDay = (sourceDay: string) => {
+    const dayBlocks = Object.entries(schedule.blocks).filter(([key]) => key.startsWith(`${sourceDay}-`));
+    if (dayBlocks.length === 0) return;
+
+    const dayIndex = weekDays.findIndex((d) => d.key === sourceDay);
+    const targetDay = weekDays[(dayIndex + 1) % weekDays.length].key;
+
+    const newBlocks = { ...schedule.blocks };
+    dayBlocks.forEach(([key, block]) => {
+      const time = key.split('-')[1];
+      newBlocks[`${targetDay}-${time}`] = { ...block, id: Date.now().toString() + Math.random() };
+    });
+    onUpdateBlocks(newBlocks);
   };
 
-  const handleDuplicate = () => {
-    // Just a visual confirmation - in a real app this would create a copy
-    alert('Cronograma duplicado! (simulação)');
+  const handleResetDay = (day: string) => {
+    const newBlocks = { ...schedule.blocks };
+    Object.keys(newBlocks).forEach((key) => {
+      if (key.startsWith(`${day}-`)) delete newBlocks[key];
+    });
+    onUpdateBlocks(newBlocks);
   };
 
-  const getActivityIcon = (type: ScheduleBlock['activityType']) => {
-    return activityTypes.find(t => t.value === type)?.icon || '📚';
-  };
+  const getActivityIcon = (type: ScheduleBlock['activityType']) => activityTypes.find((t) => t.value === type)?.icon || '📚';
+  const getActivityLabel = (type: ScheduleBlock['activityType']) => activityTypes.find((t) => t.value === type)?.label || 'Estudo';
+
+  const cellHeight = viewMode === 'compact' ? 'h-9' : 'h-12';
 
   return (
-    <div className="space-y-4">
-      {/* Actions */}
-      <div className="flex gap-2 justify-end">
-        <Button variant="outline" size="sm" onClick={handleDuplicate}>
-          <Copy className="w-4 h-4 mr-1" />
-          Duplicar
-        </Button>
-        <Button variant="outline" size="sm" onClick={handleReset}>
-          <RotateCcw className="w-4 h-4 mr-1" />
+    <div className="space-y-3">
+      {/* Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 bg-card border border-border rounded-lg">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Modo:</span>
+            <Select value={viewMode} onValueChange={(v: 'compact' | 'normal') => setViewMode(v)}>
+              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="compact">Compacto</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Intervalo:</span>
+            <Select value={blockInterval} onValueChange={(v: '30' | '60') => setBlockInterval(v)}>
+              <SelectTrigger className="h-7 w-20 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="30">30 min</SelectItem>
+                <SelectItem value="60">1 hora</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setShowActivityType(!showActivityType)} className="h-7 text-xs gap-1 px-2">
+            {showActivityType ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+            Tipos
+          </Button>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleReset} className="h-7 text-xs gap-1">
+          <RotateCcw className="w-3 h-3" />
           Resetar
         </Button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto border border-border rounded-lg">
-        <table className="w-full min-w-[800px]">
-          <thead>
-            <tr className="bg-secondary/50">
-              <th className="p-2 text-left text-xs font-semibold text-muted-foreground w-20 border-r border-border">
-                Horário
-              </th>
-              {weekDays.map((day) => (
-                <th
-                  key={day.key}
-                  className="p-2 text-center text-xs font-semibold text-foreground border-r border-border last:border-r-0"
-                >
-                  {day.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {timeSlots.map((time) => (
-              <tr key={time} className="border-t border-border">
-                <td className="p-2 text-xs text-muted-foreground font-medium border-r border-border bg-secondary/30">
-                  {time}
-                </td>
-                {weekDays.map((day) => {
-                  const key = getBlockKey(day.key, time);
-                  const block = schedule.blocks[key];
-                  
-                  return (
-                    <TooltipProvider key={key}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <td
-                            className={cn(
-                              "p-1 border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-secondary/50 relative min-h-[60px] h-[60px]",
-                              !block && "hover:bg-secondary/30"
-                            )}
-                            onClick={() => handleCellClick(day.key, time)}
-                            draggable={!!block}
-                            onDragStart={(e) => handleDragStart(e, day.key, time)}
-                            onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, day.key, time)}
-                          >
-                            {block ? (
-                              <div
-                                className="h-full rounded-md p-2 text-white text-xs font-medium flex flex-col justify-center"
-                                style={{ backgroundColor: block.color }}
-                              >
-                                <span className="flex items-center gap-1">
-                                  {getActivityIcon(block.activityType)}
-                                  <span className="truncate">{block.subject}</span>
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="h-full flex items-center justify-center opacity-0 hover:opacity-30">
-                                <Plus className="w-4 h-4 text-muted-foreground" />
-                              </div>
-                            )}
-                          </td>
-                        </TooltipTrigger>
-                        {block && (
-                          <TooltipContent>
-                            <p>{block.subject}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {activityTypes.find(t => t.value === block.activityType)?.label} - {block.duration}min
-                            </p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  );
-                })}
+      {/* Schedule Grid */}
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
+          <table className="w-full border-collapse min-w-[700px]">
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-muted">
+                <th className="w-14 text-[10px] font-medium text-muted-foreground border-r border-border p-1.5">Horário</th>
+                {weekDays.map((day) => (
+                  <th key={day.key} className="text-[10px] font-medium text-foreground border-r border-border last:border-r-0 p-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <span>{day.label.slice(0, 3)}</span>
+                      <div className="flex">
+                        <TooltipProvider><Tooltip>
+                          <TooltipTrigger asChild>
+                            <button onClick={() => handleCopyDay(day.key)} className="p-0.5 hover:bg-background rounded opacity-40 hover:opacity-100">
+                              <Copy className="w-2.5 h-2.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs">Copiar dia</TooltipContent>
+                        </Tooltip></TooltipProvider>
+                        <TooltipProvider><Tooltip>
+                          <TooltipTrigger asChild>
+                            <button onClick={() => handleResetDay(day.key)} className="p-0.5 hover:bg-background rounded opacity-40 hover:opacity-100">
+                              <RotateCcw className="w-2.5 h-2.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs">Limpar dia</TooltipContent>
+                        </Tooltip></TooltipProvider>
+                      </div>
+                    </div>
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {timeSlots.map((time, i) => (
+                <tr key={time} className={cn("border-t border-border", i % 2 === 0 ? "bg-background" : "bg-muted/30")}>
+                  <td className={cn("text-[10px] text-muted-foreground text-center border-r border-border font-medium", cellHeight)}>{time}</td>
+                  {weekDays.map((day) => {
+                    const key = `${day.key}-${time}`;
+                    const block = schedule.blocks[key];
+                    return (
+                      <td
+                        key={key}
+                        className={cn("border-r border-border last:border-r-0 p-0.5 cursor-pointer transition-colors", cellHeight, dragOverCell === key && "bg-primary/10", !block && "hover:bg-muted/50")}
+                        onClick={() => !block && handleCellClick(day.key, time)}
+                        onDragOver={(e) => handleDragOver(e, key)}
+                        onDragLeave={() => setDragOverCell(null)}
+                        onDrop={(e) => handleDrop(e, key)}
+                      >
+                        {block && (
+                          <TooltipProvider><Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, key, block)}
+                                onDragEnd={() => { setDraggedBlock(null); setDragOverCell(null); }}
+                                onClick={(e) => { e.stopPropagation(); handleCellClick(day.key, time); }}
+                                className="h-full rounded px-1 py-0.5 flex items-center gap-0.5 cursor-grab active:cursor-grabbing text-[9px]"
+                                style={{ backgroundColor: `${block.color}25`, borderLeft: `2px solid ${block.color}` }}
+                              >
+                                <GripVertical className="w-2 h-2 text-muted-foreground/40 flex-shrink-0" />
+                                {showActivityType && <span className="flex-shrink-0 text-[10px]">{getActivityIcon(block.activityType)}</span>}
+                                <span className="truncate font-medium">{block.subject}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              <p className="font-medium">{block.subject}</p>
+                              <p className="text-muted-foreground">{getActivityLabel(block.activityType)} • {block.duration}min</p>
+                            </TooltipContent>
+                          </Tooltip></TooltipProvider>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Block Modal */}
-      <ScheduleBlockModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        block={editingBlock}
-        onSave={handleSaveBlock}
-        onDelete={editingBlock ? handleDeleteBlock : undefined}
-      />
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+        <span className="font-medium">Legenda:</span>
+        {activityTypes.map((t) => <span key={t.value} className="flex items-center gap-0.5">{t.icon} {t.label}</span>)}
+      </div>
+
+      <ScheduleBlockModal open={isModalOpen} onOpenChange={setIsModalOpen} block={editingBlock} onSave={handleSaveBlock} onDelete={editingBlock ? handleDeleteBlock : undefined} />
     </div>
   );
 }
