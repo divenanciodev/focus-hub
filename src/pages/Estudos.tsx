@@ -180,7 +180,7 @@ export default function Estudos() {
             <div
               key={discipline.id}
               onClick={() => navigate(`/estudos/${discipline.id}`)}
-              className="bg-card border-2 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
+              className="bg-card border-2 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group flex flex-col"
               style={{
                 borderColor: discipline.color || 'var(--border)',
               }}
@@ -198,9 +198,9 @@ export default function Estudos() {
                 />
               </div>
 
-              <div className="p-4">
+              <div className="p-4 flex flex-col flex-1">
                 {/* Header with name and actions */}
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-3 flex-1">
                   <h3 className="font-semibold text-foreground line-clamp-2">{discipline.name}</h3>
                   
                   {/* Edit/Delete buttons - visible on hover */}
@@ -222,8 +222,10 @@ export default function Estudos() {
                   </div>
                 </div>
 
-                {/* Progress */}
-                <ProgressBar value={discipline.progress} showLabel color={discipline.color} />
+                {/* Progress - always at bottom */}
+                <div className="mt-auto">
+                  <ProgressBar value={discipline.progress} showLabel color={discipline.color} />
+                </div>
               </div>
             </div>
           ))}
