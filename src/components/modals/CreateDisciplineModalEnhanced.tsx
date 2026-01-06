@@ -19,10 +19,27 @@ import {
 } from '@/components/ui/select';
 import { subjectColors, weekDays } from '@/types/schedule';
 import { StudyPlan, Discipline } from '@/types';
-import { X, Plus, Upload, Image as ImageIcon, Sparkles, Loader2 } from 'lucide-react';
+import { X, Plus, Upload, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+// Imagens padrão de produtividade/estudos (Unsplash)
+const defaultCoverImages = [
+  'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&q=80', // Livros e café
+  'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&q=80', // Pilha de livros
+  'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&q=80', // Notebook e livros
+  'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&q=80', // Mesa de estudos
+  'https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?w=800&q=80', // Escrevendo
+  'https://images.unsplash.com/photo-1471107340929-a87cd0f5b5f3?w=800&q=80', // Caderno aberto
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80', // Workspace minimalista
+  'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80', // Colaboração
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80', // Laptop estudos
+  'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=800&q=80', // Livro aberto
+];
+
+const getRandomDefaultImage = () => {
+  return defaultCoverImages[Math.floor(Math.random() * defaultCoverImages.length)];
+};
 
 interface CreateDisciplineData {
   name: string;
@@ -80,7 +97,6 @@ export function CreateDisciplineModalEnhanced({
   const [hoursPerDay, setHoursPerDay] = useState('2');
   const [blockDuration, setBlockDuration] = useState('30');
   const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   // Initialize form with initial data when editing
   useEffect(() => {
@@ -97,6 +113,8 @@ export function CreateDisciplineModalEnhanced({
       setCoverImage(initialData.coverImage);
     } else if (open && !initialData) {
       resetForm();
+      // Set a random default image for new disciplines
+      setCoverImage(getRandomDefaultImage());
     }
   }, [open, initialData]);
 
@@ -116,39 +134,11 @@ export function CreateDisciplineModalEnhanced({
   };
 
   const handleRemoveImage = () => {
-    setCoverImage(undefined);
+    setCoverImage(getRandomDefaultImage());
   };
 
-  const handleGenerateImage = async () => {
-    if (!name.trim()) {
-      toast.error('Digite o nome da disciplina primeiro');
-      return;
-    }
-
-    setIsGeneratingImage(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-discipline-cover', {
-        body: { disciplineName: name },
-      });
-
-      if (error) {
-        console.error('Error generating image:', error);
-        toast.error('Erro ao gerar imagem. Tente novamente.');
-        return;
-      }
-
-      if (data?.imageUrl) {
-        setCoverImage(data.imageUrl);
-        toast.success('Imagem gerada com sucesso!');
-      } else {
-        toast.error('Não foi possível gerar a imagem');
-      }
-    } catch (err) {
-      console.error('Error:', err);
-      toast.error('Erro ao gerar imagem');
-    } finally {
-      setIsGeneratingImage(false);
-    }
+  const handleRandomizeImage = () => {
+    setCoverImage(getRandomDefaultImage());
   };
 
   const handleAddTag = () => {
@@ -268,20 +258,15 @@ export function CreateDisciplineModalEnhanced({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={handleGenerateImage}
-                    disabled={isGeneratingImage || !name.trim()}
+                    onClick={handleRandomizeImage}
                     className="flex items-center gap-2"
                   >
-                    {isGeneratingImage ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                    <span>{isGeneratingImage ? 'Gerando...' : 'Gerar com IA'}</span>
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Sortear outra</span>
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Envie uma imagem ou gere automaticamente com IA
+                  Envie sua imagem ou sorteie uma das nossas sugestões
                 </p>
               </div>
             </div>
