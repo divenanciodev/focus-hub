@@ -9,7 +9,7 @@ import { AddStudyLinkModal } from '@/components/modals/AddStudyLinkModal';
 import { VideoPlaylist } from '@/components/studies/VideoPlaylist';
 import { SummarySection } from '@/components/studies/SummarySection';
 import { useDisciplines } from '@/contexts/DisciplinesContext';
-import { StudyLink, Task, Flashcard, VideoLink, Summary } from '@/types';
+import { StudyLink, Task, VideoLink, Summary } from '@/types';
 import {
   ArrowLeft,
   Plus,
@@ -49,12 +49,10 @@ export default function DisciplineDetail() {
   const [links, setLinks] = useState<StudyLink[]>([]);
   const [videos, setVideos] = useState<VideoLink[]>([]);
   const [summaries, setSummaries] = useState<Summary[]>([]);
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
 
   const [newTask, setNewTask] = useState('');
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
 
   if (!discipline) {
     return (
@@ -95,15 +93,6 @@ export default function DisciplineDetail() {
     setLinks(links.filter((l) => l.id !== linkId));
   };
 
-  const toggleFlashcard = (cardId: string) => {
-    const newFlipped = new Set(flippedCards);
-    if (newFlipped.has(cardId)) {
-      newFlipped.delete(cardId);
-    } else {
-      newFlipped.add(cardId);
-    }
-    setFlippedCards(newFlipped);
-  };
 
   const getLinkIcon = (type: string) => {
     switch (type) {
@@ -245,7 +234,6 @@ export default function DisciplineDetail() {
               <TabsTrigger value="videos">Vídeos</TabsTrigger>
               <TabsTrigger value="links">Links</TabsTrigger>
               <TabsTrigger value="resumos">Resumos</TabsTrigger>
-              <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
             </TabsList>
 
             <TabsContent value="tasks" className="mt-0">
@@ -368,42 +356,6 @@ export default function DisciplineDetail() {
               </div>
             </TabsContent>
 
-            <TabsContent value="flashcards" className="mt-0">
-              <div className="bg-card border border-border rounded-xl p-5">
-                <Button className="mb-4">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo flashcard
-                </Button>
-
-                {flashcards.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    Nenhum flashcard adicionado. Crie flashcards para revisar o conteúdo.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {flashcards.map((card) => (
-                      <div
-                        key={card.id}
-                        onClick={() => toggleFlashcard(card.id)}
-                        className="min-h-32 p-4 rounded-lg bg-secondary cursor-pointer transition-all duration-300 hover:shadow-md"
-                      >
-                        {flippedCards.has(card.id) ? (
-                          <div className="scale-in">
-                            <p className="text-xs text-muted-foreground mb-2">Resposta</p>
-                            <p className="text-sm text-foreground">{card.answer}</p>
-                          </div>
-                        ) : (
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-2">Pergunta</p>
-                            <p className="text-sm text-foreground font-medium">{card.question}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </TabsContent>
           </Tabs>
         </div>
 
