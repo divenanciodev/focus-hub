@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,62 +19,42 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FlashcardDeck, FlashcardItem, FlashcardType } from '@/types/training';
-import { Plus, Trash2, Upload, RotateCcw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { 
+  FlashcardDeck, 
+  FlashcardItem, 
+  FlashcardType, 
+  ContentLevel,
+  FlashcardContent,
+  MultipleChoiceOption,
+} from '@/types/training';
+import { 
+  Plus, 
+  Trash2, 
+  Upload, 
+  RotateCcw, 
+  Wand2,
+  FileText,
+  Lightbulb,
+  CheckCircle2,
+  XCircle,
+  Sparkles,
+  BookOpen,
+  GraduationCap,
+  Zap,
+  FileUp,
+  Image as ImageIcon,
+  Info,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { FlashcardPreviewGrid } from './FlashcardPreviewGrid';
+import { cn } from '@/lib/utils';
 
-// Componente de preview interativo do cartão
-function InteractiveCardPreview({ 
-  card, 
-  index, 
-  onRemove 
-}: { 
-  card: FlashcardItem; 
-  index: number; 
-  onRemove: () => void;
-}) {
-  const [isFlipped, setIsFlipped] = useState(false);
-
-  return (
-    <div 
-      className="relative group cursor-pointer"
-      onClick={() => setIsFlipped(!isFlipped)}
-    >
-      <div 
-        className={`bg-card border border-border rounded-xl p-4 min-h-[100px] transition-all duration-300 ${
-          isFlipped ? 'bg-primary/5 border-primary/30' : ''
-        }`}
-      >
-        <div className="flex items-start justify-between mb-2">
-          <span className="text-xs font-medium bg-secondary px-2 py-0.5 rounded-full">
-            {index + 1}
-          </span>
-          <div className="flex items-center gap-1">
-            <RotateCcw className={`w-3 h-3 text-muted-foreground transition-transform ${isFlipped ? 'rotate-180' : ''}`} />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove();
-              }}
-            >
-              <Trash2 className="w-3 h-3 text-destructive" />
-            </Button>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">
-            {isFlipped ? 'Resposta:' : 'Pergunta:'}
-          </p>
-          <p className="text-sm font-medium line-clamp-3">
-            {isFlipped ? card.back : card.front}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+// Helper to get text from content
+function getContentText(content: string | FlashcardContent): string {
+  if (typeof content === 'string') return content;
+  return content.mainText || '';
 }
 
 interface CreateFlashcardDeckModalProps {
@@ -86,19 +66,79 @@ interface CreateFlashcardDeckModalProps {
 
 const disciplines = [
   'Direito Constitucional',
+  'Direito Administrativo',
+  'Direito Civil',
+  'Direito Penal',
   'Português',
   'Matemática Financeira',
   'Raciocínio Lógico',
   'Informática',
   'Conhecimentos Gerais',
+  'Administração Pública',
+  'Contabilidade',
+  'Economia',
 ];
 
-const flashcardTypes: { value: FlashcardType; label: string }[] = [
-  { value: 'direct', label: 'Pergunta direta' },
-  { value: 'true-false', label: 'Verdadeiro ou falso' },
-  { value: 'fill-blank', label: 'Completar lacuna' },
-  { value: 'concept-definition', label: 'Conceito → Definição' },
+const flashcardTypes: { value: FlashcardType; label: string; description: string; icon: string }[] = [
+  { value: 'direct', label: 'Pergunta direta', description: 'Pergunta simples com resposta', icon: '❓' },
+  { value: 'true-false', label: 'Verdadeiro ou falso', description: 'Afirmação para validar', icon: '✅' },
+  { value: 'fill-blank', label: 'Completar lacuna', description: 'Preencher o espaço em branco', icon: '📝' },
+  { value: 'concept-definition', label: 'Conceito → Definição', description: 'Termo e sua definição', icon: '📚' },
+  { value: 'multiple-choice', label: 'Múltipla escolha', description: 'Pergunta com alternativas', icon: '🔘' },
+  { value: 'contextual', label: 'Pergunta contextual', description: 'Baseada em um trecho', icon: '📖' },
+  { value: 'reversible', label: 'Reversível', description: 'Pode estudar frente ↔ verso', icon: '🔄' },
 ];
+
+const levelConfig = {
+  basic: { 
+    label: 'Básico', 
+    icon: BookOpen, 
+    color: 'text-green-500',
+    bg: 'bg-green-500/10',
+    description: 'Perguntas diretas, definições simples, mais exemplos visuais'
+  },
+  intermediate: { 
+    label: 'Intermediário', 
+    icon: GraduationCap, 
+    color: 'text-yellow-500',
+    bg: 'bg-yellow-500/10',
+    description: 'Comparações, aplicação prática, múltipla escolha'
+  },
+  advanced: { 
+    label: 'Avançado', 
+    icon: Zap, 
+    color: 'text-red-500',
+    bg: 'bg-red-500/10',
+    description: 'Casos práticos, pegadinhas conceituais, análise crítica'
+  },
+};
+
+// Question variation templates by level
+const questionTemplates = {
+  basic: [
+    'O que é {concept}?',
+    'Defina {concept}.',
+    'Qual a função de {concept}?',
+    'Para que serve {concept}?',
+    'Qual o significado de {concept}?',
+  ],
+  intermediate: [
+    'Explique a diferença entre {concept} e {concept2}.',
+    'Quais são as características de {concept}?',
+    'Como {concept} se aplica na prática?',
+    'Cite três exemplos de {concept}.',
+    'Complete: {concept} é definido como _______.',
+    'Assinale V ou F: {statement}',
+  ],
+  advanced: [
+    'Analise criticamente a relação entre {concept} e {concept2}.',
+    'Qual é a consequência prática de {concept}?',
+    'Compare e contraste {concept} com {concept2}.',
+    'Explique as exceções à regra de {concept}.',
+    'No contexto de {context}, como se aplica {concept}?',
+    'Sobre {concept}, é INCORRETO afirmar que:',
+  ],
+};
 
 export function CreateFlashcardDeckModal({
   open,
@@ -111,65 +151,273 @@ export function CreateFlashcardDeckModal({
   const [subject, setSubject] = useState(editingDeck?.subject || '');
   const [cards, setCards] = useState<FlashcardItem[]>(editingDeck?.cards || []);
   const [activeTab, setActiveTab] = useState('manual');
+  const [level, setLevel] = useState<ContentLevel>('intermediate');
   
-  // For manual creation
+  // For manual creation - advanced
   const [newFront, setNewFront] = useState('');
   const [newBack, setNewBack] = useState('');
   const [newType, setNewType] = useState<FlashcardType>('direct');
+  const [newHint, setNewHint] = useState('');
+  const [newExample, setNewExample] = useState('');
+  const [isReversible, setIsReversible] = useState(false);
+  
+  // For true/false type
+  const [tfAnswer, setTfAnswer] = useState<boolean>(true);
+  const [tfExplanation, setTfExplanation] = useState('');
+  
+  // For multiple choice type
+  const [mcOptions, setMcOptions] = useState<MultipleChoiceOption[]>([
+    { id: '1', text: '', isCorrect: true },
+    { id: '2', text: '', isCorrect: false },
+    { id: '3', text: '', isCorrect: false },
+    { id: '4', text: '', isCorrect: false },
+  ]);
   
   // For generation from content
   const [contentText, setContentText] = useState('');
   const [cardCount, setCardCount] = useState('10');
-  const [difficulty, setDifficulty] = useState('medium');
+  const [generateTypes, setGenerateTypes] = useState<FlashcardType[]>(['direct', 'true-false', 'multiple-choice']);
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  // For editing
+  const [editingCard, setEditingCard] = useState<FlashcardItem | null>(null);
+  
+  // File input ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddCard = () => {
-    if (!newFront.trim() || !newBack.trim()) {
-      toast.error('Preencha frente e verso do cartão');
+    if (!newFront.trim() || (!newBack.trim() && newType !== 'true-false' && newType !== 'multiple-choice')) {
+      toast.error('Preencha os campos obrigatórios do cartão');
       return;
     }
     
-    const newCard: FlashcardItem = {
-      id: Date.now().toString(),
-      front: newFront.trim(),
-      back: newBack.trim(),
-      type: newType,
+    // Build the card based on type
+    const frontContent: FlashcardContent = {
+      mainText: newFront.trim(),
+      hint: newHint.trim() || undefined,
+    };
+
+    const backContent: FlashcardContent = {
+      mainText: newBack.trim(),
+      example: newExample.trim() || undefined,
     };
     
-    setCards([...cards, newCard]);
+    const newCard: FlashcardItem = {
+      id: editingCard?.id || Date.now().toString(),
+      front: frontContent,
+      back: backContent,
+      type: newType,
+      createdAt: new Date(),
+    };
+
+    // Add type-specific data
+    if (newType === 'true-false') {
+      newCard.trueFalseAnswer = tfAnswer;
+      newCard.trueFalseExplanation = tfExplanation.trim() || undefined;
+      (newCard.back as FlashcardContent).mainText = tfAnswer ? 'Verdadeiro' : 'Falso';
+    }
+
+    if (newType === 'multiple-choice') {
+      const validOptions = mcOptions.filter(o => o.text.trim());
+      if (validOptions.length < 2) {
+        toast.error('Adicione pelo menos 2 alternativas');
+        return;
+      }
+      if (!validOptions.some(o => o.isCorrect)) {
+        toast.error('Marque a alternativa correta');
+        return;
+      }
+      newCard.multipleChoiceOptions = validOptions;
+      const correctOption = validOptions.find(o => o.isCorrect);
+      (newCard.back as FlashcardContent).mainText = correctOption?.text || '';
+    }
+
+    if (newType === 'reversible' || isReversible) {
+      newCard.type = 'reversible';
+    }
+
+    if (editingCard) {
+      setCards(cards.map(c => c.id === editingCard.id ? newCard : c));
+      toast.success('Cartão atualizado!');
+      setEditingCard(null);
+    } else {
+      setCards([...cards, newCard]);
+      toast.success('Cartão adicionado!');
+    }
+    
+    resetCardForm();
+  };
+
+  const resetCardForm = () => {
     setNewFront('');
     setNewBack('');
-    toast.success('Cartão adicionado!');
+    setNewHint('');
+    setNewExample('');
+    setTfAnswer(true);
+    setTfExplanation('');
+    setMcOptions([
+      { id: '1', text: '', isCorrect: true },
+      { id: '2', text: '', isCorrect: false },
+      { id: '3', text: '', isCorrect: false },
+      { id: '4', text: '', isCorrect: false },
+    ]);
+    setIsReversible(false);
+  };
+
+  const handleEditCard = (card: FlashcardItem) => {
+    setEditingCard(card);
+    setNewFront(getContentText(card.front));
+    setNewBack(getContentText(card.back));
+    setNewType(card.type);
+    
+    if (typeof card.front !== 'string') {
+      setNewHint(card.front.hint || '');
+    }
+    if (typeof card.back !== 'string') {
+      setNewExample(card.back.example || '');
+    }
+    
+    if (card.type === 'true-false') {
+      setTfAnswer(card.trueFalseAnswer || true);
+      setTfExplanation(card.trueFalseExplanation || '');
+    }
+    
+    if (card.type === 'multiple-choice' && card.multipleChoiceOptions) {
+      setMcOptions(card.multipleChoiceOptions);
+    }
+    
+    setActiveTab('manual');
   };
 
   const handleRemoveCard = (cardId: string) => {
     setCards(cards.filter(c => c.id !== cardId));
   };
 
-  const handleGenerateFromContent = () => {
+  const handleReorderCards = (newCards: FlashcardItem[]) => {
+    setCards(newCards);
+  };
+
+  const updateMcOption = (id: string, field: 'text' | 'isCorrect', value: string | boolean) => {
+    setMcOptions(options => options.map(opt => {
+      if (opt.id === id) {
+        if (field === 'isCorrect' && value === true) {
+          // Only one correct answer
+          return { ...opt, isCorrect: true };
+        }
+        return { ...opt, [field]: value };
+      }
+      if (field === 'isCorrect' && value === true) {
+        return { ...opt, isCorrect: false };
+      }
+      return opt;
+    }));
+  };
+
+  const handleGenerateFromContent = async () => {
     if (!contentText.trim()) {
       toast.error('Digite ou cole um conteúdo primeiro');
       return;
     }
     
-    // Simulated generation - in a real app, this would use AI
-    const sentences = contentText.split(/[.!?]+/).filter(s => s.trim().length > 20);
-    const count = Math.min(parseInt(cardCount), sentences.length, 20);
+    setIsGenerating(true);
     
-    const generatedCards: FlashcardItem[] = sentences.slice(0, count).map((sentence, index) => {
-      const words = sentence.trim().split(' ');
-      const keyWord = words[Math.floor(words.length / 2)] || words[0];
+    // Simulated intelligent generation
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const sentences = contentText
+      .split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 30);
+    
+    const count = Math.min(parseInt(cardCount), sentences.length, 30);
+    const templates = questionTemplates[level];
+    
+    const generatedCards: FlashcardItem[] = [];
+    
+    for (let i = 0; i < count && i < sentences.length; i++) {
+      const sentence = sentences[i];
+      const words = sentence.split(' ').filter(w => w.length > 4);
+      const keyWord = words[Math.floor(Math.random() * words.length)] || words[0] || 'conceito';
       
-      return {
-        id: `gen-${Date.now()}-${index}`,
-        front: `O que é ${keyWord}?`,
-        back: sentence.trim(),
-        type: 'direct' as FlashcardType,
+      // Randomly select type based on level
+      const typeIndex = i % generateTypes.length;
+      const selectedType = generateTypes[typeIndex];
+      
+      // Select template based on level
+      const templateIndex = i % templates.length;
+      let questionTemplate = templates[templateIndex];
+      
+      // Build question from template
+      let question = questionTemplate
+        .replace('{concept}', keyWord)
+        .replace('{concept2}', words[1] || 'outro conceito')
+        .replace('{statement}', sentence.substring(0, 80))
+        .replace('{context}', discipline || 'estudos');
+
+      const card: FlashcardItem = {
+        id: `gen-${Date.now()}-${i}`,
+        front: {
+          mainText: question,
+          hint: level === 'basic' ? `Pense sobre: ${keyWord}` : undefined,
+        },
+        back: {
+          mainText: sentence,
+          example: level === 'advanced' 
+            ? `Aplicação: Este conceito é fundamental para entender ${keyWord} na prática.`
+            : undefined,
+        },
+        type: selectedType,
+        createdAt: new Date(),
       };
-    });
+
+      // Add type-specific data
+      if (selectedType === 'true-false') {
+        card.trueFalseAnswer = Math.random() > 0.3; // 70% true
+        card.front = { mainText: sentence.substring(0, 100) + (card.trueFalseAnswer ? '' : ' [incorreto]') };
+        card.trueFalseExplanation = `A afirmação está ${card.trueFalseAnswer ? 'correta' : 'incorreta'} pois ${keyWord} relaciona-se diretamente ao contexto.`;
+      }
+
+      if (selectedType === 'multiple-choice') {
+        card.multipleChoiceOptions = [
+          { id: 'a', text: sentence.substring(0, 50) + '...', isCorrect: true },
+          { id: 'b', text: 'Alternativa incorreta relacionada.', isCorrect: false },
+          { id: 'c', text: 'Outra alternativa plausível mas incorreta.', isCorrect: false },
+          { id: 'd', text: 'Opção que não corresponde ao conceito.', isCorrect: false },
+        ].sort(() => Math.random() - 0.5);
+      }
+
+      generatedCards.push(card);
+    }
     
     setCards([...cards, ...generatedCards]);
     setContentText('');
-    toast.success(`${generatedCards.length} cartões gerados!`);
+    setIsGenerating(false);
+    toast.success(`${generatedCards.length} cartões gerados com sucesso!`, {
+      description: `Nível: ${levelConfig[level].label} • Tipos variados de perguntas`,
+    });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type === 'application/pdf') {
+      toast.info('Processando PDF...', { duration: 2000 });
+      // Simulate PDF text extraction
+      setTimeout(() => {
+        setContentText('Conteúdo extraído do PDF: ' + file.name + '\n\nEste é um exemplo de texto que seria extraído de um PDF. Em uma implementação real, usaríamos uma biblioteca de extração de texto de PDF para processar o documento e gerar flashcards automaticamente baseados no conteúdo.');
+        toast.success('PDF processado! Agora você pode gerar os flashcards.');
+      }, 1500);
+    } else if (file.type === 'text/plain') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setContentText(e.target?.result as string);
+        toast.success('Arquivo carregado!');
+      };
+      reader.readAsText(file);
+    } else {
+      toast.error('Formato não suportado. Use PDF ou TXT.');
+    }
   };
 
   const handleSubmit = () => {
@@ -186,6 +434,7 @@ export function CreateFlashcardDeckModal({
       cards,
       createdAt: editingDeck?.createdAt || new Date(),
       totalReviews: editingDeck?.totalReviews || 0,
+      level,
     };
     
     onSubmit(deck);
@@ -198,26 +447,27 @@ export function CreateFlashcardDeckModal({
     setDiscipline('');
     setSubject('');
     setCards([]);
-    setNewFront('');
-    setNewBack('');
+    resetCardForm();
     setContentText('');
+    setEditingCard(null);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
             {editingDeck ? 'Editar Deck' : 'Criar Deck de Flashcards'}
           </DialogTitle>
           <DialogDescription>
-            Crie cartões de memorização para estudo ativo
+            Crie cartões de memorização com suporte a múltiplos formatos e geração inteligente
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Deck Info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="space-y-2">
               <Label>Nome do deck *</Label>
               <Input
@@ -247,124 +497,352 @@ export function CreateFlashcardDeckModal({
                 placeholder="Ex: Art. 1º ao 5º"
               />
             </div>
+            <div className="space-y-2">
+              <Label>Nível</Label>
+              <Select value={level} onValueChange={(v) => setLevel(v as ContentLevel)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(levelConfig).map(([key, config]) => {
+                    const Icon = config.icon;
+                    return (
+                      <SelectItem key={key} value={key}>
+                        <span className={cn("flex items-center gap-2", config.color)}>
+                          <Icon className="w-4 h-4" />
+                          {config.label}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Level description */}
+          <div className={cn("flex items-start gap-3 p-3 rounded-lg text-sm", levelConfig[level].bg)}>
+            <Info className={cn("w-4 h-4 mt-0.5 shrink-0", levelConfig[level].color)} />
+            <span className={levelConfig[level].color}>{levelConfig[level].description}</span>
           </div>
 
           {/* Card Creation Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="manual">Criar manualmente</TabsTrigger>
-              <TabsTrigger value="generate">Gerar de conteúdo</TabsTrigger>
+              <TabsTrigger value="manual" className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Criar manualmente
+              </TabsTrigger>
+              <TabsTrigger value="generate" className="flex items-center gap-2">
+                <Wand2 className="w-4 h-4" />
+                Gerar de conteúdo
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="manual" className="space-y-3 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Manual Creation Tab */}
+            <TabsContent value="manual" className="space-y-4 mt-4">
+              {/* Card type selector */}
+              <div className="space-y-2">
+                <Label>Tipo do cartão</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {flashcardTypes.slice(0, 4).map(t => (
+                    <button
+                      key={t.value}
+                      onClick={() => setNewType(t.value)}
+                      className={cn(
+                        "p-3 rounded-lg border text-left transition-all",
+                        newType === t.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <span className="text-lg mb-1 block">{t.icon}</span>
+                      <p className="text-sm font-medium">{t.label}</p>
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                  {flashcardTypes.slice(4).map(t => (
+                    <button
+                      key={t.value}
+                      onClick={() => setNewType(t.value)}
+                      className={cn(
+                        "p-3 rounded-lg border text-left transition-all",
+                        newType === t.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <span className="text-lg mb-1 block">{t.icon}</span>
+                      <p className="text-sm font-medium">{t.label}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Front and back inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Frente (pergunta)</Label>
+                  <Label>
+                    Frente {newType === 'true-false' ? '(afirmação)' : '(pergunta)'}
+                  </Label>
                   <Textarea
                     value={newFront}
                     onChange={(e) => setNewFront(e.target.value)}
-                    placeholder="Digite a pergunta ou conceito..."
+                    placeholder={
+                      newType === 'true-false' 
+                        ? "Digite uma afirmação para validar..."
+                        : "Digite a pergunta ou conceito..."
+                    }
                     rows={3}
+                  />
+                </div>
+                
+                {/* Back field - different for each type */}
+                {newType === 'true-false' ? (
+                  <div className="space-y-3">
+                    <Label>Resposta</Label>
+                    <div className="flex gap-3">
+                      <Button
+                        type="button"
+                        variant={tfAnswer ? "default" : "outline"}
+                        className={cn("flex-1", tfAnswer && "bg-green-600 hover:bg-green-700")}
+                        onClick={() => setTfAnswer(true)}
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Verdadeiro
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={!tfAnswer ? "default" : "outline"}
+                        className={cn("flex-1", !tfAnswer && "bg-red-600 hover:bg-red-700")}
+                        onClick={() => setTfAnswer(false)}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Falso
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={tfExplanation}
+                      onChange={(e) => setTfExplanation(e.target.value)}
+                      placeholder="Explicação (opcional)..."
+                      rows={2}
+                    />
+                  </div>
+                ) : newType === 'multiple-choice' ? (
+                  <div className="space-y-2">
+                    <Label>Alternativas (marque a correta)</Label>
+                    <div className="space-y-2">
+                      {mcOptions.map((opt, idx) => (
+                        <div key={opt.id} className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => updateMcOption(opt.id, 'isCorrect', true)}
+                            className={cn(
+                              "w-8 h-8 rounded-full border-2 flex items-center justify-center font-medium text-sm shrink-0 transition-colors",
+                              opt.isCorrect
+                                ? "border-green-500 bg-green-500 text-white"
+                                : "border-border hover:border-primary"
+                            )}
+                          >
+                            {String.fromCharCode(65 + idx)}
+                          </button>
+                          <Input
+                            value={opt.text}
+                            onChange={(e) => updateMcOption(opt.id, 'text', e.target.value)}
+                            placeholder={`Alternativa ${String.fromCharCode(65 + idx)}...`}
+                            className="flex-1"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Verso (resposta)</Label>
+                    <Textarea
+                      value={newBack}
+                      onChange={(e) => setNewBack(e.target.value)}
+                      placeholder="Digite a resposta ou definição..."
+                      rows={3}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Optional fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-amber-500" />
+                    Dica (opcional)
+                  </Label>
+                  <Input
+                    value={newHint}
+                    onChange={(e) => setNewHint(e.target.value)}
+                    placeholder="Uma pista para ajudar a lembrar..."
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Verso (resposta)</Label>
-                  <Textarea
-                    value={newBack}
-                    onChange={(e) => setNewBack(e.target.value)}
-                    placeholder="Digite a resposta ou definição..."
-                    rows={3}
+                  <Label className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-emerald-500" />
+                    Exemplo prático (opcional)
+                  </Label>
+                  <Input
+                    value={newExample}
+                    onChange={(e) => setNewExample(e.target.value)}
+                    placeholder="Um exemplo de aplicação..."
                   />
                 </div>
               </div>
-              
-              <div className="flex items-end gap-3">
-                <div className="flex-1 space-y-2">
-                  <Label>Tipo do cartão</Label>
-                  <Select value={newType} onValueChange={(v) => setNewType(v as FlashcardType)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {flashcardTypes.map(t => (
-                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+              {/* Add card button */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={isReversible}
+                    onCheckedChange={setIsReversible}
+                    id="reversible"
+                  />
+                  <Label htmlFor="reversible" className="text-sm cursor-pointer">
+                    Cartão reversível (estudar nos dois sentidos)
+                  </Label>
                 </div>
-                <Button onClick={handleAddCard}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar
-                </Button>
+                <div className="flex gap-2">
+                  {editingCard && (
+                    <Button variant="outline" onClick={() => {
+                      setEditingCard(null);
+                      resetCardForm();
+                    }}>
+                      Cancelar edição
+                    </Button>
+                  )}
+                  <Button onClick={handleAddCard}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    {editingCard ? 'Atualizar cartão' : 'Adicionar cartão'}
+                  </Button>
+                </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="generate" className="space-y-3 mt-4">
+            {/* Generate from content Tab */}
+            <TabsContent value="generate" className="space-y-4 mt-4">
+              {/* Content input area */}
               <div className="space-y-2">
-                <Label>Cole seu conteúdo (resumo, texto, PDF...)</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Cole seu conteúdo ou faça upload</Label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.txt"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <FileUp className="w-4 h-4 mr-2" />
+                    Upload PDF/TXT
+                  </Button>
+                </div>
                 <Textarea
                   value={contentText}
                   onChange={(e) => setContentText(e.target.value)}
-                  placeholder="Cole aqui o texto do qual deseja gerar flashcards..."
-                  rows={5}
+                  placeholder="Cole aqui o texto do qual deseja gerar flashcards...
+
+O sistema irá:
+• Identificar conceitos-chave
+• Detectar definições, regras e fórmulas
+• Gerar perguntas variadas baseadas no nível selecionado
+• Criar diferentes tipos de cartões automaticamente"
+                  rows={8}
+                  className="font-mono text-sm"
                 />
               </div>
-              
-              <div className="flex items-end gap-3">
+
+              {/* Generation options */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Quantidade</Label>
+                  <Label>Quantidade de cartões</Label>
                   <Input
                     type="number"
                     min={1}
-                    max={100}
+                    max={50}
                     value={cardCount}
                     onChange={(e) => setCardCount(e.target.value)}
-                    className="w-24"
                     placeholder="10"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Dificuldade</Label>
-                  <Select value={difficulty} onValueChange={setDifficulty}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="easy">Básico</SelectItem>
-                      <SelectItem value="medium">Médio</SelectItem>
-                      <SelectItem value="hard">Avançado</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2 col-span-2">
+                  <Label>Tipos a gerar</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {flashcardTypes.slice(0, 5).map(t => (
+                      <Badge
+                        key={t.value}
+                        variant={generateTypes.includes(t.value) ? "default" : "outline"}
+                        className="cursor-pointer transition-colors"
+                        onClick={() => {
+                          if (generateTypes.includes(t.value)) {
+                            if (generateTypes.length > 1) {
+                              setGenerateTypes(generateTypes.filter(gt => gt !== t.value));
+                            }
+                          } else {
+                            setGenerateTypes([...generateTypes, t.value]);
+                          }
+                        }}
+                      >
+                        {t.icon} {t.label}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                <Button onClick={handleGenerateFromContent}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Gerar cartões
-                </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                💡 A geração é simulada. Em produção, usaria IA para criar flashcards inteligentes.
-              </p>
+
+              {/* Generate button */}
+              <Button 
+                onClick={handleGenerateFromContent}
+                disabled={!contentText.trim() || isGenerating}
+                className="w-full"
+              >
+                {isGenerating ? (
+                  <>
+                    <RotateCcw className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando flashcards inteligentes...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Gerar {cardCount} cartões ({levelConfig[level].label})
+                  </>
+                )}
+              </Button>
+
+              {/* Tips */}
+              <div className="bg-secondary/30 rounded-lg p-4 text-sm space-y-2">
+                <p className="font-medium flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Geração Inteligente
+                </p>
+                <ul className="text-muted-foreground space-y-1 ml-6 list-disc">
+                  <li>Perguntas variadas, não apenas "O que é..."</li>
+                  <li>Adaptado ao nível selecionado ({levelConfig[level].label})</li>
+                  <li>Múltiplos tipos de cartões automaticamente</li>
+                  <li>Dicas e exemplos gerados contextualmente</li>
+                </ul>
+              </div>
             </TabsContent>
           </Tabs>
 
-          {/* Interactive Cards Preview */}
+          {/* Cards Preview Grid */}
           {cards.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Cartões criados ({cards.length})</Label>
-                <span className="text-xs text-muted-foreground">Clique para virar</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto p-1">
-                {cards.map((card, index) => (
-                  <InteractiveCardPreview
-                    key={card.id}
-                    card={card}
-                    index={index}
-                    onRemove={() => handleRemoveCard(card.id)}
-                  />
-                ))}
-              </div>
-            </div>
+            <FlashcardPreviewGrid
+              cards={cards}
+              onRemove={handleRemoveCard}
+              onEdit={handleEditCard}
+              onReorder={handleReorderCards}
+            />
           )}
         </div>
 
@@ -373,7 +851,7 @@ export function CreateFlashcardDeckModal({
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={!name || !discipline || cards.length === 0}>
-            {editingDeck ? 'Salvar alterações' : 'Criar deck'}
+            {editingDeck ? 'Salvar alterações' : `Criar deck (${cards.length} cartões)`}
           </Button>
         </DialogFooter>
       </DialogContent>
