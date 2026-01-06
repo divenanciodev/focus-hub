@@ -1,146 +1,241 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/ui/page-header';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
-import { CreateTrainingModal } from '@/components/modals/CreateTrainingModal';
-import { mockTrainings } from '@/data/mockData';
-import { Training } from '@/types';
-import { Plus, Target, Clock, CheckCircle2, Play, BarChart3 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrainingTypeSelector } from '@/components/training/TrainingTypeSelector';
+import { TrainingMetricsDashboard } from '@/components/training/TrainingMetricsDashboard';
+import { FlashcardDeckList } from '@/components/training/flashcards/FlashcardDeckList';
+import { CreateFlashcardDeckModal } from '@/components/training/flashcards/CreateFlashcardDeckModal';
+import { FlashcardStudyMode } from '@/components/training/flashcards/FlashcardStudyMode';
+import { CreateSimuladoModal } from '@/components/training/simulado/CreateSimuladoModal';
+import { SimuladoSession } from '@/components/training/simulado/SimuladoSession';
+import { FlashcardDeck, Simulado, TrainingType, TrainingMetrics } from '@/types/training';
+import { Plus, Layers, FileQuestion, MoreHorizontal } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Treinos() {
-  const navigate = useNavigate();
-  const [trainings, setTrainings] = useState<Training[]>(mockTrainings);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isTypeSelectorOpen, setIsTypeSelectorOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('flashcards');
+  
+  // Flashcards state
+  const [flashcardDecks, setFlashcardDecks] = useState<FlashcardDeck[]>([]);
+  const [isCreateDeckOpen, setIsCreateDeckOpen] = useState(false);
+  const [editingDeck, setEditingDeck] = useState<FlashcardDeck | undefined>();
+  const [studyingDeck, setStudyingDeck] = useState<FlashcardDeck | null>(null);
+  
+  // Simulados state
+  const [simulados, setSimulados] = useState<Simulado[]>([]);
+  const [isCreateSimuladoOpen, setIsCreateSimuladoOpen] = useState(false);
+  const [activeSimulado, setActiveSimulado] = useState<Simulado | null>(null);
 
-  const handleCreateTraining = (data: {
-    name: string;
-    discipline: string;
-    subject: string;
-    questionCount: number;
-    timeMinutes: number;
-  }) => {
-    const newTraining: Training = {
-      id: Date.now().toString(),
-      ...data,
-      status: 'pending',
-      createdAt: new Date(),
-    };
-    setTrainings([newTraining, ...trainings]);
-  };
+  // Metrics
+  const [metrics, setMetrics] = useState<TrainingMetrics>({
+    totalTrainings: 0,
+    totalStudyTimeMinutes: 0,
+    byType: {
+      'flashcards': 0,
+      'simulado': 0,
+      'activity': 0,
+      'mindmap': 0,
+      'summary': 0,
+      'handwriting': 0,
+      'memory-palace': 0,
+      'audio-explanation': 0,
+    },
+    completedToday: 0,
+  });
 
-  const getStatusBadge = (status: Training['status'], score?: number) => {
-    switch (status) {
-      case 'completed':
-        return (
-          <span className="text-xs bg-success/10 text-success px-2 py-1 rounded font-medium">
-            {score}% acertos
-          </span>
-        );
-      case 'in_progress':
-        return (
-          <span className="text-xs bg-warning/10 text-warning px-2 py-1 rounded font-medium">
-            Em andamento
-          </span>
-        );
+  const handleSelectType = (type: TrainingType) => {
+    switch (type) {
+      case 'flashcards':
+        setActiveTab('flashcards');
+        setIsCreateDeckOpen(true);
+        break;
+      case 'simulado':
+        setActiveTab('simulados');
+        setIsCreateSimuladoOpen(true);
+        break;
       default:
-        return (
-          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded font-medium">
-            Pendente
-          </span>
-        );
+        toast.info(`Módulo "${type}" será implementado em breve!`);
     }
   };
+
+  // Flashcard handlers
+  const handleCreateDeck = (deck: FlashcardDeck) => {
+    if (editingDeck) {
+      setFlashcardDecks(flashcardDecks.map(d => d.id === deck.id ? deck : d));
+      toast.success('Deck atualizado!');
+    } else {
+      setFlashcardDecks([deck, ...flashcardDecks]);
+      setMetrics(m => ({
+        ...m,
+        totalTrainings: m.totalTrainings + 1,
+        byType: { ...m.byType, flashcards: m.byType.flashcards + 1 },
+      }));
+      toast.success('Deck criado!');
+    }
+    setEditingDeck(undefined);
+  };
+
+  const handleDeleteDeck = (deckId: string) => {
+    setFlashcardDecks(flashcardDecks.filter(d => d.id !== deckId));
+    toast.success('Deck excluído');
+  };
+
+  const handleStudyComplete = (results: { easy: number; medium: number; hard: number }) => {
+    setMetrics(m => ({
+      ...m,
+      totalStudyTimeMinutes: m.totalStudyTimeMinutes + 15,
+      completedToday: m.completedToday + 1,
+    }));
+    setStudyingDeck(null);
+  };
+
+  // Simulado handlers
+  const handleCreateSimulado = (simulado: Simulado) => {
+    setSimulados([simulado, ...simulados]);
+    setMetrics(m => ({
+      ...m,
+      totalTrainings: m.totalTrainings + 1,
+      byType: { ...m.byType, simulado: m.byType.simulado + 1 },
+    }));
+    toast.success('Simulado criado!');
+  };
+
+  const handleSimuladoComplete = (results: { score: number }) => {
+    setMetrics(m => ({
+      ...m,
+      totalStudyTimeMinutes: m.totalStudyTimeMinutes + 30,
+      completedToday: m.completedToday + 1,
+    }));
+    if (activeSimulado) {
+      setSimulados(simulados.map(s => 
+        s.id === activeSimulado.id 
+          ? { ...s, status: 'completed' as const, score: results.score }
+          : s
+      ));
+    }
+  };
+
+  // Render study modes
+  if (studyingDeck) {
+    return (
+      <FlashcardStudyMode
+        deck={studyingDeck}
+        onClose={() => setStudyingDeck(null)}
+        onComplete={handleStudyComplete}
+      />
+    );
+  }
+
+  if (activeSimulado) {
+    return (
+      <SimuladoSession
+        simulado={activeSimulado}
+        onClose={() => setActiveSimulado(null)}
+        onComplete={handleSimuladoComplete}
+      />
+    );
+  }
 
   return (
     <div className="fade-in">
       <PageHeader
         title="Treinos & Simulados"
-        description="Pratique com questões e simulados"
+        description="Ambiente completo de treino cognitivo com múltiplas técnicas de estudo"
         actions={
-          <Button onClick={() => setIsCreateModalOpen(true)}>
+          <Button onClick={() => setIsTypeSelectorOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Criar treino
           </Button>
         }
       />
 
-      {trainings.length === 0 ? (
-        <EmptyState
-          icon={Target}
-          title="Nenhum treino criado"
-          description="Crie seu primeiro treino para praticar com questões."
-          actionLabel="Criar treino"
-          onAction={() => setIsCreateModalOpen(true)}
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {trainings.map((training) => (
-            <div
-              key={training.id}
-              className="bg-card border border-border rounded-xl p-5 hover:border-foreground/20 hover:shadow-md transition-all duration-200"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-semibold text-foreground">{training.name}</h3>
-                  <p className="text-sm text-muted-foreground">{training.discipline}</p>
-                </div>
-                {getStatusBadge(training.status, training.score)}
-              </div>
+      <TrainingMetricsDashboard metrics={metrics} />
 
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Target className="w-4 h-4" />
-                  <span>{training.questionCount} questões</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="w-4 h-4" />
-                  <span>{training.timeMinutes} minutos</span>
-                </div>
-              </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="flashcards" className="flex items-center gap-2">
+            <Layers className="w-4 h-4" />
+            Flashcards
+          </TabsTrigger>
+          <TabsTrigger value="simulados" className="flex items-center gap-2">
+            <FileQuestion className="w-4 h-4" />
+            Simulados
+          </TabsTrigger>
+          <TabsTrigger value="outros" className="flex items-center gap-2">
+            <MoreHorizontal className="w-4 h-4" />
+            Outros
+          </TabsTrigger>
+        </TabsList>
 
-              <div className="flex gap-2">
-                {training.status === 'completed' ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => navigate(`/treinos/${training.id}/resultado`)}
-                    >
-                      <BarChart3 className="w-4 h-4 mr-1" />
-                      Ver resultado
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => navigate(`/treinos/${training.id}`)}
-                    >
-                      <Play className="w-4 h-4 mr-1" />
-                      Refazer
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={() => navigate(`/treinos/${training.id}`)}
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    {training.status === 'in_progress' ? 'Continuar' : 'Iniciar'}
-                  </Button>
-                )}
-              </div>
+        <TabsContent value="flashcards" className="mt-6">
+          <FlashcardDeckList
+            decks={flashcardDecks}
+            onStudy={setStudyingDeck}
+            onEdit={(deck) => {
+              setEditingDeck(deck);
+              setIsCreateDeckOpen(true);
+            }}
+            onDelete={handleDeleteDeck}
+          />
+        </TabsContent>
+
+        <TabsContent value="simulados" className="mt-6">
+          {simulados.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <FileQuestion className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum simulado criado</p>
+              <Button onClick={() => setIsCreateSimuladoOpen(true)} className="mt-4">
+                Criar simulado
+              </Button>
             </div>
-          ))}
-        </div>
-      )}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {simulados.map((simulado) => (
+                <div key={simulado.id} className="bg-card border border-border rounded-xl p-5">
+                  <h3 className="font-semibold">{simulado.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">{simulado.discipline}</p>
+                  <p className="text-sm mb-4">{simulado.questions.length} questões • {simulado.timeMinutes}min</p>
+                  <Button onClick={() => setActiveSimulado(simulado)} className="w-full">
+                    {simulado.status === 'completed' ? 'Refazer' : 'Iniciar'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
-      <CreateTrainingModal
-        open={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        onSubmit={handleCreateTraining}
+        <TabsContent value="outros" className="mt-6">
+          <div className="text-center py-12 text-muted-foreground">
+            <p>Mapas mentais, resumos guiados e outros módulos em breve!</p>
+            <Button onClick={() => setIsTypeSelectorOpen(true)} variant="outline" className="mt-4">
+              Ver todos os tipos
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <TrainingTypeSelector
+        open={isTypeSelectorOpen}
+        onOpenChange={setIsTypeSelectorOpen}
+        onSelectType={handleSelectType}
+      />
+
+      <CreateFlashcardDeckModal
+        open={isCreateDeckOpen}
+        onOpenChange={(open) => {
+          setIsCreateDeckOpen(open);
+          if (!open) setEditingDeck(undefined);
+        }}
+        onSubmit={handleCreateDeck}
+        editingDeck={editingDeck}
+      />
+
+      <CreateSimuladoModal
+        open={isCreateSimuladoOpen}
+        onOpenChange={setIsCreateSimuladoOpen}
+        onSubmit={handleCreateSimulado}
       />
     </div>
   );
