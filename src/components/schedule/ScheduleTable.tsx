@@ -250,12 +250,6 @@ export function ScheduleTable({ schedule, onUpdateBlocks }: ScheduleTableProps) 
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-        <span className="font-medium">Legenda:</span>
-        {activityTypes.map((t) => <span key={t.value} className="flex items-center gap-0.5">{t.icon} {t.label}</span>)}
-      </div>
-
       <ScheduleBlockModal open={isModalOpen} onOpenChange={setIsModalOpen} block={editingBlock} onSave={handleSaveBlock} onDelete={editingBlock ? handleDeleteBlock : undefined} />
     </div>
   );
