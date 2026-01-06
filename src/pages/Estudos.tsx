@@ -8,9 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import { CreateDisciplineModalEnhanced } from '@/components/modals/CreateDisciplineModalEnhanced';
 import { DisciplineSearch } from '@/components/studies/DisciplineSearch';
 import { useDisciplines } from '@/contexts/DisciplinesContext';
-import { StudyPlan } from '@/types';
-import { Plus, BookOpen, Clock, TrendingUp } from 'lucide-react';
+import { Discipline, StudyPlan } from '@/types';
+import { Plus, BookOpen, Clock, TrendingUp, Edit2, Trash2 } from 'lucide-react';
 import { weekDays } from '@/types/schedule';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface SearchFilters {
   query: string;
@@ -21,8 +32,12 @@ interface SearchFilters {
 
 export default function Estudos() {
   const navigate = useNavigate();
-  const { disciplines, addDiscipline } = useDisciplines();
+  const { disciplines, addDiscipline, updateDiscipline, deleteDiscipline } = useDisciplines();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingDiscipline, setEditingDiscipline] = useState<Discipline | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [disciplineToDelete, setDisciplineToDelete] = useState<Discipline | null>(null);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     query: '',
     color: null,
@@ -40,6 +55,43 @@ export default function Estudos() {
     studyPlan: StudyPlan;
   }) => {
     addDiscipline(data);
+  };
+
+  const handleEditDiscipline = (data: {
+    name: string;
+    subject: string;
+    specificSubject: string;
+    grade: string;
+    tags: string[];
+    color: string;
+    studyPlan: StudyPlan;
+  }) => {
+    if (editingDiscipline) {
+      updateDiscipline(editingDiscipline.id, data);
+      toast.success('Disciplina atualizada com sucesso!');
+      setEditingDiscipline(null);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, discipline: Discipline) => {
+    e.stopPropagation();
+    setDisciplineToDelete(discipline);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleEditClick = (e: React.MouseEvent, discipline: Discipline) => {
+    e.stopPropagation();
+    setEditingDiscipline(discipline);
+    setIsEditModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (disciplineToDelete) {
+      deleteDiscipline(disciplineToDelete.id);
+      toast.success('Disciplina excluída com sucesso!');
+      setDisciplineToDelete(null);
+      setDeleteDialogOpen(false);
+    }
   };
 
   // Collect all tags
@@ -135,7 +187,7 @@ export default function Estudos() {
             <div
               key={discipline.id}
               onClick={() => navigate(`/estudos/${discipline.id}`)}
-              className="bg-card border-2 rounded-xl p-5 cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+              className="bg-card border-2 rounded-xl p-5 cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 group"
               style={{
                 borderColor: discipline.color || 'var(--border)',
                 backgroundColor: discipline.color ? `${discipline.color}08` : undefined,
@@ -150,9 +202,28 @@ export default function Estudos() {
                   </p>
                   <h3 className="font-semibold text-foreground truncate">{discipline.name}</h3>
                 </div>
-                <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded ml-2 flex-shrink-0">
-                  {discipline.grade}
-                </span>
+                <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                  {/* Edit/Delete buttons - visible on hover */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => handleEditClick(e, discipline)}
+                      className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                      title="Editar"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteClick(e, discipline)}
+                      className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Excluir"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
+                    {discipline.grade}
+                  </span>
+                </div>
               </div>
 
               {/* Tags */}
@@ -200,11 +271,41 @@ export default function Estudos() {
         </div>
       )}
 
+      {/* Create Modal */}
       <CreateDisciplineModalEnhanced
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
         onSubmit={handleCreateDiscipline}
       />
+
+      {/* Edit Modal */}
+      <CreateDisciplineModalEnhanced
+        open={isEditModalOpen}
+        onOpenChange={(open) => {
+          setIsEditModalOpen(open);
+          if (!open) setEditingDiscipline(null);
+        }}
+        onSubmit={handleEditDiscipline}
+        initialData={editingDiscipline || undefined}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir disciplina?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A disciplina "{disciplineToDelete?.name}" e todos os seus dados serão permanentemente excluídos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
