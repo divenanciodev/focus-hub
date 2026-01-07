@@ -306,25 +306,25 @@ export default function Treinos() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {simulados.map((simulado) => (
-                <div key={simulado.id} className="bg-card border border-border rounded-xl p-5">
+                <div key={simulado.id} className="bg-card border border-border rounded-xl p-5 flex flex-col h-full">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
                       <FileQuestion className="w-5 h-5 text-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-foreground truncate">{simulado.name}</h4>
+                      <h4 className="font-semibold text-foreground">{simulado.name}</h4>
                       <p className="text-sm text-muted-foreground">{simulado.discipline}</p>
                     </div>
                     <span className="text-xs bg-secondary px-2 py-1 rounded-full shrink-0">
                       {simulado.questions.length} questões
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-4 flex-1">
                     {simulado.timeMinutes} min • {simulado.difficulty === 'easy' ? 'Fácil' : simulado.difficulty === 'hard' ? 'Difícil' : 'Médio'}
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-auto">
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -472,11 +472,11 @@ export default function Treinos() {
                       {availableSimulados.length} simulado{availableSimulados.length > 1 ? 's' : ''}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {availableSimulados.map((simulado) => (
                       <div 
                         key={simulado.id} 
-                        className="bg-card border border-border rounded-xl p-5 hover:border-foreground/20 hover:shadow-md transition-all duration-200 cursor-pointer"
+                        className="bg-card border border-border rounded-xl p-5 hover:border-foreground/20 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
                         onClick={() => setActiveSimulado(simulado)}
                       >
                         <div className="flex items-start gap-3 mb-3">
@@ -484,14 +484,14 @@ export default function Treinos() {
                             <FileQuestion className="w-5 h-5 text-foreground" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-foreground truncate">{simulado.name}</h4>
+                            <h4 className="font-semibold text-foreground">{simulado.name}</h4>
                             <p className="text-sm text-muted-foreground">{simulado.discipline}</p>
                           </div>
                           <span className="text-xs bg-secondary px-2 py-1 rounded-full shrink-0">
                             {simulado.questions.length} questões
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-4">
+                        <p className="text-sm text-muted-foreground mb-4 flex-1">
                           {simulado.timeMinutes} min • {simulado.difficulty === 'easy' ? 'Fácil' : simulado.difficulty === 'hard' ? 'Difícil' : 'Médio'}
                         </p>
                         {simulado.status === 'completed' && simulado.score !== undefined && (
@@ -499,7 +499,7 @@ export default function Treinos() {
                             Última nota: {simulado.score}%
                           </p>
                         )}
-                        <Button className="w-full">
+                        <Button className="w-full mt-auto">
                           <Play className="w-4 h-4 mr-2" />
                           {simulado.status === 'completed' ? 'Refazer' : 'Iniciar'}
                         </Button>
