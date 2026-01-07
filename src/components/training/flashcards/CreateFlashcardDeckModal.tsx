@@ -113,30 +113,33 @@ const levelConfig = {
   },
 };
 
-// Question variation templates by level
+// Question variation templates by level - Pedagogically optimized
 const questionTemplates = {
   basic: [
-    'O que é {concept}?',
-    'Defina {concept}.',
-    'Qual a função de {concept}?',
-    'Para que serve {concept}?',
-    'Qual o significado de {concept}?',
+    'Qual é a definição de {concept}?',
+    'O que caracteriza {concept}?',
+    'Qual a principal função de {concept}?',
+    'Explique brevemente o conceito de {concept}.',
+    'Identifique o significado de {concept}.',
   ],
   intermediate: [
-    'Explique a diferença entre {concept} e {concept2}.',
-    'Quais são as características de {concept}?',
-    'Como {concept} se aplica na prática?',
-    'Cite três exemplos de {concept}.',
-    'Complete: {concept} é definido como _______.',
-    'Assinale V ou F: {statement}',
+    'Qual a diferença fundamental entre {concept} e {concept2}?',
+    'Cite as principais características de {concept}.',
+    'De que forma {concept} se aplica na prática?',
+    'Apresente exemplos de aplicação de {concept}.',
+    'Complete o raciocínio: {concept} relaciona-se com _______.',
+    'Qual a consequência de {concept} no contexto estudado?',
+    'Como {concept} influencia {concept2}?',
   ],
   advanced: [
-    'Analise criticamente a relação entre {concept} e {concept2}.',
-    'Qual é a consequência prática de {concept}?',
-    'Compare e contraste {concept} com {concept2}.',
-    'Explique as exceções à regra de {concept}.',
-    'No contexto de {context}, como se aplica {concept}?',
-    'Sobre {concept}, é INCORRETO afirmar que:',
+    'Analise a relação de causa e efeito entre {concept} e {concept2}.',
+    'Quais são as implicações práticas de {concept}?',
+    'Compare criticamente {concept} com {concept2}, destacando semelhanças e diferenças.',
+    'Quais são as exceções à regra de {concept}? Justifique.',
+    'No contexto de {context}, como {concept} deve ser interpretado?',
+    'Sobre {concept}, qual afirmação está INCORRETA? Justifique.',
+    'Em que situação {concept} NÃO se aplica?',
+    'Avalie criticamente a aplicação de {concept} em cenário prático.',
   ],
 };
 
@@ -324,66 +327,110 @@ export function CreateFlashcardDeckModal({
     // Simulated intelligent generation
     await new Promise(resolve => setTimeout(resolve, 1500));
     
+    // Extract meaningful sentences and concepts
     const sentences = contentText
       .split(/[.!?]+/)
       .map(s => s.trim())
-      .filter(s => s.length > 30);
+      .filter(s => s.length > 30 && !s.match(/^(página|pág|cap|capítulo|\d+)/i));
+    
+    // Extract key concepts (words with 5+ chars, capitalized, or technical terms)
+    const extractKeywords = (text: string): string[] => {
+      const words = text.split(/\s+/)
+        .filter(w => w.length > 4)
+        .filter(w => /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ]/.test(w) || w.length > 7);
+      return [...new Set(words)].slice(0, 5);
+    };
     
     const count = Math.min(parseInt(cardCount), sentences.length, 30);
     const templates = questionTemplates[level];
     
     const generatedCards: FlashcardItem[] = [];
+    const usedFormats = new Set<number>();
     
     for (let i = 0; i < count && i < sentences.length; i++) {
       const sentence = sentences[i];
-      const words = sentence.split(' ').filter(w => w.length > 4);
-      const keyWord = words[Math.floor(Math.random() * words.length)] || words[0] || 'conceito';
+      const keywords = extractKeywords(sentence);
+      const keyWord = keywords[0] || 'conceito';
+      const keyWord2 = keywords[1] || keywords[0] || 'tema';
       
-      // Randomly select type based on level
+      // Ensure variety in question types
       const typeIndex = i % generateTypes.length;
       const selectedType = generateTypes[typeIndex];
       
-      // Select template based on level
-      const templateIndex = i % templates.length;
-      let questionTemplate = templates[templateIndex];
+      // Rotate through templates to avoid repetition
+      let templateIndex = i % templates.length;
+      while (usedFormats.has(templateIndex) && usedFormats.size < templates.length) {
+        templateIndex = (templateIndex + 1) % templates.length;
+      }
+      usedFormats.add(templateIndex);
+      if (usedFormats.size >= templates.length) usedFormats.clear();
       
-      // Build question from template
-      let question = questionTemplate
+      const questionTemplate = templates[templateIndex];
+      
+      // Build contextual question
+      const question = questionTemplate
         .replace('{concept}', keyWord)
-        .replace('{concept2}', words[1] || 'outro conceito')
+        .replace('{concept2}', keyWord2)
         .replace('{statement}', sentence.substring(0, 80))
         .replace('{context}', discipline || 'estudos');
+
+      // Build pedagogical response
+      const buildAnswer = (): string => {
+        if (level === 'basic') {
+          return sentence;
+        } else if (level === 'intermediate') {
+          return `${sentence}\n\n📌 Conceito-chave: ${keyWord}`;
+        } else {
+          return `${sentence}\n\n📌 Conceito-chave: ${keyWord}\n💡 Relação: ${keyWord} conecta-se ao contexto de ${discipline || 'estudos'}.`;
+        }
+      };
 
       const card: FlashcardItem = {
         id: `gen-${Date.now()}-${i}`,
         front: {
           mainText: question,
-          hint: level === 'basic' ? `Pense sobre: ${keyWord}` : undefined,
+          hint: level === 'basic' ? `Lembre-se de: ${keyWord}` : undefined,
         },
         back: {
-          mainText: sentence,
-          example: level === 'advanced' 
-            ? `Aplicação: Este conceito é fundamental para entender ${keyWord} na prática.`
+          mainText: buildAnswer(),
+          example: level !== 'basic' 
+            ? `Aplicação prática: Este conceito é fundamental para compreender ${keyWord} em contextos reais.`
             : undefined,
         },
         type: selectedType,
         createdAt: new Date(),
       };
 
-      // Add type-specific data
+      // Add type-specific data with pedagogical quality
       if (selectedType === 'true-false') {
-        card.trueFalseAnswer = Math.random() > 0.3; // 70% true
-        card.front = { mainText: sentence.substring(0, 100) + (card.trueFalseAnswer ? '' : ' [incorreto]') };
-        card.trueFalseExplanation = `A afirmação está ${card.trueFalseAnswer ? 'correta' : 'incorreta'} pois ${keyWord} relaciona-se diretamente ao contexto.`;
+        const isTrue = Math.random() > 0.4; // 60% true
+        const statement = isTrue 
+          ? sentence.substring(0, 100) 
+          : sentence.substring(0, 80) + ' [afirmação modificada]';
+        
+        card.trueFalseAnswer = isTrue;
+        card.front = { 
+          mainText: `Afirmação: "${statement}"`,
+          hint: 'Analise cuidadosamente cada termo da afirmação.',
+        };
+        card.trueFalseExplanation = isTrue 
+          ? `Correto. ${sentence}`
+          : `Incorreto. A afirmação original é: ${sentence}`;
       }
 
       if (selectedType === 'multiple-choice') {
+        const correctAnswer = sentence.substring(0, 60) + (sentence.length > 60 ? '...' : '');
         card.multipleChoiceOptions = [
-          { id: 'a', text: sentence.substring(0, 50) + '...', isCorrect: true },
-          { id: 'b', text: 'Alternativa incorreta relacionada.', isCorrect: false },
-          { id: 'c', text: 'Outra alternativa plausível mas incorreta.', isCorrect: false },
-          { id: 'd', text: 'Opção que não corresponde ao conceito.', isCorrect: false },
+          { id: 'a', text: correctAnswer, isCorrect: true },
+          { id: 'b', text: `Afirmação parcialmente correta sobre ${keyWord}.`, isCorrect: false },
+          { id: 'c', text: `Conceito relacionado, mas distinto de ${keyWord}.`, isCorrect: false },
+          { id: 'd', text: `Definição incorreta que confunde ${keyWord} com outro termo.`, isCorrect: false },
         ].sort(() => Math.random() - 0.5);
+        
+        card.front = {
+          mainText: `Sobre ${keyWord}, assinale a alternativa CORRETA:`,
+          hint: 'Elimine as alternativas claramente incorretas primeiro.',
+        };
       }
 
       generatedCards.push(card);
@@ -392,8 +439,8 @@ export function CreateFlashcardDeckModal({
     setCards([...cards, ...generatedCards]);
     setContentText('');
     setIsGenerating(false);
-    toast.success(`${generatedCards.length} cartões gerados com sucesso!`, {
-      description: `Nível: ${levelConfig[level].label} • Tipos variados de perguntas`,
+    toast.success(`${generatedCards.length} cartões gerados com qualidade pedagógica!`, {
+      description: `Nível: ${levelConfig[level].label} • Perguntas variadas e contextualizadas`,
     });
   };
 
@@ -458,10 +505,10 @@ export function CreateFlashcardDeckModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            {editingDeck ? 'Editar Deck' : 'Criar Deck de Flashcards'}
+            {editingDeck ? 'Editar Cartões' : 'Criar Flashcards'}
           </DialogTitle>
           <DialogDescription>
-            Crie cartões de memorização com suporte a múltiplos formatos e geração inteligente
+            Crie cartões de memorização pedagogicamente otimizados com geração inteligente
           </DialogDescription>
         </DialogHeader>
 
@@ -469,7 +516,7 @@ export function CreateFlashcardDeckModal({
           {/* Deck Info */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="space-y-2">
-              <Label>Nome do deck *</Label>
+              <Label>Nome do conjunto *</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -851,7 +898,7 @@ O sistema irá:
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={!name || !discipline || cards.length === 0}>
-            {editingDeck ? 'Salvar alterações' : `Criar deck (${cards.length} cartões)`}
+            {editingDeck ? 'Salvar alterações' : `Salvar (${cards.length} cartões)`}
           </Button>
         </DialogFooter>
       </DialogContent>

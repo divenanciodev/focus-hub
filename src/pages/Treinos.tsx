@@ -219,23 +219,29 @@ export default function Treinos() {
               </Button>
               <div>
                 <h3 className="font-semibold text-foreground text-lg">Flashcards</h3>
-                <p className="text-sm text-muted-foreground">Gerencie seus decks de cartões</p>
+                <p className="text-sm text-muted-foreground">Gerencie seus cartões de memorização</p>
               </div>
             </div>
-            <Button onClick={() => setIsCreateDeckOpen(true)}>
+            <Button onClick={() => {
+              setEditingDeck(undefined);
+              setIsCreateDeckOpen(true);
+            }}>
               <Plus className="w-4 h-4 mr-2" />
-              Criar Deck
+              Novo Cartão
             </Button>
           </div>
 
           {flashcardDecks.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
               <Layers className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum deck criado ainda</p>
-              <p className="text-sm mb-4">Crie seu primeiro deck para começar</p>
-              <Button onClick={() => setIsCreateDeckOpen(true)}>
+              <p>Nenhum cartão criado ainda</p>
+              <p className="text-sm mb-4">Crie seus primeiros cartões para começar</p>
+              <Button onClick={() => {
+                setEditingDeck(undefined);
+                setIsCreateDeckOpen(true);
+              }}>
                 <Plus className="w-4 h-4 mr-2" />
-                Criar Deck
+                Novo Cartão
               </Button>
             </div>
           ) : (
