@@ -23,6 +23,10 @@ export interface FlashcardCard {
     isCorrect: boolean;
   }[];
   
+  // Card colors
+  frontColor?: string;
+  backColor?: string;
+  
   createdAt: Date;
 }
 

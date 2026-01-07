@@ -39,9 +39,15 @@ export function FlipCard({ card, isPreview = false, onAnswer, showFeedback = fal
   // Multiple choice card
   if (card.type === 'multiple-choice') {
     return (
-      <div className="w-full max-w-lg bg-card border border-border rounded-2xl p-6 shadow-lg">
+      <div 
+        className="w-full max-w-lg border border-border rounded-2xl p-6 shadow-lg"
+        style={{
+          backgroundColor: card.frontColor || 'hsl(var(--card))',
+          color: card.frontColor ? '#ffffff' : 'hsl(var(--foreground))',
+        }}
+      >
         <div className="mb-6">
-          <p className="text-lg font-medium text-foreground leading-relaxed break-words">
+          <p className="text-lg font-medium leading-relaxed break-words">
             {card.question || 'Pergunta...'}
           </p>
         </div>
@@ -72,6 +78,9 @@ export function FlipCard({ card, isPreview = false, onAnswer, showFeedback = fal
                   !showResult && !isPreview && "hover:scale-[1.02] cursor-pointer",
                   isPreview && "cursor-default"
                 )}
+                style={{
+                  backgroundColor: !showResult && card.frontColor ? 'rgba(255,255,255,0.15)' : undefined,
+                }}
               >
                 <span className="text-sm break-words flex-1">{option.text || 'Opção...'}</span>
                 {showResult && isSelected && (
@@ -107,11 +116,13 @@ export function FlipCard({ card, isPreview = false, onAnswer, showFeedback = fal
         {/* Front */}
         <div 
           className={cn(
-            "w-full bg-card border border-border rounded-2xl p-8 shadow-lg",
+            "w-full border border-border rounded-2xl p-8 shadow-lg",
             "flex flex-col items-center justify-center min-h-[250px]"
           )}
           style={{ 
             backfaceVisibility: 'hidden',
+            backgroundColor: card.frontColor || 'hsl(var(--card))',
+            color: card.frontColor ? '#ffffff' : 'hsl(var(--foreground))',
           }}
         >
           {/* Image for image-flip and image-answer types */}
@@ -127,17 +138,17 @@ export function FlipCard({ card, isPreview = false, onAnswer, showFeedback = fal
           
           {/* Question for flip and image-flip */}
           {(card.type === 'flip' || card.type === 'image-flip') && (
-            <p className="text-xl font-medium text-foreground text-center leading-relaxed break-words px-2">
+            <p className="text-xl font-medium text-center leading-relaxed break-words px-2">
               {card.question || 'Sua pergunta aqui...'}
             </p>
           )}
           
           {/* Image only for image-answer */}
           {card.type === 'image-answer' && !card.imageUrl && (
-            <p className="text-muted-foreground text-center">Imagem aqui...</p>
+            <p className="text-center opacity-70">Imagem aqui...</p>
           )}
           
-          <p className="text-xs text-muted-foreground mt-6">
+          <p className="text-xs mt-6 opacity-60">
             Clique para virar
           </p>
         </div>
@@ -145,19 +156,21 @@ export function FlipCard({ card, isPreview = false, onAnswer, showFeedback = fal
         {/* Back */}
         <div 
           className={cn(
-            "absolute inset-0 w-full bg-primary text-primary-foreground border border-border rounded-2xl p-8 shadow-lg",
+            "absolute inset-0 w-full border border-border rounded-2xl p-8 shadow-lg",
             "flex flex-col items-center justify-center min-h-[250px]"
           )}
           style={{ 
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
+            backgroundColor: card.backColor || 'hsl(var(--primary))',
+            color: card.backColor ? '#ffffff' : 'hsl(var(--primary-foreground))',
           }}
         >
           <p className="text-xl font-medium text-center leading-relaxed break-words px-2">
             {card.answer || 'Sua resposta aqui...'}
           </p>
           
-          <p className="text-xs text-primary-foreground/60 mt-6">
+          <p className="text-xs mt-6 opacity-60">
             Clique para voltar
           </p>
         </div>

@@ -17,12 +17,24 @@ interface CardCreationFormProps {
   onCancelEdit?: () => void;
 }
 
+const CARD_COLORS = [
+  { id: 'default', label: 'Padrão', front: '', back: '' },
+  { id: 'blue', label: 'Azul', front: '#3b82f6', back: '#1d4ed8' },
+  { id: 'green', label: 'Verde', front: '#22c55e', back: '#15803d' },
+  { id: 'purple', label: 'Roxo', front: '#a855f7', back: '#7c3aed' },
+  { id: 'orange', label: 'Laranja', front: '#f97316', back: '#c2410c' },
+  { id: 'pink', label: 'Rosa', front: '#ec4899', back: '#be185d' },
+  { id: 'gray', label: 'Cinza', front: '#6b7280', back: '#374151' },
+];
+
 export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardCreationFormProps) {
   const [cardType, setCardType] = useState<FlashcardCardType>(editingCard?.type || 'flip');
   const [cardName, setCardName] = useState(editingCard?.name || '');
   const [question, setQuestion] = useState(editingCard?.question || '');
   const [answer, setAnswer] = useState(editingCard?.answer || '');
   const [imageUrl, setImageUrl] = useState(editingCard?.imageUrl || '');
+  const [frontColor, setFrontColor] = useState(editingCard?.frontColor || '');
+  const [backColor, setBackColor] = useState(editingCard?.backColor || '');
   const [options, setOptions] = useState<{ id: string; text: string; isCorrect: boolean }[]>(
     editingCard?.options || [
       { id: '1', text: '', isCorrect: false },
@@ -40,7 +52,6 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Create a preview URL
       const url = URL.createObjectURL(file);
       setImageUrl(url);
       toast.success('Imagem carregada!');
@@ -63,6 +74,8 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
     setQuestion('');
     setAnswer('');
     setImageUrl('');
+    setFrontColor('');
+    setBackColor('');
     setOptions([
       { id: '1', text: '', isCorrect: false },
       { id: '2', text: '', isCorrect: false },
@@ -80,7 +93,6 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
       return;
     }
 
-    // Validate based on type
     if (cardType === 'flip' && (!question.trim() || !answer.trim())) {
       toast.error('Preencha a pergunta e a resposta');
       return;
@@ -123,6 +135,8 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
       answer: answer.trim() || undefined,
       imageUrl: imageUrl || undefined,
       options: finalOptions,
+      frontColor: frontColor || undefined,
+      backColor: backColor || undefined,
       createdAt: editingCard?.createdAt || new Date(),
     };
 
@@ -136,12 +150,13 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
     }
   };
 
-  // Build preview card
   const previewCard: Partial<FlashcardCard> = {
     type: cardType,
     question: question || 'Sua pergunta aqui...',
     answer: answer || 'Sua resposta aqui...',
     imageUrl,
+    frontColor: frontColor || undefined,
+    backColor: backColor || undefined,
     options: cardType === 'multiple-choice' ? options.filter(o => o.text.trim()).map(o => ({
       ...o,
       isCorrect: o.id === correctOption,
@@ -149,8 +164,8 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Form Side */}
+    <div className="space-y-8">
+      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Card Name */}
         <div className="space-y-2">
@@ -271,6 +286,61 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
           )}
         </div>
 
+        {/* Color Selection */}
+        <div className="space-y-4 pt-4 border-t border-border">
+          <Label className="text-base font-medium">Cores do Cartão</Label>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Front Color */}
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">Cor da Frente</Label>
+              <div className="flex flex-wrap gap-2">
+                {CARD_COLORS.map((color) => (
+                  <button
+                    key={`front-${color.id}`}
+                    type="button"
+                    onClick={() => setFrontColor(color.front)}
+                    className={cn(
+                      "w-8 h-8 rounded-full border-2 transition-all",
+                      frontColor === color.front 
+                        ? "border-foreground scale-110" 
+                        : "border-border hover:border-foreground/50"
+                    )}
+                    style={{ 
+                      backgroundColor: color.front || 'hsl(var(--card))',
+                    }}
+                    title={color.label}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Back Color */}
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">Cor do Verso</Label>
+              <div className="flex flex-wrap gap-2">
+                {CARD_COLORS.map((color) => (
+                  <button
+                    key={`back-${color.id}`}
+                    type="button"
+                    onClick={() => setBackColor(color.back)}
+                    className={cn(
+                      "w-8 h-8 rounded-full border-2 transition-all",
+                      backColor === color.back 
+                        ? "border-foreground scale-110" 
+                        : "border-border hover:border-foreground/50"
+                    )}
+                    style={{ 
+                      backgroundColor: color.back || 'hsl(var(--primary))',
+                    }}
+                    title={color.label}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Submit Button */}
         <div className="flex gap-3 pt-4">
           {editingCard && onCancelEdit && (
@@ -285,8 +355,8 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
         </div>
       </form>
 
-      {/* Preview Side */}
-      <div className="lg:sticky lg:top-4">
+      {/* Preview - Now below the form */}
+      <div className="pt-6 border-t border-border">
         <Label className="text-base font-medium mb-4 block">Prévia do Cartão</Label>
         <div className="flex items-center justify-center min-h-[300px] bg-muted/30 rounded-xl p-6">
           <FlipCard card={previewCard as FlashcardCard} isPreview />
