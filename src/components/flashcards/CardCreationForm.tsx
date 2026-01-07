@@ -225,51 +225,19 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
               <Label className="font-medium">Imagem</Label>
               
               {imageUrl ? (
-                <div className="space-y-3">
-                  <div className="relative rounded-xl overflow-hidden border border-border">
-                    <img 
-                      src={imageUrl} 
-                      alt="Preview" 
-                      className="w-full h-40"
-                      style={{ 
-                        objectFit: 'cover',
-                        objectPosition: imagePosition === 'center' ? 'center' : 
-                                        imagePosition === 'top' ? 'top' :
-                                        imagePosition === 'bottom' ? 'bottom' :
-                                        imagePosition === 'left' ? 'left' :
-                                        'right'
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      className="absolute top-2 right-2 w-8 h-8 bg-background/90 rounded-full flex items-center justify-center hover:bg-background transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  
-                  {/* Image Position Control */}
-                  <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">Posição da Imagem</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {IMAGE_POSITIONS.map((pos) => (
-                        <button
-                          key={pos.id}
-                          type="button"
-                          onClick={() => setImagePosition(pos.id)}
-                          className={cn(
-                            "px-3 py-1.5 text-sm rounded-lg border transition-all",
-                            imagePosition === pos.id 
-                              ? "border-primary bg-primary/10 text-primary" 
-                              : "border-border hover:border-foreground/50"
-                          )}
-                        >
-                          {pos.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <div className="relative aspect-square max-w-xs mx-auto rounded-xl overflow-hidden border border-border bg-muted/30">
+                  <img 
+                    src={imageUrl} 
+                    alt="Preview" 
+                    className="w-full h-full object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 w-8 h-8 bg-background/90 rounded-full flex items-center justify-center hover:bg-background transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               ) : (
                 <button
