@@ -112,10 +112,6 @@ export default function Treinos() {
   });
 
   const handleMethodClick = (method: typeof learningMethods[0]) => {
-    if (!method.available) {
-      toast.info(`${method.name} será implementado em breve!`);
-      return;
-    }
     setSelectedMethod(method.id);
   };
 
@@ -288,13 +284,6 @@ export default function Treinos() {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={() => setIsCreateSimuladoOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Simulado
-            </Button>
-          </div>
-
           {simulados.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
               <FileQuestion className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -348,6 +337,141 @@ export default function Treinos() {
               ))}
             </div>
           )}
+        </div>
+      );
+    }
+
+    if (selectedMethod === 'mindmap') {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            <div>
+              <h3 className="font-semibold text-foreground text-lg">Mapas Mentais</h3>
+              <p className="text-sm text-muted-foreground">Organize suas ideias visualmente</p>
+            </div>
+          </div>
+
+          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+            <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhum mapa mental criado ainda</p>
+            <p className="text-sm mb-4">Crie seu primeiro mapa mental para começar</p>
+            <Button onClick={() => toast.info('Mapas Mentais será implementado em breve!')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Mapa Mental
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedMethod === 'summary') {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            <div>
+              <h3 className="font-semibold text-foreground text-lg">Resumos Guiados</h3>
+              <p className="text-sm text-muted-foreground">Crie resumos estruturados</p>
+            </div>
+          </div>
+
+          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+            <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhum resumo criado ainda</p>
+            <p className="text-sm mb-4">Crie seu primeiro resumo guiado para começar</p>
+            <Button onClick={() => toast.info('Resumos Guiados será implementado em breve!')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Resumo
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedMethod === 'handwriting') {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            <div>
+              <h3 className="font-semibold text-foreground text-lg">Escrita Manual</h3>
+              <p className="text-sm text-muted-foreground">Envie resumos escritos à mão</p>
+            </div>
+          </div>
+
+          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+            <PenLine className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhuma escrita enviada ainda</p>
+            <p className="text-sm mb-4">Envie sua primeira foto de resumo para começar</p>
+            <Button onClick={() => toast.info('Escrita Manual será implementado em breve!')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Enviar Escrita
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedMethod === 'memory-palace') {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            <div>
+              <h3 className="font-semibold text-foreground text-lg">Palácio da Memória</h3>
+              <p className="text-sm text-muted-foreground">Crie associações visuais em ambientes</p>
+            </div>
+          </div>
+
+          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+            <Building2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhum palácio criado ainda</p>
+            <p className="text-sm mb-4">Crie seu primeiro palácio da memória para começar</p>
+            <Button onClick={() => toast.info('Palácio da Memória será implementado em breve!')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Palácio
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedMethod === 'audio-explanation') {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            <div>
+              <h3 className="font-semibold text-foreground text-lg">Explicação em Áudio</h3>
+              <p className="text-sm text-muted-foreground">Grave explicações sobre os conteúdos</p>
+            </div>
+          </div>
+
+          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+            <Mic className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhuma gravação criada ainda</p>
+            <p className="text-sm mb-4">Grave sua primeira explicação para começar</p>
+            <Button onClick={() => toast.info('Explicação em Áudio será implementado em breve!')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Gravar Áudio
+            </Button>
+          </div>
         </div>
       );
     }
