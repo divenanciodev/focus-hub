@@ -225,20 +225,23 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
         <div 
           className={cn(
             "absolute inset-0 flex items-center justify-center pointer-events-none z-10",
-            showFeedback === 'correct' ? "bg-green-500/10" : "bg-red-500/10"
+            showFeedback === 'correct' ? "bg-green-500/5" : "bg-red-500/5"
           )}
         >
           <div className={cn(
-            "text-center animate-scale-in",
+            "text-center animate-scale-in bg-background/80 backdrop-blur-sm px-8 py-6 rounded-2xl",
             showFeedback === 'correct' ? "text-green-600" : "text-red-600"
           )}>
             {showFeedback === 'correct' ? (
               <>
                 <Sparkles className="w-16 h-16 mx-auto mb-2" />
-                <p className="text-2xl font-bold">🎉 ACERTOU!!</p>
+                <p className="text-2xl font-bold">🎉 Parabéns!</p>
               </>
             ) : (
-              <p className="text-xl font-medium">Resposta Incorreta</p>
+              <>
+                <p className="text-5xl mb-2">😢</p>
+                <p className="text-xl font-medium">Tente novamente</p>
+              </>
             )}
           </div>
         </div>
