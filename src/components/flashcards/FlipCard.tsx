@@ -108,11 +108,10 @@ export function FlipCard({ card, isPreview = false, onAnswer, showFeedback = fal
         <div 
           className={cn(
             "w-full bg-card border border-border rounded-2xl p-8 shadow-lg",
-            "flex flex-col items-center justify-center min-h-[200px]"
+            "flex flex-col items-center justify-center min-h-[250px]"
           )}
           style={{ 
             backfaceVisibility: 'hidden',
-            display: isFlipped ? 'none' : 'flex'
           }}
         >
           {/* Image for image-flip and image-answer types */}
@@ -146,19 +145,19 @@ export function FlipCard({ card, isPreview = false, onAnswer, showFeedback = fal
         {/* Back */}
         <div 
           className={cn(
-            "w-full bg-foreground text-background border border-border rounded-2xl p-8 shadow-lg",
-            "flex flex-col items-center justify-center min-h-[200px]"
+            "absolute inset-0 w-full bg-primary text-primary-foreground border border-border rounded-2xl p-8 shadow-lg",
+            "flex flex-col items-center justify-center min-h-[250px]"
           )}
           style={{ 
             backfaceVisibility: 'hidden',
-            display: isFlipped ? 'flex' : 'none'
+            transform: 'rotateY(180deg)',
           }}
         >
           <p className="text-xl font-medium text-center leading-relaxed break-words px-2">
             {card.answer || 'Sua resposta aqui...'}
           </p>
           
-          <p className="text-xs text-background/60 mt-6">
+          <p className="text-xs text-primary-foreground/60 mt-6">
             Clique para voltar
           </p>
         </div>
