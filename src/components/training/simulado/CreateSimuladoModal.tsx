@@ -309,9 +309,8 @@ export function CreateSimuladoModal({
 
           {/* Add Question Manually - AFTER */}
           <div className="border border-border rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-center gap-2">
-              <Plus className="w-4 h-4" />
-              <h4 className="font-medium">Adicionar questão manualmente</h4>
+            <div className="flex items-center justify-center">
+              <h4 className="font-semibold">Adicionar questão manualmente</h4>
             </div>
             
             <div className="space-y-2">
