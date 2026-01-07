@@ -275,26 +275,22 @@ export function CreateSimuladoModal({
               placeholder="Cole um texto de estudo para gerar questões automaticamente com IA..."
               rows={4}
             />
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Quantidade de questões</Label>
-                <Select value={questionCount} onValueChange={setQuestionCount}>
-                  <SelectTrigger className="w-full sm:w-28">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {Array.from({ length: 20 }, (_, i) => (i + 1) * 5).map(n => (
-                      <SelectItem key={n} value={n.toString()}>{n} questões</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1" />
+            <div className="flex items-center gap-3">
+              <Select value={questionCount} onValueChange={setQuestionCount}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {Array.from({ length: 20 }, (_, i) => (i + 1) * 5).map(n => (
+                    <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button 
                 onClick={handleGenerateFromContent} 
                 size="sm" 
                 disabled={isGenerating || !contentText.trim()}
-                className="w-full sm:w-auto"
+                className="flex-1"
               >
                 {isGenerating ? (
                   <>
@@ -304,7 +300,7 @@ export function CreateSimuladoModal({
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Gerar {questionCount} questões
+                    Gerar questões
                   </>
                 )}
               </Button>
@@ -313,12 +309,15 @@ export function CreateSimuladoModal({
 
           {/* Add Question Manually - AFTER */}
           <div className="border border-border rounded-lg p-4 space-y-3">
-            <h4 className="font-medium">Adicionar questão manualmente</h4>
+            <div className="flex items-center justify-center gap-2">
+              <Plus className="w-4 h-4" />
+              <h4 className="font-medium">Adicionar questão manualmente</h4>
+            </div>
             
             <div className="space-y-2">
               <Label>Tipo</Label>
               <Select value={questionType} onValueChange={(v) => setQuestionType(v as 'multiple-choice' | 'true-false')}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -348,13 +347,12 @@ export function CreateSimuladoModal({
                       name="correctAnswer"
                       checked={correctAnswer === index}
                       onChange={() => setCorrectAnswer(index)}
-                      className="w-4 h-4"
+                      className="w-4 h-4 shrink-0"
                     />
                     <Input
                       value={option}
                       onChange={(e) => handleOptionChange(index, e.target.value)}
                       placeholder={`Alternativa ${String.fromCharCode(65 + index)}`}
-                      className="flex-1"
                     />
                   </div>
                 ))}
@@ -365,7 +363,7 @@ export function CreateSimuladoModal({
               <div className="space-y-2">
                 <Label>Resposta correta</Label>
                 <Select value={correctAnswer.toString()} onValueChange={(v) => setCorrectAnswer(parseInt(v))}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -376,9 +374,9 @@ export function CreateSimuladoModal({
               </div>
             )}
 
-            <Button onClick={handleAddQuestion} size="sm" variant="outline">
+            <Button onClick={handleAddQuestion} size="sm" variant="outline" className="w-full">
               <Plus className="w-4 h-4 mr-2" />
-              Adicionar questão
+              Adicionar
             </Button>
           </div>
 

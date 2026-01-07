@@ -30,25 +30,29 @@ REGRAS PARA GERAÇÃO:
    - MÉDIO: relações entre ideias, comparações, aplicação
    - AVANÇADO: análise, consequências, interpretação profunda
 
-4. TIPOS DE QUESTÕES:
-   - O que é X segundo o texto?
+4. TIPOS DE QUESTÕES (NUNCA use "segundo o texto" ou "de acordo com o texto" nos enunciados):
+   - O que caracteriza X?
    - Qual a relação entre X e Y?
    - Por que X acontece?
    - Qual a ordem correta das etapas?
-   - Que conclusão pode ser tirada?
+   - Que conclusão pode ser tirada sobre X?
+   - Como X funciona?
+   - Qual é a definição de X?
 
 5. VALIDAÇÃO: Todas as respostas DEVEM estar no texto. Nenhuma pergunta genérica.
+
+6. REGRA IMPORTANTE: As questões devem ser autocontidas. NÃO faça referência ao texto de origem nos enunciados. O aluno deve poder responder sem precisar ver o texto original.
 
 FORMATO DE SAÍDA - Retorne APENAS um JSON válido com array de questões:
 {
   "questions": [
     {
-      "text": "Enunciado da questão",
+      "text": "Enunciado da questão (sem mencionar 'o texto' ou 'segundo o texto')",
       "type": "multiple-choice",
       "options": ["Alternativa A (correta)", "Alternativa B", "Alternativa C", "Alternativa D"],
       "correctAnswer": 0,
       "level": "basic|medium|advanced",
-      "explanation": "Explicação baseada no texto"
+      "explanation": "Explicação baseada no conteúdo estudado"
     }
   ]
 }`;
@@ -86,10 +90,12 @@ ${difficultyInstruction}
 IMPORTANTE: 
 - Gere EXATAMENTE ${questionCount} questões, nem mais nem menos.
 - Cada questão DEVE ter exatamente 4 alternativas.
-- A resposta correta deve estar baseada EXCLUSIVAMENTE no texto.
+- A resposta correta deve estar baseada EXCLUSIVAMENTE no conteúdo fornecido.
 - Varie os tipos de perguntas (definição, causa/efeito, relação, processo, etc).
+- NUNCA use expressões como "segundo o texto", "de acordo com o texto", "o texto afirma" nos enunciados.
+- As questões devem ser autocontidas e não fazer referência ao texto de origem.
 
-TEXTO:
+TEXTO DE ESTUDO:
 """
 ${content}
 """
