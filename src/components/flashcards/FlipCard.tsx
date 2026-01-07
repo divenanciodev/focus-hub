@@ -131,7 +131,14 @@ export function FlipCard({ card, isPreview = false, onAnswer, showFeedback = fal
               <img 
                 src={card.imageUrl} 
                 alt="" 
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
+                style={{
+                  objectPosition: card.imagePosition === 'center' ? 'center' : 
+                                  card.imagePosition === 'top' ? 'top' :
+                                  card.imagePosition === 'bottom' ? 'bottom' :
+                                  card.imagePosition === 'left' ? 'left' :
+                                  card.imagePosition === 'right' ? 'right' : 'center'
+                }}
               />
             </div>
           )}
