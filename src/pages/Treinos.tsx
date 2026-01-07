@@ -309,17 +309,20 @@ export default function Treinos() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {simulados.map((simulado) => (
                 <div key={simulado.id} className="bg-card border border-border rounded-xl p-5">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h4 className="font-semibold text-foreground">{simulado.name}</h4>
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                      <FileQuestion className="w-5 h-5 text-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-foreground truncate">{simulado.name}</h4>
                       <p className="text-sm text-muted-foreground">{simulado.discipline}</p>
                     </div>
-                    <span className="text-xs bg-secondary px-2 py-1 rounded-full">
+                    <span className="text-xs bg-secondary px-2 py-1 rounded-full shrink-0">
                       {simulado.questions.length} questões
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {simulado.timeMinutes} min • {simulado.difficulty}
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {simulado.timeMinutes} min • {simulado.difficulty === 'easy' ? 'Fácil' : simulado.difficulty === 'hard' ? 'Difícil' : 'Médio'}
                   </p>
                   <div className="flex gap-2">
                     <Button 
@@ -476,19 +479,20 @@ export default function Treinos() {
                         className="bg-card border border-border rounded-xl p-5 hover:border-foreground/20 hover:shadow-md transition-all duration-200 cursor-pointer"
                         onClick={() => setActiveSimulado(simulado)}
                       >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                              <FileQuestion className="w-5 h-5 text-foreground" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-foreground">{simulado.name}</h4>
-                              <p className="text-sm text-muted-foreground">{simulado.discipline}</p>
-                            </div>
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                            <FileQuestion className="w-5 h-5 text-foreground" />
                           </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-foreground truncate">{simulado.name}</h4>
+                            <p className="text-sm text-muted-foreground">{simulado.discipline}</p>
+                          </div>
+                          <span className="text-xs bg-secondary px-2 py-1 rounded-full shrink-0">
+                            {simulado.questions.length} questões
+                          </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {simulado.questions.length} questões • {simulado.timeMinutes} min
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {simulado.timeMinutes} min • {simulado.difficulty === 'easy' ? 'Fácil' : simulado.difficulty === 'hard' ? 'Difícil' : 'Médio'}
                         </p>
                         {simulado.status === 'completed' && simulado.score !== undefined && (
                           <p className="text-sm text-primary mb-2">
