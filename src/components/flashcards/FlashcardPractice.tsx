@@ -196,9 +196,10 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
         {/* Card with animation wrapper */}
         <div 
           className={cn(
-            "transition-all duration-300 animate-fade-in",
+            "transition-all duration-300 animate-fade-in relative",
             showFeedback === 'correct' && "scale-105",
-            showFeedback === 'incorrect' && "animate-shake"
+            showFeedback === 'incorrect' && "animate-shake",
+            showFeedback && "opacity-20"
           )}
         >
           <FlipCard 
@@ -207,6 +208,30 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
             onAnswer={currentCard.type === 'multiple-choice' ? handleAnswer : undefined}
           />
         </div>
+
+        {/* Feedback overlay - positioned over the card */}
+        {showFeedback && (
+          <div 
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+          >
+            <div className={cn(
+              "text-center animate-scale-in",
+              showFeedback === 'correct' ? "text-green-600" : "text-red-600"
+            )}>
+              {showFeedback === 'correct' ? (
+                <>
+                  <Sparkles className="w-16 h-16 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">🎉 Parabéns!</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-5xl mb-2">😢</p>
+                  <p className="text-xl font-medium">Tente novamente</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <button
           onClick={handleNext}
@@ -219,33 +244,6 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
           <ChevronRight className="w-6 h-6" />
         </button>
       </div>
-
-      {/* Feedback overlay */}
-      {showFeedback && (
-        <div 
-          className={cn(
-            "absolute inset-0 flex items-center justify-center pointer-events-none z-10",
-            showFeedback === 'correct' ? "bg-green-500/5" : "bg-red-500/5"
-          )}
-        >
-          <div className={cn(
-            "text-center animate-scale-in bg-background/80 backdrop-blur-sm px-8 py-6 rounded-2xl",
-            showFeedback === 'correct' ? "text-green-600" : "text-red-600"
-          )}>
-            {showFeedback === 'correct' ? (
-              <>
-                <Sparkles className="w-16 h-16 mx-auto mb-2" />
-                <p className="text-2xl font-bold">🎉 Parabéns!</p>
-              </>
-            ) : (
-              <>
-                <p className="text-5xl mb-2">😢</p>
-                <p className="text-xl font-medium">Tente novamente</p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Footer - Progress bar and navigation for flip cards */}
       {currentCard.type !== 'multiple-choice' && (
