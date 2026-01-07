@@ -85,14 +85,7 @@ export function FlashcardCreator({ onSave, onCancel, editingGroup }: FlashcardCr
               </div>
             </div>
           )}
-        </div>
-
-        {step === 'cards' && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
-            <Layers className="w-4 h-4 text-primary" />
-            <span className="font-medium text-primary">{cards.length} cartão(ões)</span>
-          </div>
-        )}
+      </div>
       </div>
 
       {/* Content */}
