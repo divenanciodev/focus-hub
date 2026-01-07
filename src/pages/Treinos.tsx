@@ -235,24 +235,15 @@ export default function Treinos() {
     if (selectedMethod === 'flashcards') {
       return (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
-              </Button>
-              <div>
-                <h3 className="font-semibold text-foreground text-lg">Flashcards</h3>
-                <p className="text-sm text-muted-foreground">Gerencie seus cartões de memorização</p>
-              </div>
-            </div>
-            <Button onClick={() => {
-              setEditingFlashcardGroup(undefined);
-              setIsCreatingFlashcards(true);
-            }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Flashcards
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
             </Button>
+            <div>
+              <h3 className="font-semibold text-foreground text-lg">Flashcards</h3>
+              <p className="text-sm text-muted-foreground">Gerencie seus cartões de memorização</p>
+            </div>
           </div>
 
           {flashcardGroups.length === 0 ? (
