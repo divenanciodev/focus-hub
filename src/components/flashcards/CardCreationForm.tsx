@@ -354,19 +354,6 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
             </div>
           </div>
         </div>
-
-        {/* Submit Button */}
-        <div className="flex gap-3 pt-4">
-          {editingCard && onCancelEdit && (
-            <Button type="button" variant="outline" onClick={onCancelEdit} className="flex-1">
-              Cancelar
-            </Button>
-          )}
-          <Button type="submit" className={cn("flex-1", !editingCard && "w-full")}>
-            <Plus className="w-4 h-4 mr-2" />
-            {editingCard ? 'Atualizar Cartão' : 'Adicionar Cartão'}
-          </Button>
-        </div>
       </form>
 
       {/* Preview - Now below the form */}
@@ -375,6 +362,23 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
         <div className="flex items-center justify-center min-h-[300px] bg-muted/30 rounded-xl p-6">
           <FlipCard card={previewCard as FlashcardCard} isPreview />
         </div>
+      </div>
+
+      {/* Submit Button - Below preview */}
+      <div className="flex gap-3 pt-6">
+        {editingCard && onCancelEdit && (
+          <Button type="button" variant="outline" onClick={onCancelEdit} className="flex-1">
+            Cancelar
+          </Button>
+        )}
+        <Button 
+          type="button" 
+          onClick={handleSubmit}
+          className={cn("flex-1 h-12", !editingCard && "w-full")}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          {editingCard ? 'Atualizar Cartão' : 'Adicionar Cartão'}
+        </Button>
       </div>
     </div>
   );
