@@ -27,11 +27,16 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showFeedback, setShowFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
+  const [incorrectCount, setIncorrectCount] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [cardKey, setCardKey] = useState(0); // Force re-render of FlipCard
+  const [hasAnswered, setHasAnswered] = useState(false); // Track if current card was answered
 
   const currentCard = group.cards[currentIndex];
   const progress = ((currentIndex + 1) / group.cards.length) * 100;
+  const answeredTotal = correctCount + incorrectCount;
+  const correctPercentage = answeredTotal > 0 ? (correctCount / answeredTotal) * 100 : 0;
+  const incorrectPercentage = answeredTotal > 0 ? (incorrectCount / answeredTotal) * 100 : 0;
 
   const triggerConfetti = useCallback(() => {
     confetti({
@@ -43,12 +48,16 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
   }, []);
 
   const handleAnswer = (isCorrect: boolean) => {
+    if (hasAnswered) return;
+    setHasAnswered(true);
+    
     if (isCorrect) {
       setShowFeedback('correct');
       setCorrectCount(c => c + 1);
       triggerConfetti();
     } else {
       setShowFeedback('incorrect');
+      setIncorrectCount(c => c + 1);
     }
   };
 
@@ -57,6 +66,7 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
       setCurrentIndex(currentIndex + 1);
       setShowFeedback(null);
       setCardKey(k => k + 1);
+      setHasAnswered(false);
     } else {
       setIsComplete(true);
       if (correctCount >= group.cards.length * 0.7) {
@@ -70,21 +80,33 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
       setCurrentIndex(currentIndex - 1);
       setShowFeedback(null);
       setCardKey(k => k + 1);
+      setHasAnswered(false);
     }
   };
 
   const handleMarkCorrect = () => {
+    if (hasAnswered) return;
+    setHasAnswered(true);
     setCorrectCount(c => c + 1);
     triggerConfetti();
     setShowFeedback('correct');
   };
 
+  const handleMarkIncorrect = () => {
+    if (hasAnswered) return;
+    setHasAnswered(true);
+    setIncorrectCount(c => c + 1);
+    setShowFeedback('incorrect');
+  };
+
   const handleRestart = () => {
     setCurrentIndex(0);
     setCorrectCount(0);
+    setIncorrectCount(0);
     setIsComplete(false);
     setShowFeedback(null);
     setCardKey(k => k + 1);
+    setHasAnswered(false);
   };
 
   // Completion screen
@@ -222,26 +244,66 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
         </div>
       )}
 
-      {/* Footer - Action buttons for flip cards */}
+      {/* Footer - Progress bar and navigation for flip cards */}
       {currentCard.type !== 'multiple-choice' && (
         <footer className="p-4 border-t border-border">
-          <div className="max-w-md mx-auto flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={handleNext}
-              className="flex-1"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Errei
-            </Button>
-            <Button 
-              onClick={handleMarkCorrect}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              <Check className="w-4 h-4 mr-2" />
-              Acertei
-            </Button>
+          {/* Progress bar of correct/incorrect */}
+          <div className="max-w-md mx-auto mb-4">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-green-600 font-medium flex items-center gap-1">
+                <Check className="w-4 h-4" />
+                {correctCount} Acertos
+              </span>
+              <span className="text-red-500 font-medium flex items-center gap-1">
+                {incorrectCount} Erros
+                <X className="w-4 h-4" />
+              </span>
+            </div>
+            <div className="h-3 bg-muted rounded-full overflow-hidden flex">
+              {answeredTotal > 0 ? (
+                <>
+                  <div 
+                    className="bg-green-500 transition-all duration-300"
+                    style={{ width: `${correctPercentage}%` }}
+                  />
+                  <div 
+                    className="bg-red-500 transition-all duration-300"
+                    style={{ width: `${incorrectPercentage}%` }}
+                  />
+                </>
+              ) : (
+                <div className="w-full bg-muted" />
+              )}
+            </div>
           </div>
+
+          {/* Action buttons */}
+          {!hasAnswered ? (
+            <div className="max-w-md mx-auto flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={handleMarkIncorrect}
+                className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Errei
+              </Button>
+              <Button 
+                onClick={handleMarkCorrect}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Acertei
+              </Button>
+            </div>
+          ) : (
+            <div className="max-w-md mx-auto">
+              <Button onClick={handleNext} className="w-full">
+                <ArrowRight className="w-4 h-4 mr-2" />
+                {currentIndex < group.cards.length - 1 ? 'Próximo Cartão' : 'Finalizar'}
+              </Button>
+            </div>
+          )}
           
           <p className="text-center text-xs text-muted-foreground mt-3">
             Clique no cartão para virar e ver a resposta
@@ -249,15 +311,47 @@ export function FlashcardPractice({ group, onClose, onComplete }: FlashcardPract
         </footer>
       )}
 
-      {/* Footer for multiple choice - continue button */}
-      {currentCard.type === 'multiple-choice' && showFeedback && (
+      {/* Footer for multiple choice */}
+      {currentCard.type === 'multiple-choice' && (
         <footer className="p-4 border-t border-border">
-          <div className="max-w-md mx-auto">
-            <Button onClick={handleNext} className="w-full">
-              <ArrowRight className="w-4 h-4 mr-2" />
-              Continuar
-            </Button>
+          {/* Progress bar of correct/incorrect */}
+          <div className="max-w-md mx-auto mb-4">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-green-600 font-medium flex items-center gap-1">
+                <Check className="w-4 h-4" />
+                {correctCount} Acertos
+              </span>
+              <span className="text-red-500 font-medium flex items-center gap-1">
+                {incorrectCount} Erros
+                <X className="w-4 h-4" />
+              </span>
+            </div>
+            <div className="h-3 bg-muted rounded-full overflow-hidden flex">
+              {answeredTotal > 0 ? (
+                <>
+                  <div 
+                    className="bg-green-500 transition-all duration-300"
+                    style={{ width: `${correctPercentage}%` }}
+                  />
+                  <div 
+                    className="bg-red-500 transition-all duration-300"
+                    style={{ width: `${incorrectPercentage}%` }}
+                  />
+                </>
+              ) : (
+                <div className="w-full bg-muted" />
+              )}
+            </div>
           </div>
+
+          {showFeedback && (
+            <div className="max-w-md mx-auto">
+              <Button onClick={handleNext} className="w-full">
+                <ArrowRight className="w-4 h-4 mr-2" />
+                {currentIndex < group.cards.length - 1 ? 'Próximo Cartão' : 'Finalizar'}
+              </Button>
+            </div>
+          )}
         </footer>
       )}
     </div>
