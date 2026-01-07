@@ -127,18 +127,11 @@ export function FlipCard({ card, isPreview = false, onAnswer, showFeedback = fal
         >
           {/* Image for image-flip and image-answer types */}
           {(card.type === 'image-flip' || card.type === 'image-answer') && card.imageUrl && (
-            <div className="w-full max-h-48 mb-4 rounded-xl overflow-hidden">
+            <div className="w-full max-w-[200px] aspect-square mb-4 rounded-xl overflow-hidden bg-muted/30">
               <img 
                 src={card.imageUrl} 
                 alt="" 
-                className="w-full h-full object-cover"
-                style={{
-                  objectPosition: card.imagePosition === 'center' ? 'center' : 
-                                  card.imagePosition === 'top' ? 'top' :
-                                  card.imagePosition === 'bottom' ? 'bottom' :
-                                  card.imagePosition === 'left' ? 'left' :
-                                  card.imagePosition === 'right' ? 'right' : 'center'
-                }}
+                className="w-full h-full object-contain"
               />
             </div>
           )}
