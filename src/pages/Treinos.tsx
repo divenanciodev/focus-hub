@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FlashcardDeckList } from '@/components/training/flashcards/FlashcardDeckList';
-import { CreateFlashcardDeckModal } from '@/components/training/flashcards/CreateFlashcardDeckModal';
-import { FlashcardStudyMode } from '@/components/training/flashcards/FlashcardStudyMode';
+import { FlashcardGroup } from '@/types/flashcards';
+import { FlashcardCreator } from '@/components/flashcards/FlashcardCreator';
+import { FlashcardGroupList } from '@/components/flashcards/FlashcardGroupList';
+import { FlashcardPractice } from '@/components/flashcards/FlashcardPractice';
 import { CreateSimuladoModal } from '@/components/training/simulado/CreateSimuladoModal';
 import { SimuladoSession } from '@/components/training/simulado/SimuladoSession';
-import { FlashcardDeck, Simulado, TrainingType, TrainingMetrics } from '@/types/training';
+import { Simulado, TrainingType, TrainingMetrics } from '@/types/training';
 import { 
   Layers, 
   FileQuestion, 
@@ -79,14 +80,14 @@ const learningMethods = [
 ];
 
 export default function Treinos() {
-  const [mainTab, setMainTab] = useState<'criar' | 'praticar'>('criar');
+  const [mainTab, setMainTab] = useState<'criar' | 'praticar'>('praticar');
   const [selectedMethod, setSelectedMethod] = useState<TrainingType | null>(null);
   
-  // Flashcards state
-  const [flashcardDecks, setFlashcardDecks] = useState<FlashcardDeck[]>([]);
-  const [isCreateDeckOpen, setIsCreateDeckOpen] = useState(false);
-  const [editingDeck, setEditingDeck] = useState<FlashcardDeck | undefined>();
-  const [studyingDeck, setStudyingDeck] = useState<FlashcardDeck | null>(null);
+  // Flashcards state - new simplified system
+  const [flashcardGroups, setFlashcardGroups] = useState<FlashcardGroup[]>([]);
+  const [isCreatingFlashcards, setIsCreatingFlashcards] = useState(false);
+  const [editingFlashcardGroup, setEditingFlashcardGroup] = useState<FlashcardGroup | undefined>();
+  const [studyingFlashcardGroup, setStudyingFlashcardGroup] = useState<FlashcardGroup | null>(null);
   
   // Simulados state
   const [simulados, setSimulados] = useState<Simulado[]>([]);
@@ -118,35 +119,41 @@ export default function Treinos() {
     setSelectedMethod(method.id);
   };
 
-  // Flashcard handlers
-  const handleCreateDeck = (deck: FlashcardDeck) => {
-    if (editingDeck) {
-      setFlashcardDecks(flashcardDecks.map(d => d.id === deck.id ? deck : d));
-      toast.success('Deck atualizado!');
+  // Flashcard handlers - new simplified system
+  const handleSaveFlashcardGroup = (group: FlashcardGroup) => {
+    if (editingFlashcardGroup) {
+      setFlashcardGroups(flashcardGroups.map(g => g.id === group.id ? group : g));
     } else {
-      setFlashcardDecks([deck, ...flashcardDecks]);
+      setFlashcardGroups([group, ...flashcardGroups]);
       setMetrics(m => ({
         ...m,
         totalTrainings: m.totalTrainings + 1,
         byType: { ...m.byType, flashcards: m.byType.flashcards + 1 },
       }));
-      toast.success('Deck criado! Disponível para treino na aba "Praticar".');
     }
-    setEditingDeck(undefined);
+    setIsCreatingFlashcards(false);
+    setEditingFlashcardGroup(undefined);
+    setSelectedMethod(null);
+    setMainTab('praticar');
   };
 
-  const handleDeleteDeck = (deckId: string) => {
-    setFlashcardDecks(flashcardDecks.filter(d => d.id !== deckId));
-    toast.success('Deck excluído');
+  const handleDeleteFlashcardGroup = (groupId: string) => {
+    setFlashcardGroups(flashcardGroups.filter(g => g.id !== groupId));
+    toast.success('Grupo excluído');
   };
 
-  const handleStudyComplete = (results: { easy: number; medium: number; hard: number }) => {
+  const handleFlashcardStudyComplete = () => {
+    if (studyingFlashcardGroup) {
+      setFlashcardGroups(flashcardGroups.map(g => 
+        g.id === studyingFlashcardGroup.id ? { ...g, lastStudied: new Date() } : g
+      ));
+    }
+    setStudyingFlashcardGroup(null);
     setMetrics(m => ({
       ...m,
       totalStudyTimeMinutes: m.totalStudyTimeMinutes + 15,
       completedToday: m.completedToday + 1,
     }));
-    setStudyingDeck(null);
   };
 
   // Simulado handlers
@@ -181,18 +188,35 @@ export default function Treinos() {
   };
 
   // Available content for practice
-  const availableDecks = flashcardDecks.filter(d => d.cards.length > 0);
+  const availableGroups = flashcardGroups.filter(g => g.cards.length > 0);
   const availableSimulados = simulados.filter(s => s.questions.length > 0);
-  const totalAvailable = availableDecks.length + availableSimulados.length;
+  const totalAvailable = availableGroups.length + availableSimulados.length;
 
-  // Render study modes
-  if (studyingDeck) {
+  // Render flashcard practice mode
+  if (studyingFlashcardGroup) {
     return (
-      <FlashcardStudyMode
-        deck={studyingDeck}
-        onClose={() => setStudyingDeck(null)}
-        onComplete={handleStudyComplete}
+      <FlashcardPractice
+        group={studyingFlashcardGroup}
+        onClose={() => setStudyingFlashcardGroup(null)}
+        onComplete={handleFlashcardStudyComplete}
       />
+    );
+  }
+
+  // Render flashcard creation mode
+  if (isCreatingFlashcards) {
+    return (
+      <div className="fade-in">
+        <FlashcardCreator
+          onSave={handleSaveFlashcardGroup}
+          onCancel={() => {
+            setIsCreatingFlashcards(false);
+            setEditingFlashcardGroup(undefined);
+            setSelectedMethod(null);
+          }}
+          editingGroup={editingFlashcardGroup}
+        />
+      </div>
     );
   }
 
