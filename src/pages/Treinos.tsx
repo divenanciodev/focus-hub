@@ -247,67 +247,37 @@ export default function Treinos() {
               </div>
             </div>
             <Button onClick={() => {
-              setEditingDeck(undefined);
-              setIsCreateDeckOpen(true);
+              setEditingFlashcardGroup(undefined);
+              setIsCreatingFlashcards(true);
             }}>
               <Plus className="w-4 h-4 mr-2" />
-              Novo Cartão
+              Criar Flashcards
             </Button>
           </div>
 
-          {flashcardDecks.length === 0 ? (
+          {flashcardGroups.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
               <Layers className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum cartão criado ainda</p>
-              <p className="text-sm mb-4">Crie seus primeiros cartões para começar</p>
+              <p>Nenhum grupo de flashcards criado ainda</p>
+              <p className="text-sm mb-4">Crie seu primeiro grupo para começar</p>
               <Button onClick={() => {
-                setEditingDeck(undefined);
-                setIsCreateDeckOpen(true);
+                setEditingFlashcardGroup(undefined);
+                setIsCreatingFlashcards(true);
               }}>
                 <Plus className="w-4 h-4 mr-2" />
-                Novo Cartão
+                Criar Flashcards
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {flashcardDecks.map((deck) => (
-                <div key={deck.id} className="bg-card border border-border rounded-xl p-5">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h4 className="font-semibold text-foreground">{deck.name}</h4>
-                      <p className="text-sm text-muted-foreground">{deck.discipline}</p>
-                    </div>
-                    <span className="text-xs bg-secondary px-2 py-1 rounded-full">
-                      {deck.cards.length} cartões
-                    </span>
-                  </div>
-                  {deck.subject && (
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-1">{deck.subject}</p>
-                  )}
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => {
-                        setEditingDeck(deck);
-                        setIsCreateDeckOpen(true);
-                      }}
-                    >
-                      <Pencil className="w-3 h-3 mr-1" />
-                      Editar
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => handleDeleteDeck(deck.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <FlashcardGroupList
+              groups={flashcardGroups}
+              onStudy={(group) => setStudyingFlashcardGroup(group)}
+              onEdit={(group) => {
+                setEditingFlashcardGroup(group);
+                setIsCreatingFlashcards(true);
+              }}
+              onDelete={handleDeleteFlashcardGroup}
+            />
           )}
         </div>
       );
@@ -426,7 +396,7 @@ export default function Treinos() {
                 {learningMethods.map((method) => {
                   const Icon = method.icon;
                   const contentCount = method.id === 'flashcards' 
-                    ? flashcardDecks.length 
+                    ? flashcardGroups.length 
                     : method.id === 'simulado' 
                       ? simulados.length 
                       : 0;
@@ -477,44 +447,24 @@ export default function Treinos() {
           ) : (
             <div className="space-y-6">
               {/* Flashcards disponíveis */}
-              {availableDecks.length > 0 && (
+              {availableGroups.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-4">
                     <Layers className="w-5 h-5 text-foreground" />
                     <h3 className="font-semibold text-foreground">Flashcards</h3>
                     <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
-                      {availableDecks.length} deck{availableDecks.length > 1 ? 's' : ''}
+                      {availableGroups.length} grupo{availableGroups.length > 1 ? 's' : ''}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {availableDecks.map((deck) => (
-                      <div 
-                        key={deck.id} 
-                        className="bg-card border border-border rounded-xl p-5 hover:border-foreground/20 hover:shadow-md transition-all duration-200 cursor-pointer"
-                        onClick={() => setStudyingDeck(deck)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                              <Layers className="w-5 h-5 text-foreground" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-foreground">{deck.name}</h4>
-                              <p className="text-sm text-muted-foreground">{deck.discipline}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          {deck.cards.length} cartões
-                          {deck.totalReviews > 0 && ` • ${deck.totalReviews} revisões`}
-                        </p>
-                        <Button className="w-full">
-                          <Play className="w-4 h-4 mr-2" />
-                          Estudar
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                  <FlashcardGroupList
+                    groups={availableGroups}
+                    onStudy={(group) => setStudyingFlashcardGroup(group)}
+                    onEdit={(group) => {
+                      setEditingFlashcardGroup(group);
+                      setIsCreatingFlashcards(true);
+                    }}
+                    onDelete={handleDeleteFlashcardGroup}
+                  />
                 </div>
               )}
 
@@ -567,16 +517,6 @@ export default function Treinos() {
           )}
         </TabsContent>
       </Tabs>
-
-      <CreateFlashcardDeckModal
-        open={isCreateDeckOpen}
-        onOpenChange={(open) => {
-          setIsCreateDeckOpen(open);
-          if (!open) setEditingDeck(undefined);
-        }}
-        onSubmit={handleCreateDeck}
-        editingDeck={editingDeck}
-      />
 
       <CreateSimuladoModal
         open={isCreateSimuladoOpen}
