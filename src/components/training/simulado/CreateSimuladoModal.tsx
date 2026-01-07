@@ -275,16 +275,16 @@ export function CreateSimuladoModal({
               placeholder="Cole um texto de estudo para gerar questões automaticamente com IA..."
               rows={4}
             />
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Quantidade</Label>
+                <Label className="text-xs text-muted-foreground">Quantidade de questões</Label>
                 <Select value={questionCount} onValueChange={setQuestionCount}>
-                  <SelectTrigger className="w-24">
+                  <SelectTrigger className="w-full sm:w-28">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    {[5, 10, 15, 20].map(n => (
-                      <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                  <SelectContent className="max-h-60">
+                    {Array.from({ length: 20 }, (_, i) => (i + 1) * 5).map(n => (
+                      <SelectItem key={n} value={n.toString()}>{n} questões</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -294,6 +294,7 @@ export function CreateSimuladoModal({
                 onClick={handleGenerateFromContent} 
                 size="sm" 
                 disabled={isGenerating || !contentText.trim()}
+                className="w-full sm:w-auto"
               >
                 {isGenerating ? (
                   <>
@@ -385,15 +386,15 @@ export function CreateSimuladoModal({
           {questions.length > 0 && (
             <div className="space-y-2">
               <Label>Questões ({questions.length})</Label>
-              <div className="max-h-48 overflow-y-auto space-y-2 border border-border rounded-lg p-3">
+              <div className="max-h-60 overflow-y-auto overflow-x-hidden space-y-2 border border-border rounded-lg p-3">
                 {questions.map((q, index) => (
                   <div
                     key={q.id}
-                    className="flex items-center justify-between bg-secondary/50 rounded-lg p-3"
+                    className="flex items-start gap-2 bg-secondary/50 rounded-lg p-3"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{index + 1}. {q.text}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm font-medium break-words">{index + 1}. {q.text}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         {q.type === 'multiple-choice' ? 'Múltipla escolha' : 'V/F'} • {q.options?.length} alternativas
                       </p>
                     </div>
@@ -401,7 +402,7 @@ export function CreateSimuladoModal({
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRemoveQuestion(q.id)}
-                      className="shrink-0 ml-2"
+                      className="shrink-0"
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
