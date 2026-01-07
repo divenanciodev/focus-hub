@@ -33,6 +33,9 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
   const [question, setQuestion] = useState(editingCard?.question || '');
   const [answer, setAnswer] = useState(editingCard?.answer || '');
   const [imageUrl, setImageUrl] = useState(editingCard?.imageUrl || '');
+  const [imagePosition, setImagePosition] = useState<'center' | 'top' | 'bottom' | 'left' | 'right'>(
+    editingCard?.imagePosition || 'center'
+  );
   const [frontColor, setFrontColor] = useState(editingCard?.frontColor || '');
   const [backColor, setBackColor] = useState(editingCard?.backColor || '');
   const [options, setOptions] = useState<{ id: string; text: string; isCorrect: boolean }[]>(
@@ -46,6 +49,14 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
   const [correctOption, setCorrectOption] = useState(
     editingCard?.options?.find(o => o.isCorrect)?.id || '1'
   );
+
+  const IMAGE_POSITIONS = [
+    { id: 'center', label: 'Centro' },
+    { id: 'top', label: 'Topo' },
+    { id: 'bottom', label: 'Base' },
+    { id: 'left', label: 'Esquerda' },
+    { id: 'right', label: 'Direita' },
+  ] as const;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -74,6 +85,7 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
     setQuestion('');
     setAnswer('');
     setImageUrl('');
+    setImagePosition('center');
     setFrontColor('');
     setBackColor('');
     setOptions([
@@ -134,6 +146,7 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
       question: question.trim() || undefined,
       answer: answer.trim() || undefined,
       imageUrl: imageUrl || undefined,
+      imagePosition: imagePosition || 'center',
       options: finalOptions,
       frontColor: frontColor || undefined,
       backColor: backColor || undefined,
@@ -155,6 +168,7 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
     question: question || 'Sua pergunta aqui...',
     answer: answer || 'Sua resposta aqui...',
     imageUrl,
+    imagePosition,
     frontColor: frontColor || undefined,
     backColor: backColor || undefined,
     options: cardType === 'multiple-choice' ? options.filter(o => o.text.trim()).map(o => ({
@@ -207,23 +221,55 @@ export function CardCreationForm({ onAddCard, editingCard, onCancelEdit }: CardC
 
           {/* Image upload (for image-flip, image-answer) */}
           {(cardType === 'image-flip' || cardType === 'image-answer') && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label className="font-medium">Imagem</Label>
               
               {imageUrl ? (
-                <div className="relative rounded-xl overflow-hidden border border-border">
-                  <img 
-                    src={imageUrl} 
-                    alt="Preview" 
-                    className="w-full h-40 object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 w-8 h-8 bg-background/90 rounded-full flex items-center justify-center hover:bg-background transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                <div className="space-y-3">
+                  <div className="relative rounded-xl overflow-hidden border border-border">
+                    <img 
+                      src={imageUrl} 
+                      alt="Preview" 
+                      className="w-full h-40"
+                      style={{ 
+                        objectFit: 'cover',
+                        objectPosition: imagePosition === 'center' ? 'center' : 
+                                        imagePosition === 'top' ? 'top' :
+                                        imagePosition === 'bottom' ? 'bottom' :
+                                        imagePosition === 'left' ? 'left' :
+                                        'right'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 w-8 h-8 bg-background/90 rounded-full flex items-center justify-center hover:bg-background transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  {/* Image Position Control */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Posição da Imagem</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {IMAGE_POSITIONS.map((pos) => (
+                        <button
+                          key={pos.id}
+                          type="button"
+                          onClick={() => setImagePosition(pos.id)}
+                          className={cn(
+                            "px-3 py-1.5 text-sm rounded-lg border transition-all",
+                            imagePosition === pos.id 
+                              ? "border-primary bg-primary/10 text-primary" 
+                              : "border-border hover:border-foreground/50"
+                          )}
+                        >
+                          {pos.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <button

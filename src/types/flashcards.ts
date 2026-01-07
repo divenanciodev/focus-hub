@@ -15,6 +15,7 @@ export interface FlashcardCard {
   question?: string;
   answer?: string;
   imageUrl?: string;
+  imagePosition?: 'center' | 'top' | 'bottom' | 'left' | 'right'; // Position of image
   
   // For multiple choice
   options?: {

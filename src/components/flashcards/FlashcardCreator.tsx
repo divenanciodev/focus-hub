@@ -88,10 +88,10 @@ export function FlashcardCreator({ onSave, onCancel, editingGroup }: FlashcardCr
         </div>
 
         {step === 'cards' && (
-          <Button onClick={handleSaveGroup} disabled={cards.length === 0}>
-            <Save className="w-4 h-4 mr-2" />
-            Salvar Grupo
-          </Button>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
+            <Layers className="w-4 h-4 text-primary" />
+            <span className="font-medium text-primary">{cards.length} cartão(ões)</span>
+          </div>
         )}
       </div>
 
@@ -117,6 +117,19 @@ export function FlashcardCreator({ onSave, onCancel, editingGroup }: FlashcardCr
               onEdit={handleEditCard}
               onDelete={handleDeleteCard}
             />
+          </div>
+
+          {/* Save Button at bottom */}
+          <div className="pt-6 border-t border-border">
+            <Button 
+              onClick={handleSaveGroup} 
+              disabled={cards.length === 0}
+              className="w-full h-12 text-base"
+              size="lg"
+            >
+              <Save className="w-5 h-5 mr-2" />
+              Salvar Grupo ({cards.length} cartão{cards.length !== 1 ? 'ões' : ''})
+            </Button>
           </div>
         </div>
       )}
