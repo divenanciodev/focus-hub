@@ -19,8 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Simulado, SimuladoQuestion } from '@/types/training';
-import { Plus, Trash2, Upload } from 'lucide-react';
+import { Plus, Trash2, Upload, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateSimuladoModalProps {
   open: boolean;
@@ -58,6 +59,7 @@ export function CreateSimuladoModal({
   // For content generation
   const [contentText, setContentText] = useState('');
   const [questionCount, setQuestionCount] = useState('10');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleAddQuestion = () => {
     if (!questionText.trim()) {
@@ -100,44 +102,69 @@ export function CreateSimuladoModal({
     setOptions(newOptions);
   };
 
-  const handleGenerateFromContent = () => {
+  const handleGenerateFromContent = async () => {
     if (!contentText.trim()) {
       toast.error('Digite ou cole um conteúdo primeiro');
       return;
     }
     
-    // Simulated generation
-    const sentences = contentText.split(/[.!?]+/).filter(s => s.trim().length > 20);
-    const count = Math.min(parseInt(questionCount), sentences.length, 15);
+    if (contentText.trim().length < 100) {
+      toast.error('O conteúdo precisa ter pelo menos 100 caracteres para gerar questões de qualidade');
+      return;
+    }
+
+    setIsGenerating(true);
     
-    const generatedQuestions: SimuladoQuestion[] = sentences.slice(0, count).map((sentence, index) => ({
-      id: `gen-${Date.now()}-${index}`,
-      text: `Sobre "${sentence.trim().slice(0, 50)}...", é correto afirmar:`,
-      type: 'multiple-choice',
-      options: [
-        sentence.trim(),
-        'Alternativa incorreta A',
-        'Alternativa incorreta B',
-        'Alternativa incorreta C',
-      ],
-      correctAnswer: 0,
-    }));
-    
-    setQuestions([...questions, ...generatedQuestions]);
-    setContentText('');
-    toast.success(`${generatedQuestions.length} questões geradas!`);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-questions', {
+        body: {
+          content: contentText.trim(),
+          questionCount: parseInt(questionCount),
+          difficulty,
+        },
+      });
+
+      if (error) {
+        console.error('Error generating questions:', error);
+        toast.error('Erro ao gerar questões. Tente novamente.');
+        return;
+      }
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const generatedQuestions: SimuladoQuestion[] = data.questions.map((q: any, index: number) => ({
+        id: `gen-${Date.now()}-${index}`,
+        text: q.text,
+        type: q.type || 'multiple-choice',
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+      }));
+
+      setQuestions([...questions, ...generatedQuestions]);
+      setContentText('');
+      toast.success(`${generatedQuestions.length} questões geradas com sucesso!`);
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Erro ao gerar questões. Tente novamente.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSubmit = () => {
-    if (!name.trim() || !discipline || questions.length === 0) {
-      toast.error('Preencha o nome, disciplina e adicione ao menos 1 questão');
+    if (!name.trim() || questions.length === 0) {
+      toast.error('Preencha o nome e adicione ao menos 1 questão');
       return;
     }
     
     const simulado: Simulado = {
       id: Date.now().toString(),
       name: name.trim(),
-      discipline,
+      discipline: discipline || 'Geral',
       subject: subject.trim(),
       questions,
       timeMinutes: parseInt(timeMinutes),
@@ -185,10 +212,10 @@ export function CreateSimuladoModal({
               />
             </div>
             <div className="space-y-2">
-              <Label>Disciplina *</Label>
+              <Label>Disciplina</Label>
               <Select value={discipline} onValueChange={setDiscipline}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
+                  <SelectValue placeholder="Opcional..." />
                 </SelectTrigger>
                 <SelectContent>
                   {disciplines.map(d => (
@@ -236,9 +263,56 @@ export function CreateSimuladoModal({
             </div>
           </div>
 
-          {/* Add Question */}
+          {/* Generate from content - FIRST */}
           <div className="border border-border rounded-lg p-4 space-y-3">
-            <h4 className="font-medium">Adicionar questão</h4>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <h4 className="font-medium">Gerar questões com IA</h4>
+            </div>
+            <Textarea
+              value={contentText}
+              onChange={(e) => setContentText(e.target.value)}
+              placeholder="Cole um texto de estudo para gerar questões automaticamente com IA..."
+              rows={4}
+            />
+            <div className="flex items-center gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Quantidade</Label>
+                <Select value={questionCount} onValueChange={setQuestionCount}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 15, 20].map(n => (
+                      <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1" />
+              <Button 
+                onClick={handleGenerateFromContent} 
+                size="sm" 
+                disabled={isGenerating || !contentText.trim()}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Gerar {questionCount} questões
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Add Question Manually - AFTER */}
+          <div className="border border-border rounded-lg p-4 space-y-3">
+            <h4 className="font-medium">Adicionar questão manualmente</h4>
             
             <div className="space-y-2">
               <Label>Tipo</Label>
@@ -301,37 +375,10 @@ export function CreateSimuladoModal({
               </div>
             )}
 
-            <Button onClick={handleAddQuestion} size="sm">
+            <Button onClick={handleAddQuestion} size="sm" variant="outline">
               <Plus className="w-4 h-4 mr-2" />
               Adicionar questão
             </Button>
-          </div>
-
-          {/* Generate from content */}
-          <div className="border border-border rounded-lg p-4 space-y-3">
-            <h4 className="font-medium">Gerar de conteúdo</h4>
-            <Textarea
-              value={contentText}
-              onChange={(e) => setContentText(e.target.value)}
-              placeholder="Cole um texto para gerar questões automaticamente..."
-              rows={3}
-            />
-            <div className="flex items-center gap-3">
-              <Select value={questionCount} onValueChange={setQuestionCount}>
-                <SelectTrigger className="w-24">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[5, 10, 15].map(n => (
-                    <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={handleGenerateFromContent} size="sm" variant="outline">
-                <Upload className="w-4 h-4 mr-2" />
-                Gerar questões
-              </Button>
-            </div>
           </div>
 
           {/* Questions Preview */}
@@ -369,7 +416,7 @@ export function CreateSimuladoModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={!name || !discipline || questions.length === 0}>
+          <Button onClick={handleSubmit} disabled={!name || questions.length === 0}>
             Criar simulado
           </Button>
         </DialogFooter>
