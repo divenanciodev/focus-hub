@@ -103,12 +103,6 @@ export function ContentLibrary({
                     <Play className="w-4 h-4 mr-1" />
                     Praticar
                   </Button>
-                  <Button size="icon" variant="outline" onClick={() => onEditFlashcard(group)}>
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button size="icon" variant="outline" className="text-destructive" onClick={() => onDeleteFlashcard(group.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
             ))}
@@ -144,12 +138,6 @@ export function ContentLibrary({
                 <Button onClick={() => onStudyFlashcard(group)} className="flex-1">
                   <Play className="w-4 h-4 mr-2" />
                   Praticar
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => onEditFlashcard(group)}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDeleteFlashcard(group.id)}>
-                  <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -192,9 +180,6 @@ export function ContentLibrary({
                     <Play className="w-4 h-4 mr-1" />
                     {simulado.status === 'completed' ? 'Refazer' : 'Iniciar'}
                   </Button>
-                  <Button size="icon" variant="outline" className="text-destructive" onClick={() => onDeleteSimulado(simulado.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
             ))}
@@ -234,9 +219,6 @@ export function ContentLibrary({
                 <Button onClick={() => onStartSimulado(simulado)} className="flex-1">
                   <Play className="w-4 h-4 mr-2" />
                   {simulado.status === 'completed' ? 'Refazer' : 'Iniciar'}
-                </Button>
-                <Button variant="outline" size="icon" className="text-destructive hover:text-destructive" onClick={() => onDeleteSimulado(simulado.id)}>
-                  <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
