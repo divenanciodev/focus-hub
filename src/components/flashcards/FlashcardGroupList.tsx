@@ -19,7 +19,7 @@ export function FlashcardGroupList({ groups, onStudy, onEdit, onDelete }: Flashc
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {groups.map((group) => {
         // Count card types
         const typeCount: Record<string, number> = {};
@@ -30,20 +30,19 @@ export function FlashcardGroupList({ groups, onStudy, onEdit, onDelete }: Flashc
         return (
           <div
             key={group.id}
-            className="group bg-card border border-border rounded-2xl p-5 hover:border-foreground/20 hover:shadow-lg transition-all duration-300 cursor-pointer"
+            className="group bg-card border border-border rounded-2xl p-6 hover:border-foreground/20 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full"
             onClick={() => onStudy(group)}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Layers className="w-6 h-6 text-foreground" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground text-lg">{group.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {group.cards.length} cartão{group.cards.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <Layers className="w-7 h-7 text-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-foreground text-lg truncate">{group.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {group.cards.length} cartão{group.cards.length !== 1 ? 's' : ''}
+                </p>
               </div>
             </div>
 
@@ -57,7 +56,7 @@ export function FlashcardGroupList({ groups, onStudy, onEdit, onDelete }: Flashc
             </div>
 
             {/* Metadata */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground mb-5">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
                 {format(group.createdAt, "dd 'de' MMM", { locale: ptBR })}
@@ -68,6 +67,9 @@ export function FlashcardGroupList({ groups, onStudy, onEdit, onDelete }: Flashc
                 </span>
               )}
             </div>
+
+            {/* Spacer to push actions to bottom */}
+            <div className="flex-1" />
 
             {/* Actions */}
             <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
