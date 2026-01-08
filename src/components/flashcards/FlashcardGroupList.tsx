@@ -39,7 +39,7 @@ export function FlashcardGroupList({ groups, onStudy, onEdit, onDelete }: Flashc
                 <Layers className="w-7 h-7 text-foreground" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground text-lg truncate">{group.name}</h3>
+                <h3 className="font-semibold text-foreground text-lg break-words">{group.name}</h3>
                 <p className="text-sm text-muted-foreground">
                   {group.cards.length} cartão{group.cards.length !== 1 ? 's' : ''}
                 </p>
