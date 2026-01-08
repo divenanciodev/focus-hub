@@ -311,6 +311,7 @@ export default function Treinos() {
   // Simulados state
   const [simulados, setSimulados] = useState<Simulado[]>(exampleSimulados);
   const [isCreateSimuladoOpen, setIsCreateSimuladoOpen] = useState(false);
+  const [editingSimulado, setEditingSimulado] = useState<Simulado | undefined>();
   const [activeSimulado, setActiveSimulado] = useState<Simulado | null>(null);
 
   // Metrics
@@ -373,13 +374,21 @@ export default function Treinos() {
 
   // Simulado handlers
   const handleCreateSimulado = (simulado: Simulado) => {
-    setSimulados([simulado, ...simulados]);
-    setMetrics(m => ({
-      ...m,
-      totalTrainings: m.totalTrainings + 1,
-      byType: { ...m.byType, simulado: m.byType.simulado + 1 },
-    }));
-    toast.success('Simulado criado! Disponível para treino na aba "Praticar".');
+    if (editingSimulado) {
+      // Editing existing simulado
+      setSimulados(simulados.map(s => s.id === simulado.id ? simulado : s));
+      setEditingSimulado(undefined);
+      toast.success('Simulado atualizado!');
+    } else {
+      // Creating new simulado
+      setSimulados([simulado, ...simulados]);
+      setMetrics(m => ({
+        ...m,
+        totalTrainings: m.totalTrainings + 1,
+        byType: { ...m.byType, simulado: m.byType.simulado + 1 },
+      }));
+      toast.success('Simulado criado! Disponível para treino na aba "Minha Biblioteca".');
+    }
   };
 
   const handleDeleteSimulado = (simuladoId: string) => {
@@ -538,7 +547,8 @@ export default function Treinos() {
                       size="sm" 
                       className="flex-1"
                       onClick={() => {
-                        toast.info('Edição de simulado em breve!');
+                        setEditingSimulado(simulado);
+                        setIsCreateSimuladoOpen(true);
                       }}
                     >
                       <Pencil className="w-3 h-3 mr-1" />
@@ -788,8 +798,12 @@ export default function Treinos() {
 
       <CreateSimuladoModal
         open={isCreateSimuladoOpen}
-        onOpenChange={setIsCreateSimuladoOpen}
+        onOpenChange={(open) => {
+          setIsCreateSimuladoOpen(open);
+          if (!open) setEditingSimulado(undefined);
+        }}
         onSubmit={handleCreateSimulado}
+        editingSimulado={editingSimulado}
       />
     </div>
   );

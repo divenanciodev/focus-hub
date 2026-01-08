@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ interface CreateSimuladoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (simulado: Simulado) => void;
+  editingSimulado?: Simulado;
 }
 
 const disciplines = [
@@ -42,6 +43,7 @@ export function CreateSimuladoModal({
   open,
   onOpenChange,
   onSubmit,
+  editingSimulado,
 }: CreateSimuladoModalProps) {
   const [name, setName] = useState('');
   const [discipline, setDiscipline] = useState('');
@@ -60,6 +62,20 @@ export function CreateSimuladoModal({
   const [contentText, setContentText] = useState('');
   const [questionCount, setQuestionCount] = useState('10');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Load editing data when modal opens with editingSimulado
+  useEffect(() => {
+    if (editingSimulado && open) {
+      setName(editingSimulado.name);
+      setDiscipline(editingSimulado.discipline || '');
+      setSubject(editingSimulado.subject || '');
+      setTimeMinutes(editingSimulado.timeMinutes.toString());
+      setDifficulty(editingSimulado.difficulty);
+      setQuestions(editingSimulado.questions);
+    } else if (!open) {
+      resetForm();
+    }
+  }, [editingSimulado, open]);
 
   const handleAddQuestion = () => {
     if (!questionText.trim()) {
@@ -162,15 +178,16 @@ export function CreateSimuladoModal({
     }
     
     const simulado: Simulado = {
-      id: Date.now().toString(),
+      id: editingSimulado?.id || Date.now().toString(),
       name: name.trim(),
       discipline: discipline || 'Geral',
       subject: subject.trim(),
       questions,
       timeMinutes: parseInt(timeMinutes),
       difficulty,
-      status: 'pending',
-      createdAt: new Date(),
+      status: editingSimulado?.status || 'pending',
+      score: editingSimulado?.score,
+      createdAt: editingSimulado?.createdAt || new Date(),
     };
     
     onSubmit(simulado);
@@ -194,9 +211,9 @@ export function CreateSimuladoModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Criar Simulado</DialogTitle>
+          <DialogTitle>{editingSimulado ? 'Editar Simulado' : 'Criar Simulado'}</DialogTitle>
           <DialogDescription>
-            Crie provas com questões e tempo cronometrado
+            {editingSimulado ? 'Edite as informações e questões do simulado' : 'Crie provas com questões e tempo cronometrado'}
           </DialogDescription>
         </DialogHeader>
 
@@ -415,7 +432,7 @@ export function CreateSimuladoModal({
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={!name || questions.length === 0}>
-            Criar simulado
+            {editingSimulado ? 'Salvar alterações' : 'Criar simulado'}
           </Button>
         </DialogFooter>
       </DialogContent>
