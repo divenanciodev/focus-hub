@@ -8,11 +8,11 @@ import { FlashcardGroupList } from '@/components/flashcards/FlashcardGroupList';
 import { FlashcardPractice } from '@/components/flashcards/FlashcardPractice';
 import { CreateSimuladoModal } from '@/components/training/simulado/CreateSimuladoModal';
 import { SimuladoSession } from '@/components/training/simulado/SimuladoSession';
+import { ContentLibrary } from '@/components/training/ContentLibrary';
 import { Simulado, TrainingType, TrainingMetrics } from '@/types/training';
 import { 
   Layers, 
   FileQuestion, 
-  Play, 
   PenTool,
   Brain,
   FileText,
@@ -22,7 +22,8 @@ import {
   ArrowLeft,
   Plus,
   Pencil,
-  Trash2
+  Trash2,
+  FolderOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -298,7 +299,7 @@ const exampleSimulados: Simulado[] = [
 ];
 
 export default function Treinos() {
-  const [mainTab, setMainTab] = useState<'criar' | 'praticar'>('praticar');
+  const [mainTab, setMainTab] = useState<'criar' | 'biblioteca'>('biblioteca');
   const [selectedMethod, setSelectedMethod] = useState<TrainingType | null>(null);
   
   // Flashcards state - new simplified system
@@ -348,7 +349,7 @@ export default function Treinos() {
     setIsCreatingFlashcards(false);
     setEditingFlashcardGroup(undefined);
     setSelectedMethod(null);
-    setMainTab('praticar');
+    setMainTab('biblioteca');
   };
 
   const handleDeleteFlashcardGroup = (groupId: string) => {
@@ -704,16 +705,16 @@ export default function Treinos() {
         description="Ambiente completo de treino cognitivo com múltiplas técnicas de estudo"
       />
 
-      {/* Main Tabs: Criar vs Praticar */}
-      <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'criar' | 'praticar')} className="mt-6">
+      {/* Main Tabs: Criar vs Biblioteca */}
+      <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'criar' | 'biblioteca')} className="mt-6">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="criar" className="flex items-center gap-2">
             <PenTool className="w-4 h-4" />
             Criar Conteúdo
           </TabsTrigger>
-          <TabsTrigger value="praticar" className="flex items-center gap-2">
-            <Play className="w-4 h-4" />
-            Praticar ({totalAvailable})
+          <TabsTrigger value="biblioteca" className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4" />
+            Minha Biblioteca
           </TabsTrigger>
         </TabsList>
 
@@ -768,90 +769,20 @@ export default function Treinos() {
           )}
         </TabsContent>
 
-        {/* TAB: Praticar */}
-        <TabsContent value="praticar" className="mt-6">
-          {totalAvailable === 0 ? (
-            <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
-              <Play className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum conteúdo disponível para praticar</p>
-              <p className="text-sm mb-4">Crie flashcards ou simulados na aba "Criar Conteúdo"</p>
-              <Button onClick={() => setMainTab('criar')} variant="outline">
-                <PenTool className="w-4 h-4 mr-2" />
-                Ir para Criar Conteúdo
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Flashcards disponíveis */}
-              {availableGroups.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Layers className="w-5 h-5 text-foreground" />
-                    <h3 className="font-semibold text-foreground">Flashcards</h3>
-                    <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
-                      {availableGroups.length} grupo{availableGroups.length > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <FlashcardGroupList
-                    groups={availableGroups}
-                    onStudy={(group) => setStudyingFlashcardGroup(group)}
-                    onEdit={(group) => {
-                      setEditingFlashcardGroup(group);
-                      setIsCreatingFlashcards(true);
-                    }}
-                    onDelete={handleDeleteFlashcardGroup}
-                  />
-                </div>
-              )}
-
-              {/* Simulados disponíveis */}
-              {availableSimulados.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <FileQuestion className="w-5 h-5 text-foreground" />
-                    <h3 className="font-semibold text-foreground">Simulados</h3>
-                    <span className="text-xs bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
-                      {availableSimulados.length} simulado{availableSimulados.length > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {availableSimulados.map((simulado) => (
-                      <div 
-                        key={simulado.id} 
-                        className="bg-card border border-border rounded-xl p-5 hover:border-foreground/20 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col h-full"
-                        onClick={() => setActiveSimulado(simulado)}
-                      >
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                            <FileQuestion className="w-5 h-5 text-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-foreground">{simulado.name}</h4>
-                            <p className="text-sm text-muted-foreground">{simulado.discipline}</p>
-                          </div>
-                          <span className="text-xs bg-secondary px-2 py-1 rounded-full shrink-0">
-                            {simulado.questions.length} questões
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-4 flex-1">
-                          {simulado.timeMinutes} min • {simulado.difficulty === 'easy' ? 'Fácil' : simulado.difficulty === 'hard' ? 'Difícil' : 'Médio'}
-                        </p>
-                        {simulado.status === 'completed' && simulado.score !== undefined && (
-                          <p className="text-sm text-primary mb-2">
-                            Última nota: {simulado.score}%
-                          </p>
-                        )}
-                        <Button className="w-full mt-auto">
-                          <Play className="w-4 h-4 mr-2" />
-                          {simulado.status === 'completed' ? 'Refazer' : 'Iniciar'}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+        {/* TAB: Minha Biblioteca */}
+        <TabsContent value="biblioteca" className="mt-6">
+          <ContentLibrary
+            flashcardGroups={flashcardGroups}
+            simulados={simulados}
+            onStudyFlashcard={(group) => setStudyingFlashcardGroup(group)}
+            onEditFlashcard={(group) => {
+              setEditingFlashcardGroup(group);
+              setIsCreatingFlashcards(true);
+            }}
+            onDeleteFlashcard={handleDeleteFlashcardGroup}
+            onStartSimulado={(simulado) => setActiveSimulado(simulado)}
+            onDeleteSimulado={handleDeleteSimulado}
+          />
         </TabsContent>
       </Tabs>
 
