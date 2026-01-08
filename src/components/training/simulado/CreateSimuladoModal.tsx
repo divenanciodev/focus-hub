@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Simulado, SimuladoQuestion } from '@/types/training';
-import { Plus, Trash2, Upload, Loader2, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Upload, Loader2, Sparkles, FileText, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -39,6 +39,8 @@ const disciplines = [
   'Conhecimentos Gerais',
 ];
 
+const niveis = ['Fundamental', 'Médio', 'Superior'];
+
 export function CreateSimuladoModal({
   open,
   onOpenChange,
@@ -52,16 +54,31 @@ export function CreateSimuladoModal({
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [questions, setQuestions] = useState<SimuladoQuestion[]>([]);
   
+  // New fields for simulado metadata
+  const [cargo, setCargo] = useState('');
+  const [ano, setAno] = useState('');
+  const [orgao, setOrgao] = useState('');
+  const [instituicao, setInstituicao] = useState('');
+  const [nivel, setNivel] = useState('');
+  
   // For manual question creation
   const [questionText, setQuestionText] = useState('');
   const [questionType, setQuestionType] = useState<'multiple-choice' | 'true-false'>('multiple-choice');
   const [options, setOptions] = useState(['', '', '', '']);
   const [correctAnswer, setCorrectAnswer] = useState<number>(0);
+  const [showManualForm, setShowManualForm] = useState(false);
   
   // For content generation
   const [contentText, setContentText] = useState('');
   const [questionCount, setQuestionCount] = useState('10');
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // For PDF upload
+  const [isParsing, setIsParsing] = useState(false);
+  const [gabarito, setGabarito] = useState('');
+  const [showGabaritoInput, setShowGabaritoInput] = useState(false);
+  const [uploadedContent, setUploadedContent] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load editing data when modal opens with editingSimulado
   useEffect(() => {
@@ -72,6 +89,12 @@ export function CreateSimuladoModal({
       setTimeMinutes(editingSimulado.timeMinutes.toString());
       setDifficulty(editingSimulado.difficulty);
       setQuestions(editingSimulado.questions);
+      // Load new fields if they exist
+      setCargo((editingSimulado as any).cargo || '');
+      setAno((editingSimulado as any).ano || '');
+      setOrgao((editingSimulado as any).orgao || '');
+      setInstituicao((editingSimulado as any).instituicao || '');
+      setNivel((editingSimulado as any).nivel || '');
     } else if (!open) {
       resetForm();
     }
@@ -105,6 +128,7 @@ export function CreateSimuladoModal({
     setQuestionText('');
     setOptions(['', '', '', '']);
     setCorrectAnswer(0);
+    setShowManualForm(false);
     toast.success('Questão adicionada!');
   };
 
@@ -171,6 +195,100 @@ export function CreateSimuladoModal({
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf' && !file.type.startsWith('text/')) {
+      toast.error('Envie um arquivo PDF ou texto');
+      return;
+    }
+
+    setIsParsing(true);
+    
+    try {
+      // Read file content
+      let content = '';
+      
+      if (file.type.startsWith('text/')) {
+        content = await file.text();
+      } else {
+        // For PDF, we'll read as text (basic extraction)
+        // In a real scenario, you'd use a PDF parser
+        const reader = new FileReader();
+        content = await new Promise((resolve) => {
+          reader.onload = (e) => resolve(e.target?.result as string || '');
+          reader.readAsText(file);
+        });
+      }
+
+      if (!content.trim()) {
+        toast.error('Não foi possível extrair conteúdo do arquivo');
+        return;
+      }
+
+      setUploadedContent(content);
+      setShowGabaritoInput(true);
+      toast.success('Arquivo carregado! Agora cole o gabarito (opcional) e clique em processar.');
+    } catch (err) {
+      console.error('Error reading file:', err);
+      toast.error('Erro ao ler o arquivo');
+    } finally {
+      setIsParsing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleProcessUploadedContent = async () => {
+    if (!uploadedContent.trim()) {
+      toast.error('Nenhum conteúdo para processar');
+      return;
+    }
+
+    setIsParsing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-simulado-content', {
+        body: {
+          content: uploadedContent,
+          gabarito: gabarito.trim() || undefined,
+        },
+      });
+
+      if (error) {
+        console.error('Error parsing content:', error);
+        toast.error('Erro ao processar questões. Tente novamente.');
+        return;
+      }
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const parsedQuestions: SimuladoQuestion[] = data.questions.map((q: any, index: number) => ({
+        id: `parsed-${Date.now()}-${index}`,
+        text: q.text,
+        type: q.type === 'verdadeiro_falso' || q.type === 'certo_errado' ? 'true-false' : 'multiple-choice',
+        options: q.options?.map((opt: any) => opt.texto || opt) || [],
+        correctAnswer: q.correctAnswer ?? 0,
+      }));
+
+      setQuestions([...questions, ...parsedQuestions]);
+      setUploadedContent('');
+      setGabarito('');
+      setShowGabaritoInput(false);
+      toast.success(`${parsedQuestions.length} questões importadas com sucesso!`);
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Erro ao processar questões. Tente novamente.');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
   const handleSubmit = () => {
     if (!name.trim() || questions.length === 0) {
       toast.error('Preencha o nome e adicione ao menos 1 questão');
@@ -188,7 +306,13 @@ export function CreateSimuladoModal({
       status: editingSimulado?.status || 'pending',
       score: editingSimulado?.score,
       createdAt: editingSimulado?.createdAt || new Date(),
-    };
+      // Add new fields
+      cargo: cargo.trim(),
+      ano: ano.trim(),
+      orgao: orgao.trim(),
+      instituicao: instituicao.trim(),
+      nivel,
+    } as Simulado & { cargo: string; ano: string; orgao: string; instituicao: string; nivel: string };
     
     onSubmit(simulado);
     resetForm();
@@ -205,6 +329,15 @@ export function CreateSimuladoModal({
     setQuestionText('');
     setOptions(['', '', '', '']);
     setContentText('');
+    setCargo('');
+    setAno('');
+    setOrgao('');
+    setInstituicao('');
+    setNivel('');
+    setShowManualForm(false);
+    setShowGabaritoInput(false);
+    setUploadedContent('');
+    setGabarito('');
   };
 
   return (
@@ -218,16 +351,69 @@ export function CreateSimuladoModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Simulado Info */}
+          {/* Simulado Info - Row 1 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Nome do simulado *</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Simulado Constitucional"
+                placeholder="Ex: Prova Oficial Administrativo"
               />
             </div>
+            <div className="space-y-2">
+              <Label>Cargo</Label>
+              <Input
+                value={cargo}
+                onChange={(e) => setCargo(e.target.value)}
+                placeholder="Ex: Oficial Administrativo"
+              />
+            </div>
+          </div>
+
+          {/* Simulado Info - Row 2 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="space-y-2">
+              <Label>Ano</Label>
+              <Input
+                value={ano}
+                onChange={(e) => setAno(e.target.value)}
+                placeholder="Ex: 2019"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Órgão</Label>
+              <Input
+                value={orgao}
+                onChange={(e) => setOrgao(e.target.value)}
+                placeholder="Ex: Pref. Guarapuava/PR"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Instituição</Label>
+              <Input
+                value={instituicao}
+                onChange={(e) => setInstituicao(e.target.value)}
+                placeholder="Ex: FAUEL"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nível</Label>
+              <Select value={nivel} onValueChange={setNivel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {niveis.map(n => (
+                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Simulado Info - Row 3 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Disciplina</Label>
               <Select value={discipline} onValueChange={setDiscipline}>
@@ -241,21 +427,22 @@ export function CreateSimuladoModal({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label>Assunto</Label>
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="Ex: Princípios"
+                placeholder="Ex: Princípios Constitucionais, Direitos Fundamentais..."
               />
             </div>
+          </div>
+
+          {/* Time and Difficulty - Smaller */}
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Tempo (min)</Label>
+              <Label>Tempo</Label>
               <Select value={timeMinutes} onValueChange={setTimeMinutes}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -268,7 +455,7 @@ export function CreateSimuladoModal({
             <div className="space-y-2">
               <Label>Dificuldade</Label>
               <Select value={difficulty} onValueChange={(v) => setDifficulty(v as 'easy' | 'medium' | 'hard')}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -324,76 +511,174 @@ export function CreateSimuladoModal({
             </div>
           </div>
 
-          {/* Add Question Manually - AFTER */}
+          {/* Add Questions Section */}
           <div className="border border-border rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-center">
-              <h4 className="font-semibold">Adicionar questão manualmente</h4>
+              <h4 className="font-semibold">Adicionar questões</h4>
             </div>
             
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={questionType} onValueChange={(v) => setQuestionType(v as 'multiple-choice' | 'true-false')}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="multiple-choice">Múltipla escolha</SelectItem>
-                  <SelectItem value="true-false">Verdadeiro/Falso</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Two buttons: Manual and Upload */}
+            {!showManualForm && !showGabaritoInput && (
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowManualForm(true)}
+                  className="h-20 flex flex-col items-center justify-center gap-2"
+                >
+                  <PenLine className="w-5 h-5" />
+                  <span className="text-sm">Adicionar Manual</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isParsing}
+                  className="h-20 flex flex-col items-center justify-center gap-2"
+                >
+                  {isParsing ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Upload className="w-5 h-5" />
+                  )}
+                  <span className="text-sm">Upload de Questões</span>
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.txt"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label>Enunciado</Label>
-              <Textarea
-                value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
-                placeholder="Digite o enunciado da questão..."
-                rows={2}
-              />
-            </div>
+            {/* Gabarito input after file upload */}
+            {showGabaritoInput && (
+              <div className="space-y-3">
+                <div className="p-3 bg-secondary/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Arquivo carregado com {uploadedContent.length} caracteres
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Gabarito (opcional)</Label>
+                  <Textarea
+                    value={gabarito}
+                    onChange={(e) => setGabarito(e.target.value)}
+                    placeholder="Cole o gabarito no formato: 1-A, 2-C, 3-B ou 1-A 2-C 3-B..."
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowGabaritoInput(false);
+                      setUploadedContent('');
+                      setGabarito('');
+                    }}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleProcessUploadedContent}
+                    disabled={isParsing}
+                    className="flex-1"
+                  >
+                    {isParsing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processando...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Processar Questões
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
 
-            {questionType === 'multiple-choice' && (
-              <div className="space-y-2">
-                <Label>Alternativas (marque a correta)</Label>
-                {options.map((option, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correctAnswer"
-                      checked={correctAnswer === index}
-                      onChange={() => setCorrectAnswer(index)}
-                      className="w-4 h-4 shrink-0"
-                    />
-                    <Input
-                      value={option}
-                      onChange={(e) => handleOptionChange(index, e.target.value)}
-                      placeholder={`Alternativa ${String.fromCharCode(65 + index)}`}
-                    />
+            {/* Manual question form */}
+            {showManualForm && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <Select value={questionType} onValueChange={(v) => setQuestionType(v as 'multiple-choice' | 'true-false')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="multiple-choice">Múltipla escolha</SelectItem>
+                      <SelectItem value="true-false">Verdadeiro/Falso</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Enunciado</Label>
+                  <Textarea
+                    value={questionText}
+                    onChange={(e) => setQuestionText(e.target.value)}
+                    placeholder="Digite o enunciado da questão..."
+                    rows={2}
+                  />
+                </div>
+
+                {questionType === 'multiple-choice' && (
+                  <div className="space-y-2">
+                    <Label>Alternativas (marque a correta)</Label>
+                    {options.map((option, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="correctAnswer"
+                          checked={correctAnswer === index}
+                          onChange={() => setCorrectAnswer(index)}
+                          className="w-4 h-4 shrink-0"
+                        />
+                        <Input
+                          value={option}
+                          onChange={(e) => handleOptionChange(index, e.target.value)}
+                          placeholder={`Alternativa ${String.fromCharCode(65 + index)}`}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+
+                {questionType === 'true-false' && (
+                  <div className="space-y-2">
+                    <Label>Resposta correta</Label>
+                    <Select value={correctAnswer.toString()} onValueChange={(v) => setCorrectAnswer(parseInt(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Verdadeiro</SelectItem>
+                        <SelectItem value="1">Falso</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowManualForm(false)} 
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleAddQuestion} className="flex-1">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
               </div>
             )}
-
-            {questionType === 'true-false' && (
-              <div className="space-y-2">
-                <Label>Resposta correta</Label>
-                <Select value={correctAnswer.toString()} onValueChange={(v) => setCorrectAnswer(parseInt(v))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Verdadeiro</SelectItem>
-                    <SelectItem value="1">Falso</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <Button onClick={handleAddQuestion} size="sm" variant="outline" className="w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar
-            </Button>
           </div>
 
           {/* Questions Preview */}
