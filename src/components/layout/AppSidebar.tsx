@@ -9,8 +9,7 @@ import {
   GraduationCap,
   Wallet,
   CheckSquare,
-  Database,
-  CreditCard,
+  Link,
   User,
   ChevronLeft,
   ChevronRight,
@@ -28,8 +27,7 @@ const menuItems = [
   { icon: GraduationCap, label: 'Cursinhos', path: '/cursinhos' },
   { icon: Wallet, label: 'Vida Financeira', path: '/financeiro' },
   { icon: CheckSquare, label: 'Objetivos & Pendências', path: '/objetivos' },
-  { icon: Database, label: 'Banco (Admin)', path: '/banco' },
-  { icon: CreditCard, label: 'Planos & Assinaturas', path: '/planos' },
+  { icon: Link, label: 'Banco de Links', path: '/banco' },
   { icon: User, label: 'Perfil', path: '/perfil' },
 ];
 
