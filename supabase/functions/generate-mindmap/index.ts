@@ -6,84 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const systemPrompt = `Você é uma IA especializada em ORGANIZAÇÃO COGNITIVA, MAPAS MENTAIS e ESTRUTURAÇÃO DE CONHECIMENTO.
+const systemPrompt = `Você é uma IA especializada em MAPAS MENTAIS. Crie estruturas SIMPLES e CONCISAS.
 
-🎯 OBJETIVO
-Transformar qualquer conteúdo em um MAPA MENTAL estruturado, intuitivo e visual.
+REGRAS:
+- Nó central: 1 único com o tema
+- Ramos principais: 3-5 no máximo (conceito, características, tipos, exemplos, regras)
+- Subramos: 2-4 por ramo principal
+- Labels CURTOS: máximo 5 palavras por nó
+- Profundidade máxima: 2 níveis abaixo do central
 
-📐 REGRAS DE CONSTRUÇÃO
-
-1️⃣ NÓ CENTRAL
-- Sempre crie um nó central com o tema principal
-- tipo: "central"
-
-2️⃣ RAMOS PRINCIPAIS (3-7 no máximo)
-Identifique categorias como:
-- Conceito, Definição
-- Classificação, Tipos
-- Características
-- Princípios, Regras
-- Exceções
-- Exemplos práticos
-
-3️⃣ SUBRAMOS (HIERARQUIA)
-- Máximo 6 subramos por ramo
-- Profundidade máxima: 3 níveis
-- Use frases CURTAS e palavras-chave
-- Nunca parágrafos longos
-
-4️⃣ TIPOS DE NÓ
-- central → cor_destaque
-- ramo_principal → cor_primaria
-- subramo → cor_secundaria
-- exemplo → cor_suave
-- alerta → cor_alerta
-- excecao → cor_alerta
-- dica → cor_info
-
-5️⃣ REGRAS
-- Nunca escrever textos longos
-- Nunca mais de 7 ramos principais
-- Nunca profundidade excessiva
-- Priorize verbos de ação e substantivos-chave
-
-📋 FORMATO DE SAÍDA (JSON válido):
-{
-  "mapa_mental": {
-    "tema": "Nome do Tema",
-    "nos": [
-      {
-        "id": "central",
-        "label": "Tema Central",
-        "tipo": "central",
-        "pai": null,
-        "cor": "cor_destaque",
-        "colapsavel": false
-      },
-      {
-        "id": "1",
-        "label": "Ramo Principal 1",
-        "tipo": "ramo_principal",
-        "pai": "central",
-        "cor": "cor_primaria",
-        "colapsavel": true
-      },
-      {
-        "id": "1.1",
-        "label": "Subramo",
-        "tipo": "subramo",
-        "pai": "1",
-        "cor": "cor_secundaria",
-        "colapsavel": true
-      }
-    ]
-  }
-}
-
-Retorne APENAS o JSON, sem explicações.`;
+Tipos de nó: central, ramo_principal, subramo, exemplo, dica
+Cores: cor_destaque (central), cor_primaria (ramo), cor_secundaria (sub), cor_suave (exemplo), cor_info (dica)`;
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -99,11 +34,12 @@ serve(async (req) => {
     }
 
     const userPrompt = tema 
-      ? `Crie um mapa mental completo sobre o tema: "${tema}"`
-      : `Analise o conteúdo a seguir e crie um mapa mental estruturado:\n\n${content}`;
+      ? `Crie um mapa mental SIMPLES sobre: "${tema}". Use no máximo 15-20 nós no total.`
+      : `Crie um mapa mental SIMPLES deste conteúdo (máximo 15-20 nós):\n\n${content.substring(0, 2000)}`;
 
-    console.log('Generating mind map for:', tema || content.substring(0, 100));
+    console.log('Generating mind map for:', tema || content.substring(0, 50));
 
+    // Use tool calling for structured output
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -116,19 +52,72 @@ serve(async (req) => {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 4000,
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'create_mindmap',
+              description: 'Cria um mapa mental estruturado com nós e conexões',
+              parameters: {
+                type: 'object',
+                properties: {
+                  tema: { 
+                    type: 'string', 
+                    description: 'Nome do tema principal do mapa' 
+                  },
+                  nos: {
+                    type: 'array',
+                    description: 'Lista de nós do mapa mental',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', description: 'ID único do nó (ex: central, 1, 1.1)' },
+                        label: { type: 'string', description: 'Texto curto do nó (máx 5 palavras)' },
+                        tipo: { 
+                          type: 'string', 
+                          enum: ['central', 'ramo_principal', 'subramo', 'exemplo', 'dica'],
+                          description: 'Tipo do nó' 
+                        },
+                        pai: { 
+                          type: 'string', 
+                          description: 'ID do nó pai (null para central)',
+                          nullable: true
+                        },
+                        cor: { 
+                          type: 'string', 
+                          enum: ['cor_destaque', 'cor_primaria', 'cor_secundaria', 'cor_suave', 'cor_info'],
+                          description: 'Cor do nó baseada no tipo' 
+                        }
+                      },
+                      required: ['id', 'label', 'tipo', 'cor'],
+                      additionalProperties: false
+                    }
+                  }
+                },
+                required: ['tema', 'nos'],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: 'function', function: { name: 'create_mindmap' } }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI Gateway error:', errorText);
+      console.error('AI Gateway error:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Limite de requisições atingido. Aguarde alguns segundos.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'Créditos insuficientes. Adicione créditos na sua conta.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
@@ -139,38 +128,43 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    let generatedContent = data.choices[0].message.content;
+    console.log('AI response received');
 
-    // Clean up markdown code blocks if present
-    generatedContent = generatedContent
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
-
-    console.log('Generated content:', generatedContent.substring(0, 200));
-
-    // Parse and validate JSON
-    let parsedResult;
-    try {
-      parsedResult = JSON.parse(generatedContent);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
+    // Extract tool call result
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (!toolCall || toolCall.function.name !== 'create_mindmap') {
+      console.error('No valid tool call in response:', JSON.stringify(data).substring(0, 500));
       return new Response(
-        JSON.stringify({ error: 'Erro ao processar resposta da IA. Tente novamente.' }),
+        JSON.stringify({ error: 'Resposta inválida da IA. Tente novamente.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let mindMapData;
+    try {
+      mindMapData = JSON.parse(toolCall.function.arguments);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, toolCall.function.arguments.substring(0, 200));
+      return new Response(
+        JSON.stringify({ error: 'Erro ao processar resposta. Tente novamente.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Validate structure
-    if (!parsedResult.mapa_mental || !parsedResult.mapa_mental.nos) {
+    if (!mindMapData.nos || !Array.isArray(mindMapData.nos) || mindMapData.nos.length === 0) {
+      console.error('Invalid mind map structure:', mindMapData);
       return new Response(
         JSON.stringify({ error: 'Estrutura do mapa mental inválida. Tente novamente.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('Mind map generated with', mindMapData.nos.length, 'nodes');
+
     return new Response(
-      JSON.stringify(parsedResult),
+      JSON.stringify({ mapa_mental: mindMapData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
