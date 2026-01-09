@@ -122,11 +122,49 @@ export interface Course {
 
 export interface FinancialEntry {
   id: string;
-  type: 'income' | 'expense' | 'purchase';
+  type: 'income' | 'expense';
   description: string;
   amount: number;
   date: Date;
   category: string;
+}
+
+export interface Receivable {
+  id: string;
+  personName: string;
+  description: string;
+  totalAmount: number;
+  installments: number;
+  paidInstallments: number;
+  createdAt: Date;
+}
+
+export interface PiggyBank {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  color: string;
+}
+
+export interface FixedExpense {
+  id: string;
+  name: string;
+  amount: number;
+  dueDay: number;
+  category: string;
+  notificationsEnabled: boolean;
+}
+
+export interface PurchaseGoal {
+  id: string;
+  name: string;
+  description?: string;
+  targetAmount: number;
+  savedAmount: number;
+  imageUrl?: string;
+  storeLink?: string;
+  priority: 'low' | 'medium' | 'high';
 }
 
 export interface Consortium {
