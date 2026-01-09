@@ -9,6 +9,7 @@ import { FlashcardPractice } from '@/components/flashcards/FlashcardPractice';
 import { CreateSimuladoModal } from '@/components/training/simulado/CreateSimuladoModal';
 import { SimuladoSession } from '@/components/training/simulado/SimuladoSession';
 import { CreateMindMapModal } from '@/components/training/mindmap/CreateMindMapModal';
+import { MindMapViewer } from '@/components/training/mindmap/MindMapViewer';
 import { ContentLibrary } from '@/components/training/ContentLibrary';
 import { Simulado, TrainingType, TrainingMetrics, MindMap } from '@/types/training';
 import { 
@@ -320,6 +321,7 @@ export default function Treinos() {
   const [mindMaps, setMindMaps] = useState<MindMap[]>([]);
   const [isCreateMindMapOpen, setIsCreateMindMapOpen] = useState(false);
   const [editingMindMap, setEditingMindMap] = useState<MindMap | undefined>();
+  const [viewingMindMap, setViewingMindMap] = useState<MindMap | null>(null);
 
   // Metrics
   const [metrics, setMetrics] = useState<TrainingMetrics>({
@@ -479,6 +481,15 @@ export default function Treinos() {
         simulado={activeSimulado}
         onClose={() => setActiveSimulado(null)}
         onComplete={handleSimuladoComplete}
+      />
+    );
+  }
+
+  if (viewingMindMap) {
+    return (
+      <MindMapViewer
+        mindMap={viewingMindMap}
+        onClose={() => setViewingMindMap(null)}
       />
     );
   }
@@ -860,6 +871,7 @@ export default function Treinos() {
           <ContentLibrary
             flashcardGroups={flashcardGroups}
             simulados={simulados}
+            mindMaps={mindMaps}
             onStudyFlashcard={(group) => setStudyingFlashcardGroup(group)}
             onEditFlashcard={(group) => {
               setEditingFlashcardGroup(group);
@@ -868,6 +880,7 @@ export default function Treinos() {
             onDeleteFlashcard={handleDeleteFlashcardGroup}
             onStartSimulado={(simulado) => setActiveSimulado(simulado)}
             onDeleteSimulado={handleDeleteSimulado}
+            onViewMindMap={(mindMap) => setViewingMindMap(mindMap)}
           />
         </TabsContent>
       </Tabs>

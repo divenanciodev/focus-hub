@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,10 +12,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MindMap } from '@/types/training';
-import { Loader2, Sparkles, Brain, PenLine } from 'lucide-react';
+import { Loader2, Sparkles, Brain, PenLine, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useDisciplines } from '@/contexts/DisciplinesContext';
 
 interface MindMapNode {
   id: string;
@@ -39,13 +41,28 @@ export function CreateMindMapModal({
   onSubmit,
   editingMindMap,
 }: CreateMindMapModalProps) {
+  const { disciplines } = useDisciplines();
   const [name, setName] = useState(editingMindMap?.name || '');
   const [discipline, setDiscipline] = useState(editingMindMap?.discipline || '');
   const [tema, setTema] = useState('');
   const [content, setContent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedNodes, setGeneratedNodes] = useState<MindMapNode[]>([]);
-  const [inputMode, setInputMode] = useState<'tema' | 'conteudo'>('tema');
+  const [inputMode, setInputMode] = useState<'tema' | 'conteudo' | 'disciplina'>('tema');
+
+  const [selectedDisciplineId, setSelectedDisciplineId] = useState<string>('');
+
+  // Reset form when modal opens/closes or editing changes
+  useEffect(() => {
+    if (open) {
+      if (editingMindMap) {
+        setName(editingMindMap.name);
+        setDiscipline(editingMindMap.discipline || '');
+      }
+    } else {
+      resetForm();
+    }
+  }, [open, editingMindMap]);
 
   const handleGenerate = async () => {
     if (inputMode === 'tema' && !tema.trim()) {
@@ -56,13 +73,28 @@ export function CreateMindMapModal({
       toast.error('Cole um conteúdo para gerar o mapa mental');
       return;
     }
+    if (inputMode === 'disciplina' && !selectedDisciplineId) {
+      toast.error('Selecione uma disciplina');
+      return;
+    }
 
     setIsGenerating(true);
 
     try {
+      let temaToUse = tema.trim();
+      
+      // If using discipline mode, use the discipline name as theme
+      if (inputMode === 'disciplina') {
+        const selectedDiscipline = disciplines.find(d => d.id === selectedDisciplineId);
+        if (selectedDiscipline) {
+          temaToUse = selectedDiscipline.name;
+          setDiscipline(selectedDiscipline.name);
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('generate-mindmap', {
         body: {
-          tema: inputMode === 'tema' ? tema.trim() : undefined,
+          tema: (inputMode === 'tema' || inputMode === 'disciplina') ? temaToUse : undefined,
           content: inputMode === 'conteudo' ? content.trim() : undefined,
         },
       });
@@ -159,6 +191,8 @@ export function CreateMindMapModal({
     setTema('');
     setContent('');
     setGeneratedNodes([]);
+    setSelectedDisciplineId('');
+    setInputMode('tema');
   };
 
   // Group nodes by hierarchy for preview
@@ -206,8 +240,8 @@ export function CreateMindMapModal({
               <h4 className="font-medium">Gerar com IA</h4>
             </div>
 
-            <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as 'tema' | 'conteudo')}>
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as 'tema' | 'conteudo' | 'disciplina')}>
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="tema" className="text-sm">
                   <Brain className="w-3 h-3 mr-1" />
                   Por Tema
@@ -215,6 +249,10 @@ export function CreateMindMapModal({
                 <TabsTrigger value="conteudo" className="text-sm">
                   <PenLine className="w-3 h-3 mr-1" />
                   Por Conteúdo
+                </TabsTrigger>
+                <TabsTrigger value="disciplina" className="text-sm">
+                  <BookOpen className="w-3 h-3 mr-1" />
+                  Por Disciplina
                 </TabsTrigger>
               </TabsList>
 
@@ -238,6 +276,30 @@ export function CreateMindMapModal({
                     placeholder="Cole aqui um texto, resumo ou conteúdo de aula..."
                     rows={5}
                   />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="disciplina" className="space-y-3 mt-3">
+                <div className="space-y-2">
+                  <Label>Selecione uma disciplina</Label>
+                  {disciplines.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      Nenhuma disciplina criada. Crie disciplinas no módulo de Estudos.
+                    </p>
+                  ) : (
+                    <Select value={selectedDisciplineId} onValueChange={setSelectedDisciplineId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Escolha uma disciplina..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {disciplines.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
