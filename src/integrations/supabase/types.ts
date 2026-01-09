@@ -14,7 +14,517 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contests: {
+        Row: {
+          created_at: string | null
+          exam_date: string | null
+          id: string
+          institution: string | null
+          name: string
+          position: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          exam_date?: string | null
+          id?: string
+          institution?: string | null
+          name: string
+          position?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          exam_date?: string | null
+          id?: string
+          institution?: string | null
+          name?: string
+          position?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      courses: {
+        Row: {
+          created_at: string | null
+          curriculum: Json | null
+          deadline: string | null
+          id: string
+          image_url: string | null
+          is_from_bank: boolean | null
+          links: Json | null
+          name: string
+          platform: string | null
+          progress: number | null
+          theme: string | null
+          updated_at: string | null
+          user_id: string | null
+          workload: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          curriculum?: Json | null
+          deadline?: string | null
+          id?: string
+          image_url?: string | null
+          is_from_bank?: boolean | null
+          links?: Json | null
+          name: string
+          platform?: string | null
+          progress?: number | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          workload?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          curriculum?: Json | null
+          deadline?: string | null
+          id?: string
+          image_url?: string | null
+          is_from_bank?: boolean | null
+          links?: Json | null
+          name?: string
+          platform?: string | null
+          progress?: number | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          workload?: number | null
+        }
+        Relationships: []
+      }
+      disciplines: {
+        Row: {
+          color: string | null
+          cover_image: string | null
+          created_at: string | null
+          grade: string | null
+          hours_studied: number | null
+          id: string
+          name: string
+          progress: number | null
+          specific_subject: string | null
+          study_plan: Json | null
+          subject: string
+          tags: string[] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          cover_image?: string | null
+          created_at?: string | null
+          grade?: string | null
+          hours_studied?: number | null
+          id?: string
+          name: string
+          progress?: number | null
+          specific_subject?: string | null
+          study_plan?: Json | null
+          subject: string
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          cover_image?: string | null
+          created_at?: string | null
+          grade?: string | null
+          hours_studied?: number | null
+          id?: string
+          name?: string
+          progress?: number | null
+          specific_subject?: string | null
+          study_plan?: Json | null
+          subject?: string
+          tags?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      financial_entries: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string | null
+          date: string | null
+          description: string
+          id: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string | null
+          date?: string | null
+          description: string
+          id?: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string | null
+          date?: string | null
+          description?: string
+          id?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      fixed_expenses: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string | null
+          due_day: number | null
+          id: string
+          name: string
+          notifications_enabled: boolean | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string | null
+          due_day?: number | null
+          id?: string
+          name: string
+          notifications_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string | null
+          due_day?: number | null
+          id?: string
+          name?: string
+          notifications_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      flashcard_groups: {
+        Row: {
+          cards: Json | null
+          created_at: string | null
+          id: string
+          last_studied: string | null
+          name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cards?: Json | null
+          created_at?: string | null
+          id?: string
+          last_studied?: string | null
+          name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cards?: Json | null
+          created_at?: string | null
+          id?: string
+          last_studied?: string | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      link_folders: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      link_subfolders: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          folder_id: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_subfolders_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "link_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      links: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          subfolder_id: string | null
+          updated_at: string | null
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          subfolder_id?: string | null
+          updated_at?: string | null
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          subfolder_id?: string | null
+          updated_at?: string | null
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "links_subfolder_id_fkey"
+            columns: ["subfolder_id"]
+            isOneToOne: false
+            referencedRelation: "link_subfolders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objectives: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          estimated_cost: number | null
+          id: string
+          priority: string | null
+          requires_money: boolean | null
+          status: string | null
+          steps: Json | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          priority?: string | null
+          requires_money?: boolean | null
+          status?: string | null
+          steps?: Json | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          priority?: string | null
+          requires_money?: boolean | null
+          status?: string | null
+          steps?: Json | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      piggy_banks: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          current_amount: number | null
+          id: string
+          name: string
+          target_amount: number
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          current_amount?: number | null
+          id?: string
+          name: string
+          target_amount: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          current_amount?: number | null
+          id?: string
+          name?: string
+          target_amount?: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      simulados: {
+        Row: {
+          created_at: string | null
+          difficulty: string | null
+          discipline: string | null
+          id: string
+          name: string
+          questions: Json | null
+          score: number | null
+          status: string | null
+          subject: string | null
+          time_minutes: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          difficulty?: string | null
+          discipline?: string | null
+          id?: string
+          name: string
+          questions?: Json | null
+          score?: number | null
+          status?: string | null
+          subject?: string | null
+          time_minutes?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          difficulty?: string | null
+          discipline?: string | null
+          id?: string
+          name?: string
+          questions?: Json | null
+          score?: number | null
+          status?: string | null
+          subject?: string | null
+          time_minutes?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          auto_save: boolean | null
+          created_at: string | null
+          email_notifications: boolean | null
+          id: string
+          language: string | null
+          notifications_enabled: boolean | null
+          pomodoro_time: number | null
+          sound_effects: boolean | null
+          theme: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auto_save?: boolean | null
+          created_at?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          notifications_enabled?: boolean | null
+          pomodoro_time?: number | null
+          sound_effects?: boolean | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auto_save?: boolean | null
+          created_at?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          notifications_enabled?: boolean | null
+          pomodoro_time?: number | null
+          sound_effects?: boolean | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
