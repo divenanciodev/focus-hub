@@ -8,8 +8,9 @@ import { FlashcardGroupList } from '@/components/flashcards/FlashcardGroupList';
 import { FlashcardPractice } from '@/components/flashcards/FlashcardPractice';
 import { CreateSimuladoModal } from '@/components/training/simulado/CreateSimuladoModal';
 import { SimuladoSession } from '@/components/training/simulado/SimuladoSession';
+import { CreateMindMapModal } from '@/components/training/mindmap/CreateMindMapModal';
 import { ContentLibrary } from '@/components/training/ContentLibrary';
-import { Simulado, TrainingType, TrainingMetrics } from '@/types/training';
+import { Simulado, TrainingType, TrainingMetrics, MindMap } from '@/types/training';
 import { 
   Layers, 
   FileQuestion, 
@@ -23,7 +24,8 @@ import {
   Plus,
   Pencil,
   Trash2,
-  FolderOpen
+  FolderOpen,
+  Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -48,7 +50,7 @@ const learningMethods = [
     name: 'Mapas Mentais',
     description: 'Diagramas visuais para organizar ideias',
     icon: Brain,
-    available: false,
+    available: true,
   },
   {
     id: 'summary' as TrainingType,
@@ -314,6 +316,11 @@ export default function Treinos() {
   const [editingSimulado, setEditingSimulado] = useState<Simulado | undefined>();
   const [activeSimulado, setActiveSimulado] = useState<Simulado | null>(null);
 
+  // Mind Maps state
+  const [mindMaps, setMindMaps] = useState<MindMap[]>([]);
+  const [isCreateMindMapOpen, setIsCreateMindMapOpen] = useState(false);
+  const [editingMindMap, setEditingMindMap] = useState<MindMap | undefined>();
+
   // Metrics
   const [metrics, setMetrics] = useState<TrainingMetrics>({
     totalTrainings: 0,
@@ -409,6 +416,28 @@ export default function Treinos() {
           : s
       ));
     }
+  };
+
+  // Mind Map handlers
+  const handleCreateMindMap = (mindmap: MindMap) => {
+    if (editingMindMap) {
+      setMindMaps(mindMaps.map(m => m.id === mindmap.id ? mindmap : m));
+      setEditingMindMap(undefined);
+      toast.success('Mapa mental atualizado!');
+    } else {
+      setMindMaps([mindmap, ...mindMaps]);
+      setMetrics(m => ({
+        ...m,
+        totalTrainings: m.totalTrainings + 1,
+        byType: { ...m.byType, mindmap: m.byType.mindmap + 1 },
+      }));
+      toast.success('Mapa mental criado! Disponível na aba "Minha Biblioteca".');
+    }
+  };
+
+  const handleDeleteMindMap = (mindmapId: string) => {
+    setMindMaps(mindMaps.filter(m => m.id !== mindmapId));
+    toast.success('Mapa mental excluído');
   };
 
   // Available content for practice
@@ -584,15 +613,60 @@ export default function Treinos() {
             </div>
           </div>
 
-          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
-            <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum mapa mental criado ainda</p>
-            <p className="text-sm mb-4">Crie seu primeiro mapa mental para começar</p>
-            <Button onClick={() => toast.info('Mapas Mentais será implementado em breve!')}>
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Mapa Mental
-            </Button>
-          </div>
+          {mindMaps.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+              <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum mapa mental criado ainda</p>
+              <p className="text-sm mb-4">Crie seu primeiro mapa mental para começar</p>
+              <Button onClick={() => setIsCreateMindMapOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Mapa Mental
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {mindMaps.map((mindmap) => (
+                <div key={mindmap.id} className="bg-card border border-border rounded-xl p-5 flex flex-col h-full">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                      <Brain className="w-5 h-5 text-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-foreground">{mindmap.name}</h4>
+                      <p className="text-sm text-muted-foreground">{mindmap.discipline || 'Geral'}</p>
+                    </div>
+                    <span className="text-xs bg-secondary px-2 py-1 rounded-full shrink-0">
+                      {mindmap.nodes.length} nós
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4 flex-1">
+                    Criado em {new Date(mindmap.createdAt).toLocaleDateString('pt-BR')}
+                  </p>
+                  <div className="flex gap-2 mt-auto">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => {
+                        setEditingMindMap(mindmap);
+                        setIsCreateMindMapOpen(true);
+                      }}
+                    >
+                      <Pencil className="w-3 h-3 mr-1" />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDeleteMindMap(mindmap.id)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }
@@ -746,7 +820,9 @@ export default function Treinos() {
                     ? flashcardGroups.length 
                     : method.id === 'simulado' 
                       ? simulados.length 
-                      : 0;
+                      : method.id === 'mindmap'
+                        ? mindMaps.length
+                        : 0;
                   
                   return (
                     <button
@@ -804,6 +880,16 @@ export default function Treinos() {
         }}
         onSubmit={handleCreateSimulado}
         editingSimulado={editingSimulado}
+      />
+
+      <CreateMindMapModal
+        open={isCreateMindMapOpen}
+        onOpenChange={(open) => {
+          setIsCreateMindMapOpen(open);
+          if (!open) setEditingMindMap(undefined);
+        }}
+        onSubmit={handleCreateMindMap}
+        editingMindMap={editingMindMap}
       />
     </div>
   );

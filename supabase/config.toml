@@ -1,1 +1,10 @@
 project_id = "beygdrtsqidisfrhlqke"
+
+[functions.generate-questions]
+verify_jwt = false
+
+[functions.parse-simulado-content]
+verify_jwt = false
+
+[functions.generate-mindmap]
+verify_jwt = false
