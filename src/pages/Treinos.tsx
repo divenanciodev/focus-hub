@@ -652,11 +652,14 @@ export default function Treinos() {
       toast.error('Grave um áudio primeiro');
       return;
     }
+    // Save duration before resetting
+    const durationToSave = recordingDuration > 0 ? recordingDuration : 1;
+    
     const newAudio: SavedAudioExplanation = {
       id: crypto.randomUUID(),
       title: audioTitle.trim(),
       audioUrl: recordedAudioUrl,
-      durationSeconds: recordingDuration,
+      durationSeconds: durationToSave,
       createdAt: new Date(),
     };
     setSavedAudioExplanations([newAudio, ...savedAudioExplanations]);
