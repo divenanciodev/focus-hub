@@ -1,17 +1,17 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { FlashcardGroup } from '@/types/flashcards';
 import { FlashcardCreator } from '@/components/flashcards/FlashcardCreator';
 import { FlashcardGroupList } from '@/components/flashcards/FlashcardGroupList';
 import { FlashcardPractice } from '@/components/flashcards/FlashcardPractice';
 import { CreateSimuladoModal } from '@/components/training/simulado/CreateSimuladoModal';
 import { SimuladoSession } from '@/components/training/simulado/SimuladoSession';
-import { CreateMindMapModal } from '@/components/training/mindmap/CreateMindMapModal';
-import { MindMapViewer } from '@/components/training/mindmap/MindMapViewer';
 import { ContentLibrary } from '@/components/training/ContentLibrary';
-import { Simulado, TrainingType, TrainingMetrics, MindMap } from '@/types/training';
+import { Simulado, TrainingType, TrainingMetrics, MindMap, SavedMindMap } from '@/types/training';
 import { 
   Layers, 
   FileQuestion, 
@@ -26,7 +26,10 @@ import {
   Pencil,
   Trash2,
   FolderOpen,
-  Eye
+  Eye,
+  Upload,
+  Image,
+  FileIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -317,11 +320,11 @@ export default function Treinos() {
   const [editingSimulado, setEditingSimulado] = useState<Simulado | undefined>();
   const [activeSimulado, setActiveSimulado] = useState<Simulado | null>(null);
 
-  // Mind Maps state
-  const [mindMaps, setMindMaps] = useState<MindMap[]>([]);
-  const [isCreateMindMapOpen, setIsCreateMindMapOpen] = useState(false);
-  const [editingMindMap, setEditingMindMap] = useState<MindMap | undefined>();
-  const [viewingMindMap, setViewingMindMap] = useState<MindMap | null>(null);
+  // Saved Mind Maps state (uploaded files)
+  const [savedMindMaps, setSavedMindMaps] = useState<SavedMindMap[]>([]);
+  const [mindMapTitle, setMindMapTitle] = useState('');
+  const [selectedMindMapFile, setSelectedMindMapFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Metrics
   const [metrics, setMetrics] = useState<TrainingMetrics>({
@@ -420,25 +423,63 @@ export default function Treinos() {
     }
   };
 
-  // Mind Map handlers
-  const handleCreateMindMap = (mindmap: MindMap) => {
-    if (editingMindMap) {
-      setMindMaps(mindMaps.map(m => m.id === mindmap.id ? mindmap : m));
-      setEditingMindMap(undefined);
-      toast.success('Mapa mental atualizado!');
-    } else {
-      setMindMaps([mindmap, ...mindMaps]);
-      setMetrics(m => ({
-        ...m,
-        totalTrainings: m.totalTrainings + 1,
-        byType: { ...m.byType, mindmap: m.byType.mindmap + 1 },
-      }));
-      toast.success('Mapa mental criado! Disponível na aba "Minha Biblioteca".');
+  // Mind Map handlers - new file upload system
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf';
+      
+      if (!isImage && !isPdf) {
+        toast.error('Selecione uma imagem ou PDF');
+        return;
+      }
+      
+      setSelectedMindMapFile(file);
     }
   };
 
-  const handleDeleteMindMap = (mindmapId: string) => {
-    setMindMaps(mindMaps.filter(m => m.id !== mindmapId));
+  const handleSaveMindMap = () => {
+    if (!mindMapTitle.trim()) {
+      toast.error('Digite um título para o mapa mental');
+      return;
+    }
+    
+    if (!selectedMindMapFile) {
+      toast.error('Selecione um arquivo (imagem ou PDF)');
+      return;
+    }
+
+    const isImage = selectedMindMapFile.type.startsWith('image/');
+    const fileUrl = URL.createObjectURL(selectedMindMapFile);
+
+    const newSavedMindMap: SavedMindMap = {
+      id: crypto.randomUUID(),
+      title: mindMapTitle.trim(),
+      fileType: isImage ? 'image' : 'pdf',
+      fileUrl,
+      fileName: selectedMindMapFile.name,
+      createdAt: new Date(),
+    };
+
+    setSavedMindMaps([newSavedMindMap, ...savedMindMaps]);
+    setMindMapTitle('');
+    setSelectedMindMapFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    
+    setMetrics(m => ({
+      ...m,
+      totalTrainings: m.totalTrainings + 1,
+      byType: { ...m.byType, mindmap: m.byType.mindmap + 1 },
+    }));
+    
+    toast.success('Mapa mental salvo! Disponível na aba "Minha Biblioteca".');
+    setMainTab('biblioteca');
+    setSelectedMethod(null);
+  };
+
+  const handleDeleteSavedMindMap = (id: string) => {
+    setSavedMindMaps(savedMindMaps.filter(m => m.id !== id));
     toast.success('Mapa mental excluído');
   };
 
@@ -485,14 +526,6 @@ export default function Treinos() {
     );
   }
 
-  if (viewingMindMap) {
-    return (
-      <MindMapViewer
-        mindMap={viewingMindMap}
-        onClose={() => setViewingMindMap(null)}
-      />
-    );
-  }
 
   // Render method configuration view
   const renderMethodConfig = () => {
@@ -620,46 +653,110 @@ export default function Treinos() {
             </Button>
             <div>
               <h3 className="font-semibold text-foreground text-lg">Mapas Mentais</h3>
-              <p className="text-sm text-muted-foreground">Use o EdrawMind para criar mapas mentais profissionais</p>
+              <p className="text-sm text-muted-foreground">Salve seus mapas mentais exportados</p>
             </div>
           </div>
 
-          <div className="text-center py-12 border border-dashed border-border rounded-xl bg-card">
-            <Brain className="w-16 h-16 mx-auto mb-4 text-primary" />
-            <h4 className="text-lg font-semibold text-foreground mb-2">Wondershare EdrawMind</h4>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Para criar mapas mentais avançados, utilize o EdrawMind instalado no seu computador.
-            </p>
-            
-            <div className="flex flex-col items-center gap-4">
-              <Button 
-                size="lg"
-                onClick={() => {
-                  window.open('edrawmind://', '_blank');
-                  toast.info('Tentando abrir o EdrawMind...', {
-                    description: 'Se o app não abrir, clique no botão abaixo para acessar o site.'
-                  });
-                }}
-              >
-                <Brain className="w-5 h-5 mr-2" />
-                Abrir EdrawMind
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={() => window.open('https://www.edrawmind.com/', '_blank')}
-              >
-                Acessar site do EdrawMind
-              </Button>
+          <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="mindmap-title">Título do Mapa Mental</Label>
+                <Input
+                  id="mindmap-title"
+                  placeholder="Ex: Direito Constitucional - Princípios"
+                  value={mindMapTitle}
+                  onChange={(e) => setMindMapTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Arquivo (Imagem ou PDF)</Label>
+                <div 
+                  className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  
+                  {selectedMindMapFile ? (
+                    <div className="flex flex-col items-center gap-2">
+                      {selectedMindMapFile.type.startsWith('image/') ? (
+                        <Image className="w-12 h-12 text-primary" />
+                      ) : (
+                        <FileIcon className="w-12 h-12 text-primary" />
+                      )}
+                      <p className="font-medium text-foreground">{selectedMindMapFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(selectedMindMapFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMindMapFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="w-12 h-12 text-muted-foreground" />
+                      <p className="text-muted-foreground">Clique para selecionar</p>
+                      <p className="text-sm text-muted-foreground">Imagem (PNG, JPG) ou PDF</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="mt-8 p-4 bg-muted/50 rounded-lg max-w-md mx-auto text-left">
-              <p className="text-sm font-medium text-foreground mb-2">💡 Dica:</p>
-              <p className="text-sm text-muted-foreground">
-                Após criar seus mapas no EdrawMind, você pode exportá-los como imagem e adicioná-los aos seus materiais de estudo.
-              </p>
-            </div>
+            <Button 
+              onClick={handleSaveMindMap}
+              disabled={!mindMapTitle.trim() || !selectedMindMapFile}
+              className="w-full"
+              size="lg"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Salvar Mapa Mental
+            </Button>
           </div>
+
+          {savedMindMaps.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="font-medium text-foreground">Mapas Salvos ({savedMindMaps.length})</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {savedMindMaps.map((mindmap) => (
+                  <div key={mindmap.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                      {mindmap.fileType === 'image' ? (
+                        <Image className="w-6 h-6 text-foreground" />
+                      ) : (
+                        <FileIcon className="w-6 h-6 text-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h5 className="font-medium text-foreground truncate">{mindmap.title}</h5>
+                      <p className="text-sm text-muted-foreground">{mindmap.fileType.toUpperCase()} • {new Date(mindmap.createdAt).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDeleteSavedMindMap(mindmap.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -814,7 +911,7 @@ export default function Treinos() {
                     : method.id === 'simulado' 
                       ? simulados.length 
                       : method.id === 'mindmap'
-                        ? mindMaps.length
+                        ? savedMindMaps.length
                         : 0;
                   
                   return (
@@ -853,7 +950,7 @@ export default function Treinos() {
           <ContentLibrary
             flashcardGroups={flashcardGroups}
             simulados={simulados}
-            mindMaps={mindMaps}
+            savedMindMaps={savedMindMaps}
             onStudyFlashcard={(group) => setStudyingFlashcardGroup(group)}
             onEditFlashcard={(group) => {
               setEditingFlashcardGroup(group);
@@ -862,8 +959,10 @@ export default function Treinos() {
             onDeleteFlashcard={handleDeleteFlashcardGroup}
             onStartSimulado={(simulado) => setActiveSimulado(simulado)}
             onDeleteSimulado={handleDeleteSimulado}
-            onViewMindMap={(mindMap) => setViewingMindMap(mindMap)}
-            onCreateMindMap={() => setIsCreateMindMapOpen(true)}
+            onViewSavedMindMap={(mindMap) => {
+              window.open(mindMap.fileUrl, '_blank');
+            }}
+            onDeleteSavedMindMap={handleDeleteSavedMindMap}
           />
         </TabsContent>
       </Tabs>
@@ -876,16 +975,6 @@ export default function Treinos() {
         }}
         onSubmit={handleCreateSimulado}
         editingSimulado={editingSimulado}
-      />
-
-      <CreateMindMapModal
-        open={isCreateMindMapOpen}
-        onOpenChange={(open) => {
-          setIsCreateMindMapOpen(open);
-          if (!open) setEditingMindMap(undefined);
-        }}
-        onSubmit={handleCreateMindMap}
-        editingMindMap={editingMindMap}
       />
     </div>
   );

@@ -178,6 +178,18 @@ export interface MindMap {
   createdAt: Date;
 }
 
+// New: Saved Mind Map (uploaded file)
+export type SavedMindMapFileType = 'image' | 'pdf';
+
+export interface SavedMindMap {
+  id: string;
+  title: string;
+  fileType: SavedMindMapFileType;
+  fileUrl: string;
+  fileName: string;
+  createdAt: Date;
+}
+
 export interface GuidedSummary {
   id: string;
   title: string;
