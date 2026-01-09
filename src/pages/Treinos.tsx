@@ -881,6 +881,7 @@ export default function Treinos() {
             onStartSimulado={(simulado) => setActiveSimulado(simulado)}
             onDeleteSimulado={handleDeleteSimulado}
             onViewMindMap={(mindMap) => setViewingMindMap(mindMap)}
+            onCreateMindMap={() => setIsCreateMindMapOpen(true)}
           />
         </TabsContent>
       </Tabs>

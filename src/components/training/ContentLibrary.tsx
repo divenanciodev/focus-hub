@@ -32,6 +32,7 @@ interface ContentLibraryProps {
   onStartSimulado: (simulado: Simulado) => void;
   onDeleteSimulado: (simuladoId: string) => void;
   onViewMindMap: (mindMap: MindMap) => void;
+  onCreateMindMap?: () => void;
 }
 
 type MethodType = 'flashcards' | 'simulado' | 'mindmap' | 'summary' | 'handwriting' | 'memory-palace' | 'audio-explanation';
@@ -54,6 +55,7 @@ export function ContentLibrary({
   onStartSimulado,
   onDeleteSimulado,
   onViewMindMap,
+  onCreateMindMap,
 }: ContentLibraryProps) {
   const [selectedFolder, setSelectedFolder] = useState<MethodType | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -235,7 +237,13 @@ export function ContentLibrary({
           <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
             <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>Nenhum mapa mental criado ainda</p>
-            <p className="text-sm">Crie mapas mentais na aba "Criar Conteúdo"</p>
+            <p className="text-sm mb-4">Crie mapas mentais na aba "Criar Conteúdo"</p>
+            {onCreateMindMap && (
+              <Button onClick={onCreateMindMap}>
+                <Play className="w-4 h-4 mr-2" />
+                Criar Mapa Mental
+              </Button>
+            )}
           </div>
         );
       }
