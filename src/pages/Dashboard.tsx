@@ -37,7 +37,6 @@ export default function Dashboard() {
       'mindmap': 1,
       'summary': 1,
       'handwriting': 0,
-      'memory-palace': 0,
       'audio-explanation': 0,
     },
     completedToday: 2,

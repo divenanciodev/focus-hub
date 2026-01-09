@@ -63,12 +63,6 @@ const trainingTypes: TrainingTypeOption[] = [
     icon: PenTool,
   },
   {
-    type: 'memory-palace',
-    label: 'Palácio da Memória',
-    description: 'Associações visuais e espaciais',
-    icon: Building2,
-  },
-  {
     type: 'audio-explanation',
     label: 'Explicação em Áudio',
     description: 'Aprenda ensinando em voz alta',

@@ -7,7 +7,6 @@ export type TrainingType =
   | 'mindmap'
   | 'summary'
   | 'handwriting'
-  | 'memory-palace'
   | 'audio-explanation';
 
 export type FlashcardDifficulty = 'easy' | 'medium' | 'hard';
@@ -190,61 +189,32 @@ export interface SavedMindMap {
   createdAt: Date;
 }
 
-export interface GuidedSummary {
+// Saved Summary (uploaded file - same pattern as SavedMindMap)
+export interface SavedSummary {
   id: string;
   title: string;
-  discipline?: string;
-  content: string;
-  maxLines: number;
-  maxChars: number;
-  completed: boolean;
+  fileType: 'image' | 'pdf';
+  fileUrl: string;
+  fileName: string;
   createdAt: Date;
 }
 
-export interface HandwritingEntry {
+// Saved Handwriting (uploaded file - same pattern as SavedMindMap)
+export interface SavedHandwriting {
   id: string;
-  imageUrl: string;
-  discipline?: string;
-  subject?: string;
-  studyTimeMinutes: number;
-  completed: boolean;
+  title: string;
+  fileType: 'image' | 'pdf';
+  fileUrl: string;
+  fileName: string;
   createdAt: Date;
 }
 
-export interface MemoryPalaceRoom {
+// Saved Audio Explanation (recorded audio)
+export interface SavedAudioExplanation {
   id: string;
-  name: string;
-  items: MemoryPalaceItem[];
-}
-
-export interface MemoryPalaceItem {
-  id: string;
-  icon: string;
-  label: string;
-  mnemonic: string;
-  x: number;
-  y: number;
-}
-
-export interface MemoryPalace {
-  id: string;
-  name: string;
-  environment: 'house' | 'bedroom' | 'office' | 'library' | 'garden';
-  rooms: MemoryPalaceRoom[];
-  createdAt: Date;
-}
-
-export interface AudioExplanation {
-  id: string;
-  topic: string;
-  discipline?: string;
-  audioUrl?: string;
+  title: string;
+  audioUrl: string;
   durationSeconds: number;
-  evaluation?: {
-    clarity: number;
-    coherence: number;
-    coverage: number;
-  };
   createdAt: Date;
 }
 
