@@ -182,6 +182,9 @@ export interface Objective {
   steps: ObjectiveStep[];
   status: 'pending' | 'in_progress' | 'completed';
   createdAt: Date;
+  requiresMoney: boolean;
+  estimatedCost?: number;
+  priority: 'low' | 'medium' | 'high';
 }
 
 export interface ObjectiveStep {

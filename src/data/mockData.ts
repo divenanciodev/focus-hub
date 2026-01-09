@@ -164,6 +164,8 @@ export const mockObjectives: Objective[] = [
     title: 'Passar no concurso TRT', 
     description: 'Meta principal do ano', 
     status: 'in_progress',
+    requiresMoney: false,
+    priority: 'high',
     steps: [
       { id: '1', title: 'Estudar 4h por dia', completed: true },
       { id: '2', title: 'Fazer 50 questões diárias', completed: true },
@@ -177,6 +179,9 @@ export const mockObjectives: Objective[] = [
     title: 'Economizar R$ 10.000', 
     description: 'Reserva financeira', 
     status: 'in_progress',
+    requiresMoney: true,
+    estimatedCost: 10000,
+    priority: 'medium',
     steps: [
       { id: '1', title: 'Guardar 20% do salário', completed: true },
       { id: '2', title: 'Cortar gastos desnecessários', completed: false },
@@ -189,6 +194,9 @@ export const mockObjectives: Objective[] = [
     title: 'Aprender inglês intermediário', 
     description: 'Melhorar o currículo', 
     status: 'pending',
+    requiresMoney: true,
+    estimatedCost: 500,
+    priority: 'low',
     steps: [
       { id: '1', title: 'Fazer curso online', completed: false },
       { id: '2', title: 'Praticar 30min por dia', completed: false },
