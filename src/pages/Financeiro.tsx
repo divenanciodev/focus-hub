@@ -51,7 +51,7 @@ export default function Financeiro() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [isAddEntryModalOpen, setIsAddEntryModalOpen] = useState(false);
   const [entryType, setEntryType] = useState<'income' | 'expense'>('income');
-  const [newEntry, setNewEntry] = useState({ description: '', amount: '', category: '' });
+  const [newEntry, setNewEntry] = useState({ description: '', amount: '' });
 
   // State for receivables
   const [receivables, setReceivables] = useState<Receivable[]>([]);
@@ -131,17 +131,17 @@ export default function Financeiro() {
 
   // Handlers for entries
   const handleAddEntry = () => {
-    if (newEntry.description && newEntry.amount && newEntry.category) {
+    if (newEntry.description && newEntry.amount) {
       const entry: FinancialEntry = {
         id: Date.now().toString(),
         type: entryType,
         description: newEntry.description,
         amount: parseFloat(newEntry.amount),
         date: new Date(),
-        category: newEntry.category,
+        category: entryType === 'income' ? 'Entrada' : 'Saída',
       };
       setEntries([entry, ...entries]);
-      setNewEntry({ description: '', amount: '', category: '' });
+      setNewEntry({ description: '', amount: '' });
       setIsAddEntryModalOpen(false);
     }
   };
@@ -885,28 +885,6 @@ export default function Financeiro() {
                 onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })}
                 placeholder="Ex: 1500"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Categoria</Label>
-              <Select
-                value={newEntry.category}
-                onValueChange={(v) => setNewEntry({ ...newEntry, category: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Trabalho">Trabalho</SelectItem>
-                  <SelectItem value="Investimentos">Investimentos</SelectItem>
-                  <SelectItem value="Moradia">Moradia</SelectItem>
-                  <SelectItem value="Educação">Educação</SelectItem>
-                  <SelectItem value="Alimentação">Alimentação</SelectItem>
-                  <SelectItem value="Transporte">Transporte</SelectItem>
-                  <SelectItem value="Saúde">Saúde</SelectItem>
-                  <SelectItem value="Lazer">Lazer</SelectItem>
-                  <SelectItem value="Outros">Outros</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>
