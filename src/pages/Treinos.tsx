@@ -11,7 +11,7 @@ import { FlashcardPractice } from '@/components/flashcards/FlashcardPractice';
 import { CreateSimuladoModal } from '@/components/training/simulado/CreateSimuladoModal';
 import { SimuladoSession } from '@/components/training/simulado/SimuladoSession';
 import { ContentLibrary } from '@/components/training/ContentLibrary';
-import { Simulado, TrainingType, TrainingMetrics, MindMap, SavedMindMap } from '@/types/training';
+import { Simulado, TrainingType, TrainingMetrics, SavedMindMap, SavedSummary, SavedHandwriting, SavedAudioExplanation } from '@/types/training';
 import { 
   Layers, 
   FileQuestion, 
@@ -19,7 +19,6 @@ import {
   Brain,
   FileText,
   PenLine,
-  Building2,
   Mic,
   ArrowLeft,
   Plus,
@@ -29,7 +28,9 @@ import {
   Eye,
   Upload,
   Image,
-  FileIcon
+  FileIcon,
+  Square,
+  Play
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -58,31 +59,24 @@ const learningMethods = [
   },
   {
     id: 'summary' as TrainingType,
-    name: 'Resumos Guiados',
-    description: 'Resumos com limite de caracteres e linhas',
+    name: 'Resumos',
+    description: 'Salve seus resumos em imagem ou PDF',
     icon: FileText,
-    available: false,
+    available: true,
   },
   {
     id: 'handwriting' as TrainingType,
     name: 'Escrita Manual',
-    description: 'Envie fotos de resumos escritos à mão',
+    description: 'Salve fotos de resumos escritos à mão',
     icon: PenLine,
-    available: false,
-  },
-  {
-    id: 'memory-palace' as TrainingType,
-    name: 'Palácio da Memória',
-    description: 'Associações visuais em ambientes',
-    icon: Building2,
-    available: false,
+    available: true,
   },
   {
     id: 'audio-explanation' as TrainingType,
     name: 'Explicação em Áudio',
     description: 'Grave explicações sobre os conteúdos',
     icon: Mic,
-    available: false,
+    available: true,
   },
 ];
 
@@ -324,7 +318,29 @@ export default function Treinos() {
   const [savedMindMaps, setSavedMindMaps] = useState<SavedMindMap[]>([]);
   const [mindMapTitle, setMindMapTitle] = useState('');
   const [selectedMindMapFile, setSelectedMindMapFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mindMapFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Saved Summaries state (uploaded files)
+  const [savedSummaries, setSavedSummaries] = useState<SavedSummary[]>([]);
+  const [summaryTitle, setSummaryTitle] = useState('');
+  const [selectedSummaryFile, setSelectedSummaryFile] = useState<File | null>(null);
+  const summaryFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Saved Handwriting state (uploaded files)
+  const [savedHandwritings, setSavedHandwritings] = useState<SavedHandwriting[]>([]);
+  const [handwritingTitle, setHandwritingTitle] = useState('');
+  const [selectedHandwritingFile, setSelectedHandwritingFile] = useState<File | null>(null);
+  const handwritingFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Audio Explanations state
+  const [savedAudioExplanations, setSavedAudioExplanations] = useState<SavedAudioExplanation[]>([]);
+  const [audioTitle, setAudioTitle] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Metrics
   const [metrics, setMetrics] = useState<TrainingMetrics>({
@@ -337,7 +353,6 @@ export default function Treinos() {
       'mindmap': 0,
       'summary': 0,
       'handwriting': 0,
-      'memory-palace': 0,
       'audio-explanation': 0,
     },
     completedToday: 0,
@@ -465,7 +480,7 @@ export default function Treinos() {
     setSavedMindMaps([newSavedMindMap, ...savedMindMaps]);
     setMindMapTitle('');
     setSelectedMindMapFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (mindMapFileInputRef.current) mindMapFileInputRef.current.value = '';
     
     setMetrics(m => ({
       ...m,
@@ -481,6 +496,192 @@ export default function Treinos() {
   const handleDeleteSavedMindMap = (id: string) => {
     setSavedMindMaps(savedMindMaps.filter(m => m.id !== id));
     toast.success('Mapa mental excluído');
+  };
+
+  // Summary handlers
+  const handleSummaryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf';
+      if (!isImage && !isPdf) {
+        toast.error('Selecione uma imagem ou PDF');
+        return;
+      }
+      setSelectedSummaryFile(file);
+    }
+  };
+
+  const handleSaveSummary = () => {
+    if (!summaryTitle.trim()) {
+      toast.error('Digite um título para o resumo');
+      return;
+    }
+    if (!selectedSummaryFile) {
+      toast.error('Selecione um arquivo (imagem ou PDF)');
+      return;
+    }
+    const isImage = selectedSummaryFile.type.startsWith('image/');
+    const fileUrl = URL.createObjectURL(selectedSummaryFile);
+    const newSummary: SavedSummary = {
+      id: crypto.randomUUID(),
+      title: summaryTitle.trim(),
+      fileType: isImage ? 'image' : 'pdf',
+      fileUrl,
+      fileName: selectedSummaryFile.name,
+      createdAt: new Date(),
+    };
+    setSavedSummaries([newSummary, ...savedSummaries]);
+    setSummaryTitle('');
+    setSelectedSummaryFile(null);
+    if (summaryFileInputRef.current) summaryFileInputRef.current.value = '';
+    setMetrics(m => ({
+      ...m,
+      totalTrainings: m.totalTrainings + 1,
+      byType: { ...m.byType, summary: m.byType.summary + 1 },
+    }));
+    toast.success('Resumo salvo! Disponível na aba "Minha Biblioteca".');
+    setMainTab('biblioteca');
+    setSelectedMethod(null);
+  };
+
+  const handleDeleteSavedSummary = (id: string) => {
+    setSavedSummaries(savedSummaries.filter(s => s.id !== id));
+    toast.success('Resumo excluído');
+  };
+
+  // Handwriting handlers
+  const handleHandwritingFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf';
+      if (!isImage && !isPdf) {
+        toast.error('Selecione uma imagem ou PDF');
+        return;
+      }
+      setSelectedHandwritingFile(file);
+    }
+  };
+
+  const handleSaveHandwriting = () => {
+    if (!handwritingTitle.trim()) {
+      toast.error('Digite um título para a escrita');
+      return;
+    }
+    if (!selectedHandwritingFile) {
+      toast.error('Selecione um arquivo (imagem ou PDF)');
+      return;
+    }
+    const isImage = selectedHandwritingFile.type.startsWith('image/');
+    const fileUrl = URL.createObjectURL(selectedHandwritingFile);
+    const newHandwriting: SavedHandwriting = {
+      id: crypto.randomUUID(),
+      title: handwritingTitle.trim(),
+      fileType: isImage ? 'image' : 'pdf',
+      fileUrl,
+      fileName: selectedHandwritingFile.name,
+      createdAt: new Date(),
+    };
+    setSavedHandwritings([newHandwriting, ...savedHandwritings]);
+    setHandwritingTitle('');
+    setSelectedHandwritingFile(null);
+    if (handwritingFileInputRef.current) handwritingFileInputRef.current.value = '';
+    setMetrics(m => ({
+      ...m,
+      totalTrainings: m.totalTrainings + 1,
+      byType: { ...m.byType, handwriting: m.byType.handwriting + 1 },
+    }));
+    toast.success('Escrita salva! Disponível na aba "Minha Biblioteca".');
+    setMainTab('biblioteca');
+    setSelectedMethod(null);
+  };
+
+  const handleDeleteSavedHandwriting = (id: string) => {
+    setSavedHandwritings(savedHandwritings.filter(h => h.id !== id));
+    toast.success('Escrita excluída');
+  };
+
+  // Audio recording handlers
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+      
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setRecordedAudioUrl(audioUrl);
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration(d => d + 1);
+      }, 1000);
+    } catch (error) {
+      toast.error('Não foi possível acessar o microfone');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    }
+  };
+
+  const handleSaveAudio = () => {
+    if (!audioTitle.trim()) {
+      toast.error('Digite um título para a gravação');
+      return;
+    }
+    if (!recordedAudioUrl) {
+      toast.error('Grave um áudio primeiro');
+      return;
+    }
+    const newAudio: SavedAudioExplanation = {
+      id: crypto.randomUUID(),
+      title: audioTitle.trim(),
+      audioUrl: recordedAudioUrl,
+      durationSeconds: recordingDuration,
+      createdAt: new Date(),
+    };
+    setSavedAudioExplanations([newAudio, ...savedAudioExplanations]);
+    setAudioTitle('');
+    setRecordedAudioUrl(null);
+    setRecordingDuration(0);
+    setMetrics(m => ({
+      ...m,
+      totalTrainings: m.totalTrainings + 1,
+      byType: { ...m.byType, 'audio-explanation': m.byType['audio-explanation'] + 1 },
+    }));
+    toast.success('Áudio salvo! Disponível na aba "Minha Biblioteca".');
+    setMainTab('biblioteca');
+    setSelectedMethod(null);
+  };
+
+  const handleDeleteSavedAudio = (id: string) => {
+    setSavedAudioExplanations(savedAudioExplanations.filter(a => a.id !== id));
+    toast.success('Áudio excluído');
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Available content for practice
@@ -673,10 +874,10 @@ export default function Treinos() {
                 <Label>Arquivo (Imagem ou PDF)</Label>
                 <div 
                   className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => mindMapFileInputRef.current?.click()}
                 >
                   <input
-                    ref={fileInputRef}
+                    ref={mindMapFileInputRef}
                     type="file"
                     accept="image/*,.pdf"
                     onChange={handleFileSelect}
@@ -700,7 +901,7 @@ export default function Treinos() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedMindMapFile(null);
-                          if (fileInputRef.current) fileInputRef.current.value = '';
+                          if (mindMapFileInputRef.current) mindMapFileInputRef.current.value = '';
                         }}
                       >
                         Remover
@@ -770,20 +971,111 @@ export default function Treinos() {
               Voltar
             </Button>
             <div>
-              <h3 className="font-semibold text-foreground text-lg">Resumos Guiados</h3>
-              <p className="text-sm text-muted-foreground">Crie resumos estruturados</p>
+              <h3 className="font-semibold text-foreground text-lg">Resumos</h3>
+              <p className="text-sm text-muted-foreground">Salve seus resumos em imagem ou PDF</p>
             </div>
           </div>
 
-          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
-            <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum resumo criado ainda</p>
-            <p className="text-sm mb-4">Crie seu primeiro resumo guiado para começar</p>
-            <Button onClick={() => toast.info('Resumos Guiados será implementado em breve!')}>
+          <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="summary-title">Título do Resumo</Label>
+                <Input
+                  id="summary-title"
+                  placeholder="Ex: Direito Administrativo - Atos"
+                  value={summaryTitle}
+                  onChange={(e) => setSummaryTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Arquivo (Imagem ou PDF)</Label>
+                <div 
+                  className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => summaryFileInputRef.current?.click()}
+                >
+                  <input
+                    ref={summaryFileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleSummaryFileSelect}
+                    className="hidden"
+                  />
+                  
+                  {selectedSummaryFile ? (
+                    <div className="flex flex-col items-center gap-2">
+                      {selectedSummaryFile.type.startsWith('image/') ? (
+                        <Image className="w-12 h-12 text-primary" />
+                      ) : (
+                        <FileIcon className="w-12 h-12 text-primary" />
+                      )}
+                      <p className="font-medium text-foreground">{selectedSummaryFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(selectedSummaryFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSummaryFile(null);
+                          if (summaryFileInputRef.current) summaryFileInputRef.current.value = '';
+                        }}
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="w-12 h-12 text-muted-foreground" />
+                      <p className="text-muted-foreground">Clique para selecionar</p>
+                      <p className="text-sm text-muted-foreground">Imagem (PNG, JPG) ou PDF</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleSaveSummary}
+              disabled={!summaryTitle.trim() || !selectedSummaryFile}
+              className="w-full"
+              size="lg"
+            >
               <Plus className="w-4 h-4 mr-2" />
-              Criar Resumo
+              Salvar Resumo
             </Button>
           </div>
+
+          {savedSummaries.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="font-medium text-foreground">Resumos Salvos ({savedSummaries.length})</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {savedSummaries.map((summary) => (
+                  <div key={summary.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                      {summary.fileType === 'image' ? (
+                        <Image className="w-6 h-6 text-foreground" />
+                      ) : (
+                        <FileIcon className="w-6 h-6 text-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h5 className="font-medium text-foreground truncate">{summary.title}</h5>
+                      <p className="text-sm text-muted-foreground">{summary.fileType.toUpperCase()} • {new Date(summary.createdAt).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDeleteSavedSummary(summary.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -798,46 +1090,110 @@ export default function Treinos() {
             </Button>
             <div>
               <h3 className="font-semibold text-foreground text-lg">Escrita Manual</h3>
-              <p className="text-sm text-muted-foreground">Envie resumos escritos à mão</p>
+              <p className="text-sm text-muted-foreground">Salve fotos de resumos escritos à mão</p>
             </div>
           </div>
 
-          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
-            <PenLine className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhuma escrita enviada ainda</p>
-            <p className="text-sm mb-4">Envie sua primeira foto de resumo para começar</p>
-            <Button onClick={() => toast.info('Escrita Manual será implementado em breve!')}>
-              <Plus className="w-4 h-4 mr-2" />
-              Enviar Escrita
-            </Button>
-          </div>
-        </div>
-      );
-    }
+          <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="handwriting-title">Título da Escrita</Label>
+                <Input
+                  id="handwriting-title"
+                  placeholder="Ex: Anotações de Aula - Direito Penal"
+                  value={handwritingTitle}
+                  onChange={(e) => setHandwritingTitle(e.target.value)}
+                />
+              </div>
 
-    if (selectedMethod === 'memory-palace') {
-      return (
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-            <div>
-              <h3 className="font-semibold text-foreground text-lg">Palácio da Memória</h3>
-              <p className="text-sm text-muted-foreground">Crie associações visuais em ambientes</p>
+              <div className="space-y-2">
+                <Label>Arquivo (Imagem ou PDF)</Label>
+                <div 
+                  className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => handwritingFileInputRef.current?.click()}
+                >
+                  <input
+                    ref={handwritingFileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleHandwritingFileSelect}
+                    className="hidden"
+                  />
+                  
+                  {selectedHandwritingFile ? (
+                    <div className="flex flex-col items-center gap-2">
+                      {selectedHandwritingFile.type.startsWith('image/') ? (
+                        <Image className="w-12 h-12 text-primary" />
+                      ) : (
+                        <FileIcon className="w-12 h-12 text-primary" />
+                      )}
+                      <p className="font-medium text-foreground">{selectedHandwritingFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(selectedHandwritingFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedHandwritingFile(null);
+                          if (handwritingFileInputRef.current) handwritingFileInputRef.current.value = '';
+                        }}
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="w-12 h-12 text-muted-foreground" />
+                      <p className="text-muted-foreground">Clique para selecionar</p>
+                      <p className="text-sm text-muted-foreground">Imagem (PNG, JPG) ou PDF</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
-            <Building2 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum palácio criado ainda</p>
-            <p className="text-sm mb-4">Crie seu primeiro palácio da memória para começar</p>
-            <Button onClick={() => toast.info('Palácio da Memória será implementado em breve!')}>
+            <Button 
+              onClick={handleSaveHandwriting}
+              disabled={!handwritingTitle.trim() || !selectedHandwritingFile}
+              className="w-full"
+              size="lg"
+            >
               <Plus className="w-4 h-4 mr-2" />
-              Criar Palácio
+              Salvar Escrita
             </Button>
           </div>
+
+          {savedHandwritings.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="font-medium text-foreground">Escritas Salvas ({savedHandwritings.length})</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {savedHandwritings.map((handwriting) => (
+                  <div key={handwriting.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                      {handwriting.fileType === 'image' ? (
+                        <Image className="w-6 h-6 text-foreground" />
+                      ) : (
+                        <FileIcon className="w-6 h-6 text-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h5 className="font-medium text-foreground truncate">{handwriting.title}</h5>
+                      <p className="text-sm text-muted-foreground">{handwriting.fileType.toUpperCase()} • {new Date(handwriting.createdAt).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDeleteSavedHandwriting(handwriting.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -856,15 +1212,111 @@ export default function Treinos() {
             </div>
           </div>
 
-          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
-            <Mic className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhuma gravação criada ainda</p>
-            <p className="text-sm mb-4">Grave sua primeira explicação para começar</p>
-            <Button onClick={() => toast.info('Explicação em Áudio será implementado em breve!')}>
+          <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="audio-title">Título da Gravação</Label>
+                <Input
+                  id="audio-title"
+                  placeholder="Ex: Explicação - Teoria do Domínio do Fato"
+                  value={audioTitle}
+                  onChange={(e) => setAudioTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Gravação de Áudio</Label>
+                <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
+                  {recordedAudioUrl ? (
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Mic className="w-8 h-8 text-primary" />
+                      </div>
+                      <p className="font-medium text-foreground">Gravação concluída</p>
+                      <p className="text-sm text-muted-foreground">Duração: {formatDuration(recordingDuration)}</p>
+                      <audio src={recordedAudioUrl} controls className="w-full max-w-md" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setRecordedAudioUrl(null);
+                          setRecordingDuration(0);
+                        }}
+                      >
+                        Gravar novamente
+                      </Button>
+                    </div>
+                  ) : isRecording ? (
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center animate-pulse">
+                        <Mic className="w-8 h-8 text-destructive" />
+                      </div>
+                      <p className="font-medium text-foreground">Gravando...</p>
+                      <p className="text-2xl font-mono text-foreground">{formatDuration(recordingDuration)}</p>
+                      <Button 
+                        variant="destructive"
+                        size="lg"
+                        onClick={stopRecording}
+                      >
+                        <Square className="w-4 h-4 mr-2" />
+                        Parar Gravação
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
+                        <Mic className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <p className="text-muted-foreground">Clique para começar a gravar</p>
+                      <Button 
+                        size="lg"
+                        onClick={startRecording}
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        Iniciar Gravação
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleSaveAudio}
+              disabled={!audioTitle.trim() || !recordedAudioUrl}
+              className="w-full"
+              size="lg"
+            >
               <Plus className="w-4 h-4 mr-2" />
-              Gravar Áudio
+              Salvar Gravação
             </Button>
           </div>
+
+          {savedAudioExplanations.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="font-medium text-foreground">Gravações Salvas ({savedAudioExplanations.length})</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {savedAudioExplanations.map((audio) => (
+                  <div key={audio.id} className="bg-card border border-border rounded-xl p-4 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                      <Mic className="w-6 h-6 text-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h5 className="font-medium text-foreground truncate">{audio.title}</h5>
+                      <p className="text-sm text-muted-foreground">{formatDuration(audio.durationSeconds)} • {new Date(audio.createdAt).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDeleteSavedAudio(audio.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -912,7 +1364,13 @@ export default function Treinos() {
                       ? simulados.length 
                       : method.id === 'mindmap'
                         ? savedMindMaps.length
-                        : 0;
+                        : method.id === 'summary'
+                          ? savedSummaries.length
+                          : method.id === 'handwriting'
+                            ? savedHandwritings.length
+                            : method.id === 'audio-explanation'
+                              ? savedAudioExplanations.length
+                              : 0;
                   
                   return (
                     <button

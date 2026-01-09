@@ -24,7 +24,6 @@ const typeLabels: Record<TrainingType, { label: string; icon: React.ElementType 
   'mindmap': { label: 'Mapas Mentais', icon: GitBranch },
   'summary': { label: 'Resumos', icon: FileText },
   'handwriting': { label: 'Escrita Manual', icon: PenTool },
-  'memory-palace': { label: 'Palácio', icon: Building2 },
   'audio-explanation': { label: 'Áudio', icon: Mic },
 };
 
