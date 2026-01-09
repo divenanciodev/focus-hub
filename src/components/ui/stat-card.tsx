@@ -35,32 +35,30 @@ export function StatCard({
         className
       )}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-sm text-muted-foreground font-medium">{title}</p>
-          <div className="flex items-baseline gap-2 mt-1">
-            <p className="text-2xl font-bold text-foreground">{value}</p>
-            {trend && trendValue && (
-              <span
-                className={cn(
-                  'text-xs font-medium px-1.5 py-0.5 rounded',
-                  trend === 'up' && 'bg-success/10 text-success',
-                  trend === 'down' && 'bg-destructive/10 text-destructive',
-                  trend === 'neutral' && 'bg-muted text-muted-foreground'
-                )}
-              >
-                {trendValue}
-              </span>
-            )}
-          </div>
-          {subtitle && (
-            <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+      {Icon && (
+        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-secondary mb-3">
+          <Icon className="w-5 h-5 text-foreground" />
+        </div>
+      )}
+      <div>
+        <p className="text-sm text-muted-foreground font-medium">{title}</p>
+        <div className="flex items-baseline gap-2 mt-1">
+          <p className="text-2xl font-bold text-foreground">{value}</p>
+          {trend && trendValue && (
+            <span
+              className={cn(
+                'text-xs font-medium px-1.5 py-0.5 rounded',
+                trend === 'up' && 'bg-success/10 text-success',
+                trend === 'down' && 'bg-destructive/10 text-destructive',
+                trend === 'neutral' && 'bg-muted text-muted-foreground'
+              )}
+            >
+              {trendValue}
+            </span>
           )}
         </div>
-        {Icon && (
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-secondary">
-            <Icon className="w-5 h-5 text-foreground" />
-          </div>
+        {subtitle && (
+          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
         )}
       </div>
       {children}
