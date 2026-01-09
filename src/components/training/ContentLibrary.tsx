@@ -14,10 +14,13 @@ import {
   ArrowLeft,
   Play,
   List,
-  LayoutGrid
+  LayoutGrid,
+  Image,
+  FileIcon,
+  ExternalLink
 } from 'lucide-react';
 import { FlashcardGroup } from '@/types/flashcards';
-import { Simulado, MindMap } from '@/types/training';
+import { Simulado, SavedMindMap } from '@/types/training';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -25,14 +28,14 @@ import { cn } from '@/lib/utils';
 interface ContentLibraryProps {
   flashcardGroups: FlashcardGroup[];
   simulados: Simulado[];
-  mindMaps: MindMap[];
+  savedMindMaps: SavedMindMap[];
   onStudyFlashcard: (group: FlashcardGroup) => void;
   onEditFlashcard: (group: FlashcardGroup) => void;
   onDeleteFlashcard: (groupId: string) => void;
   onStartSimulado: (simulado: Simulado) => void;
   onDeleteSimulado: (simuladoId: string) => void;
-  onViewMindMap: (mindMap: MindMap) => void;
-  onCreateMindMap?: () => void;
+  onViewSavedMindMap: (mindMap: SavedMindMap) => void;
+  onDeleteSavedMindMap: (id: string) => void;
 }
 
 type MethodType = 'flashcards' | 'simulado' | 'mindmap' | 'summary' | 'handwriting' | 'memory-palace' | 'audio-explanation';
@@ -48,14 +51,14 @@ interface MethodFolder {
 export function ContentLibrary({
   flashcardGroups,
   simulados,
-  mindMaps,
+  savedMindMaps,
   onStudyFlashcard,
   onEditFlashcard,
   onDeleteFlashcard,
   onStartSimulado,
   onDeleteSimulado,
-  onViewMindMap,
-  onCreateMindMap,
+  onViewSavedMindMap,
+  onDeleteSavedMindMap,
 }: ContentLibraryProps) {
   const [selectedFolder, setSelectedFolder] = useState<MethodType | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -63,14 +66,14 @@ export function ContentLibrary({
   const folders: MethodFolder[] = [
     { id: 'flashcards', name: 'Flashcards', icon: Layers, count: flashcardGroups.length, available: true },
     { id: 'simulado', name: 'Simulados', icon: FileQuestion, count: simulados.length, available: true },
-    { id: 'mindmap', name: 'Mapas Mentais', icon: Brain, count: mindMaps.length, available: true },
+    { id: 'mindmap', name: 'Mapas Mentais', icon: Brain, count: savedMindMaps.length, available: true },
     { id: 'summary', name: 'Resumos Guiados', icon: FileText, count: 0, available: false },
     { id: 'handwriting', name: 'Escrita Manual', icon: PenLine, count: 0, available: false },
     { id: 'memory-palace', name: 'Palácio da Memória', icon: Building2, count: 0, available: false },
     { id: 'audio-explanation', name: 'Explicação em Áudio', icon: Mic, count: 0, available: false },
   ];
 
-  const totalContent = flashcardGroups.length + simulados.length + mindMaps.length;
+  const totalContent = flashcardGroups.length + simulados.length + savedMindMaps.length;
 
   // Render folder contents
   const renderFolderContent = () => {
@@ -232,43 +235,49 @@ export function ContentLibrary({
     }
 
     if (selectedFolder === 'mindmap') {
-      if (mindMaps.length === 0) {
+      if (savedMindMaps.length === 0) {
         return (
           <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
             <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum mapa mental criado ainda</p>
-            <p className="text-sm mb-4">Crie mapas mentais na aba "Criar Conteúdo"</p>
-            {onCreateMindMap && (
-              <Button onClick={onCreateMindMap}>
-                <Play className="w-4 h-4 mr-2" />
-                Criar Mapa Mental
-              </Button>
-            )}
+            <p>Nenhum mapa mental salvo ainda</p>
+            <p className="text-sm">Salve mapas mentais na aba "Criar Conteúdo"</p>
           </div>
         );
       }
 
+      // Group mind maps by title for subfolders
+      const mindMapsByTitle = savedMindMaps.reduce((acc, mindmap) => {
+        const key = mindmap.title;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(mindmap);
+        return acc;
+      }, {} as Record<string, SavedMindMap[]>);
+
       if (viewMode === 'list') {
         return (
           <div className="space-y-2">
-            {mindMaps.map((mindMap) => (
+            {savedMindMaps.map((mindMap) => (
               <div
                 key={mindMap.id}
                 className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-foreground/20 transition-all"
               >
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                  <Brain className="w-5 h-5 text-foreground" />
+                  {mindMap.fileType === 'image' ? (
+                    <Image className="w-5 h-5 text-foreground" />
+                  ) : (
+                    <FileIcon className="w-5 h-5 text-foreground" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-foreground truncate">{mindMap.name}</h4>
+                  <h4 className="font-medium text-foreground truncate">{mindMap.title}</h4>
                   <p className="text-sm text-muted-foreground">
-                    {mindMap.nodes.length} nós • {mindMap.discipline || 'Geral'}
+                    {mindMap.fileType.toUpperCase()} • {format(new Date(mindMap.createdAt), "dd/MM/yy", { locale: ptBR })}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={() => onViewMindMap(mindMap)}>
-                    <Play className="w-4 h-4 mr-1" />
-                    Visualizar
+                  <Button size="sm" onClick={() => onViewSavedMindMap(mindMap)}>
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Abrir
                   </Button>
                 </div>
               </div>
@@ -279,32 +288,36 @@ export function ContentLibrary({
 
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {mindMaps.map((mindMap) => (
+          {savedMindMaps.map((mindMap) => (
             <div
               key={mindMap.id}
               className="group bg-card border border-border rounded-2xl p-6 hover:border-foreground/20 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full"
-              onClick={() => onViewMindMap(mindMap)}
+              onClick={() => onViewSavedMindMap(mindMap)}
             >
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                  <Brain className="w-7 h-7 text-foreground" />
+                  {mindMap.fileType === 'image' ? (
+                    <Image className="w-7 h-7 text-foreground" />
+                  ) : (
+                    <FileIcon className="w-7 h-7 text-foreground" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground text-lg break-words">{mindMap.name}</h3>
-                  <p className="text-sm text-muted-foreground">{mindMap.discipline || 'Geral'}</p>
+                  <h3 className="font-semibold text-foreground text-lg break-words">{mindMap.title}</h3>
+                  <p className="text-sm text-muted-foreground">{mindMap.fileName}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="secondary">{mindMap.nodes.length} nós</Badge>
+                <Badge variant="secondary">{mindMap.fileType.toUpperCase()}</Badge>
               </div>
               <div className="text-xs text-muted-foreground mb-4">
-                Criado: {format(new Date(mindMap.createdAt), "dd 'de' MMM", { locale: ptBR })}
+                Salvo: {format(new Date(mindMap.createdAt), "dd 'de' MMM", { locale: ptBR })}
               </div>
               <div className="flex-1" />
               <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                <Button onClick={() => onViewMindMap(mindMap)} className="flex-1">
-                  <Play className="w-4 h-4 mr-2" />
-                  Visualizar
+                <Button onClick={() => onViewSavedMindMap(mindMap)} className="flex-1">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Abrir
                 </Button>
               </div>
             </div>
