@@ -470,36 +470,41 @@ export default function Financeiro() {
                 const isComplete = receivable.paidInstallments >= receivable.installments;
 
                 return (
-                  <Card key={receivable.id} className={cn(isComplete && 'opacity-60')}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            {receivable.personName}
-                          </CardTitle>
-                          {receivable.description && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {receivable.description}
-                            </p>
-                          )}
+                  <Card key={receivable.id} className={cn('flex flex-col', isComplete && 'opacity-60')}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
+                            <Users className="w-4 h-4 text-foreground" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base font-semibold">
+                              {receivable.personName}
+                            </CardTitle>
+                            {receivable.description && (
+                              <p className="text-xs text-muted-foreground">
+                                {receivable.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <span className="text-lg font-bold text-foreground">
                           {formatCurrency(receivable.totalAmount)}
                         </span>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <ProgressBar value={progress} showLabel />
-
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Recebido: {formatCurrency(paidAmount)}</span>
-                        <span>
-                          {receivable.paidInstallments}/{receivable.installments} parcelas
-                        </span>
+                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
+                      <div className="space-y-3">
+                        <ProgressBar value={progress} showLabel />
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>Recebido: {formatCurrency(paidAmount)}</span>
+                          <span>
+                            {receivable.paidInstallments}/{receivable.installments} parcelas
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pt-2 border-t border-border">
                         <Button
                           variant="outline"
                           size="sm"
@@ -508,7 +513,7 @@ export default function Financeiro() {
                           onClick={() => handlePayReceivableInstallment(receivable.id)}
                         >
                           <Check className="w-4 h-4 mr-2" />
-                          Marcar parcela ({formatCurrency(installmentValue)})
+                          Marcar parcela
                         </Button>
                         <Button
                           variant="ghost"
@@ -547,38 +552,37 @@ export default function Financeiro() {
                   : 0;
 
                 return (
-                  <Card key={piggy.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg flex items-center gap-2">
+                  <Card key={piggy.id} className="flex flex-col">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
                           <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: piggy.color }}
-                          />
-                          {piggy.name}
-                        </CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeletePiggyBank(piggy.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                            className="flex items-center justify-center w-8 h-8 rounded-full"
+                            style={{ backgroundColor: piggy.color + '30' }}
+                          >
+                            <PiggyBankIcon className="w-4 h-4" style={{ color: piggy.color }} />
+                          </div>
+                          <CardTitle className="text-base font-semibold">
+                            {piggy.name}
+                          </CardTitle>
+                        </div>
+                        <span className="text-lg font-bold text-foreground">
+                          {formatCurrency(piggy.targetAmount)}
+                        </span>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="text-center">
-                        <p className="text-3xl font-bold text-foreground">
-                          {formatCurrency(piggy.currentAmount)}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Meta: {formatCurrency(piggy.targetAmount)}
-                        </p>
+                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
+                      <div className="space-y-3">
+                        <div className="text-center py-2">
+                          <p className="text-2xl font-bold text-foreground">
+                            {formatCurrency(piggy.currentAmount)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">guardado</p>
+                        </div>
+                        <ProgressBar value={progress} showLabel />
                       </div>
 
-                      <ProgressBar value={progress} showLabel />
-
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pt-2 border-t border-border">
                         <Button
                           variant="outline"
                           size="sm"
@@ -603,6 +607,13 @@ export default function Financeiro() {
                         >
                           <ArrowUpFromLine className="w-4 h-4 mr-2" />
                           Retirar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeletePiggyBank(piggy.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </CardContent>
@@ -636,67 +647,72 @@ export default function Financeiro() {
                   <Card
                     key={expense.id}
                     className={cn(
+                      'flex flex-col',
                       isUpcoming && 'border-warning',
                       isPastDue && 'border-destructive'
                     )}
                   >
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            {expense.name}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground">{expense.category}</p>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
+                            <Calendar className="w-4 h-4 text-foreground" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base font-semibold">
+                              {expense.name}
+                            </CardTitle>
+                            <p className="text-xs text-muted-foreground">{expense.category}</p>
+                          </div>
                         </div>
                         <span className="text-lg font-bold text-foreground">
                           {formatCurrency(expense.amount)}
                         </span>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={cn(
-                              'text-sm font-medium',
-                              isUpcoming && 'text-warning',
-                              isPastDue && 'text-destructive'
-                            )}
-                          >
-                            Vencimento: dia {expense.dueDay}
+                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            'text-sm font-medium',
+                            isUpcoming && 'text-warning',
+                            isPastDue && 'text-destructive',
+                            !isUpcoming && !isPastDue && 'text-muted-foreground'
+                          )}
+                        >
+                          Vencimento: dia {expense.dueDay}
+                        </span>
+                        {isUpcoming && (
+                          <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded">
+                            Em breve
                           </span>
-                          {isUpcoming && (
-                            <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded">
-                              Em breve
-                            </span>
+                        )}
+                        {isPastDue && (
+                          <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded">
+                            Vencido
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2 pt-2 border-t border-border justify-end">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleExpenseNotification(expense.id)}
+                        >
+                          {expense.notificationsEnabled ? (
+                            <Bell className="w-4 h-4 text-primary" />
+                          ) : (
+                            <BellOff className="w-4 h-4 text-muted-foreground" />
                           )}
-                          {isPastDue && (
-                            <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded">
-                              Vencido
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => toggleExpenseNotification(expense.id)}
-                          >
-                            {expense.notificationsEnabled ? (
-                              <Bell className="w-4 h-4 text-primary" />
-                            ) : (
-                              <BellOff className="w-4 h-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteFixedExpense(expense.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteFixedExpense(expense.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -727,9 +743,9 @@ export default function Financeiro() {
                   : 0;
 
                 return (
-                  <Card key={goal.id} className="overflow-hidden">
+                  <Card key={goal.id} className="flex flex-col overflow-hidden">
                     {goal.imageUrl && (
-                      <div className="h-40 w-full overflow-hidden">
+                      <div className="h-32 w-full overflow-hidden">
                         <img
                           src={goal.imageUrl}
                           alt={goal.name}
@@ -737,31 +753,37 @@ export default function Financeiro() {
                         />
                       </div>
                     )}
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <ShoppingCart className="w-4 h-4" />
-                            {goal.name}
-                          </CardTitle>
-                          {goal.description && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {goal.description}
-                            </p>
-                          )}
-                          <span className={cn('text-xs font-medium', getPriorityColor(goal.priority))}>
-                            Prioridade: {goal.priority === 'high' ? 'Alta' : goal.priority === 'medium' ? 'Média' : 'Baixa'}
-                          </span>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
+                            <ShoppingCart className="w-4 h-4 text-foreground" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base font-semibold">
+                              {goal.name}
+                            </CardTitle>
+                            <span className={cn('text-xs font-medium', getPriorityColor(goal.priority))}>
+                              {goal.priority === 'high' ? 'Alta' : goal.priority === 'medium' ? 'Média' : 'Baixa'} prioridade
+                            </span>
+                          </div>
                         </div>
                         <span className="text-lg font-bold text-foreground">
                           {formatCurrency(goal.targetAmount)}
                         </span>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <ProgressBar value={progress} showLabel />
+                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
+                      <div className="space-y-3">
+                        {goal.description && (
+                          <p className="text-sm text-muted-foreground">
+                            {goal.description}
+                          </p>
+                        )}
+                        <ProgressBar value={progress} showLabel />
+                      </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pt-2 border-t border-border">
                         {goal.storeLink && (
                           <Button
                             variant="outline"
@@ -776,6 +798,7 @@ export default function Financeiro() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="ml-auto"
                           onClick={() => handleDeletePurchaseGoal(goal.id)}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -810,29 +833,34 @@ export default function Financeiro() {
                 const paidAmount = installmentValue * consortium.paidInstallments;
 
                 return (
-                  <Card key={consortium.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Target className="w-4 h-4" />
-                          {consortium.goal}
-                        </CardTitle>
+                  <Card key={consortium.id} className="flex flex-col">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
+                            <Target className="w-4 h-4 text-foreground" />
+                          </div>
+                          <CardTitle className="text-base font-semibold">
+                            {consortium.goal}
+                          </CardTitle>
+                        </div>
                         <span className="text-lg font-bold text-foreground">
                           {formatCurrency(consortium.totalAmount)}
                         </span>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <ProgressBar value={progress} showLabel />
-
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Pago: {formatCurrency(paidAmount)}</span>
-                        <span>
-                          {consortium.paidInstallments}/{consortium.installments} parcelas
-                        </span>
+                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
+                      <div className="space-y-3">
+                        <ProgressBar value={progress} showLabel />
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>Pago: {formatCurrency(paidAmount)}</span>
+                          <span>
+                            {consortium.paidInstallments}/{consortium.installments} parcelas
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pt-2 border-t border-border">
                         <Button
                           variant="outline"
                           size="sm"
@@ -841,7 +869,7 @@ export default function Financeiro() {
                           onClick={() => payConsortiumInstallment(consortium.id)}
                         >
                           <Check className="w-4 h-4 mr-2" />
-                          Marcar parcela ({formatCurrency(installmentValue)})
+                          Marcar parcela
                         </Button>
                         <Button
                           variant="ghost"
