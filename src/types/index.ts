@@ -100,6 +100,12 @@ export interface BankSimulado {
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
+export interface CurriculumItem {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Course {
   id: string;
   name: string;
@@ -111,6 +117,7 @@ export interface Course {
   imageUrl?: string;
   links: StudyLink[];
   certificateUrl?: string;
+  curriculum: CurriculumItem[];
 }
 
 export interface FinancialEntry {

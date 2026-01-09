@@ -135,14 +135,14 @@ export const mockBankSimulados: BankSimulado[] = [
 ];
 
 export const mockBankCourses: Course[] = [
-  { id: 'b1', name: 'Direito Constitucional Completo', theme: 'Direito', workload: 120, deadline: new Date('2024-12-31'), progress: 0, platform: 'Estratégia Concursos', imageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400', links: [] },
-  { id: 'b2', name: 'Português para Concursos', theme: 'Línguas', workload: 80, deadline: new Date('2024-12-31'), progress: 0, platform: 'Gran Cursos', imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400', links: [] },
-  { id: 'b3', name: 'Matemática e RLM', theme: 'Exatas', workload: 100, deadline: new Date('2024-12-31'), progress: 0, platform: 'Direção Concursos', imageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400', links: [] },
+  { id: 'b1', name: 'Direito Constitucional Completo', theme: 'Direito', workload: 120, deadline: new Date('2024-12-31'), progress: 0, platform: 'Estratégia Concursos', imageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400', links: [], curriculum: [{ id: 'c1', title: 'Módulo 1 - Princípios Fundamentais', completed: false }, { id: 'c2', title: 'Módulo 2 - Direitos e Garantias', completed: false }] },
+  { id: 'b2', name: 'Português para Concursos', theme: 'Línguas', workload: 80, deadline: new Date('2024-12-31'), progress: 0, platform: 'Gran Cursos', imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400', links: [], curriculum: [{ id: 'c1', title: 'Aula 1 - Interpretação de Texto', completed: false }] },
+  { id: 'b3', name: 'Matemática e RLM', theme: 'Exatas', workload: 100, deadline: new Date('2024-12-31'), progress: 0, platform: 'Direção Concursos', imageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400', links: [], curriculum: [] },
 ];
 
 export const mockUserCourses: Course[] = [
-  { id: '1', name: 'Curso de Excel Avançado', theme: 'Tecnologia', workload: 40, deadline: new Date('2024-04-30'), progress: 75, links: [{ id: '1', title: 'Aula 1', type: 'youtube', url: 'https://youtube.com' }] },
-  { id: '2', name: 'Inglês para Concursos', theme: 'Línguas', workload: 60, deadline: new Date('2024-05-15'), progress: 30, links: [] },
+  { id: '1', name: 'Curso de Excel Avançado', theme: 'Tecnologia', workload: 40, deadline: new Date('2024-04-30'), progress: 75, links: [{ id: '1', title: 'Aula 1', type: 'youtube', url: 'https://youtube.com' }], curriculum: [{ id: 'c1', title: 'Introdução ao Excel', completed: true }, { id: 'c2', title: 'Fórmulas Avançadas', completed: true }, { id: 'c3', title: 'Macros e VBA', completed: false }] },
+  { id: '2', name: 'Inglês para Concursos', theme: 'Línguas', workload: 60, deadline: new Date('2024-05-15'), progress: 30, links: [], curriculum: [{ id: 'c1', title: 'Basic Grammar', completed: true }, { id: 'c2', title: 'Reading Comprehension', completed: false }] },
 ];
 
 export const mockFinancialEntries: FinancialEntry[] = [
