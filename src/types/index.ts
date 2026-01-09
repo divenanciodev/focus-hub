@@ -87,6 +87,7 @@ export interface Contest {
   examDate: Date;
   institution: string;
   status: 'active' | 'completed';
+  progress?: number;
 }
 
 export interface BankSimulado {
