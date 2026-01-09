@@ -13,13 +13,11 @@ import {
   ChevronRight,
   ArrowLeft,
   Play,
-  Pencil,
-  Trash2,
   List,
   LayoutGrid
 } from 'lucide-react';
 import { FlashcardGroup } from '@/types/flashcards';
-import { Simulado } from '@/types/training';
+import { Simulado, MindMap } from '@/types/training';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -27,11 +25,13 @@ import { cn } from '@/lib/utils';
 interface ContentLibraryProps {
   flashcardGroups: FlashcardGroup[];
   simulados: Simulado[];
+  mindMaps: MindMap[];
   onStudyFlashcard: (group: FlashcardGroup) => void;
   onEditFlashcard: (group: FlashcardGroup) => void;
   onDeleteFlashcard: (groupId: string) => void;
   onStartSimulado: (simulado: Simulado) => void;
   onDeleteSimulado: (simuladoId: string) => void;
+  onViewMindMap: (mindMap: MindMap) => void;
 }
 
 type MethodType = 'flashcards' | 'simulado' | 'mindmap' | 'summary' | 'handwriting' | 'memory-palace' | 'audio-explanation';
@@ -47,11 +47,13 @@ interface MethodFolder {
 export function ContentLibrary({
   flashcardGroups,
   simulados,
+  mindMaps,
   onStudyFlashcard,
   onEditFlashcard,
   onDeleteFlashcard,
   onStartSimulado,
   onDeleteSimulado,
+  onViewMindMap,
 }: ContentLibraryProps) {
   const [selectedFolder, setSelectedFolder] = useState<MethodType | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -59,14 +61,14 @@ export function ContentLibrary({
   const folders: MethodFolder[] = [
     { id: 'flashcards', name: 'Flashcards', icon: Layers, count: flashcardGroups.length, available: true },
     { id: 'simulado', name: 'Simulados', icon: FileQuestion, count: simulados.length, available: true },
-    { id: 'mindmap', name: 'Mapas Mentais', icon: Brain, count: 0, available: false },
+    { id: 'mindmap', name: 'Mapas Mentais', icon: Brain, count: mindMaps.length, available: true },
     { id: 'summary', name: 'Resumos Guiados', icon: FileText, count: 0, available: false },
     { id: 'handwriting', name: 'Escrita Manual', icon: PenLine, count: 0, available: false },
     { id: 'memory-palace', name: 'Palácio da Memória', icon: Building2, count: 0, available: false },
     { id: 'audio-explanation', name: 'Explicação em Áudio', icon: Mic, count: 0, available: false },
   ];
 
-  const totalContent = flashcardGroups.length + simulados.length;
+  const totalContent = flashcardGroups.length + simulados.length + mindMaps.length;
 
   // Render folder contents
   const renderFolderContent = () => {
@@ -219,6 +221,82 @@ export function ContentLibrary({
                 <Button onClick={() => onStartSimulado(simulado)} className="flex-1">
                   <Play className="w-4 h-4 mr-2" />
                   {simulado.status === 'completed' ? 'Refazer' : 'Iniciar'}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (selectedFolder === 'mindmap') {
+      if (mindMaps.length === 0) {
+        return (
+          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+            <Brain className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhum mapa mental criado ainda</p>
+            <p className="text-sm">Crie mapas mentais na aba "Criar Conteúdo"</p>
+          </div>
+        );
+      }
+
+      if (viewMode === 'list') {
+        return (
+          <div className="space-y-2">
+            {mindMaps.map((mindMap) => (
+              <div
+                key={mindMap.id}
+                className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-foreground/20 transition-all"
+              >
+                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                  <Brain className="w-5 h-5 text-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-foreground truncate">{mindMap.name}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {mindMap.nodes.length} nós • {mindMap.discipline || 'Geral'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => onViewMindMap(mindMap)}>
+                    <Play className="w-4 h-4 mr-1" />
+                    Visualizar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {mindMaps.map((mindMap) => (
+            <div
+              key={mindMap.id}
+              className="group bg-card border border-border rounded-2xl p-6 hover:border-foreground/20 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full"
+              onClick={() => onViewMindMap(mindMap)}
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                  <Brain className="w-7 h-7 text-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground text-lg break-words">{mindMap.name}</h3>
+                  <p className="text-sm text-muted-foreground">{mindMap.discipline || 'Geral'}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge variant="secondary">{mindMap.nodes.length} nós</Badge>
+              </div>
+              <div className="text-xs text-muted-foreground mb-4">
+                Criado: {format(new Date(mindMap.createdAt), "dd 'de' MMM", { locale: ptBR })}
+              </div>
+              <div className="flex-1" />
+              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                <Button onClick={() => onViewMindMap(mindMap)} className="flex-1">
+                  <Play className="w-4 h-4 mr-2" />
+                  Visualizar
                 </Button>
               </div>
             </div>
