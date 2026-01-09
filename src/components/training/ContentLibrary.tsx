@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -7,7 +7,6 @@ import {
   Brain, 
   FileText, 
   PenLine, 
-  Building2, 
   Mic,
   FolderOpen,
   ChevronRight,
@@ -17,10 +16,12 @@ import {
   LayoutGrid,
   Image,
   FileIcon,
-  ExternalLink
+  ExternalLink,
+  Pause,
+  Volume2
 } from 'lucide-react';
 import { FlashcardGroup } from '@/types/flashcards';
-import { Simulado, SavedMindMap } from '@/types/training';
+import { Simulado, SavedMindMap, SavedSummary, SavedHandwriting, SavedAudioExplanation } from '@/types/training';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,9 @@ interface ContentLibraryProps {
   flashcardGroups: FlashcardGroup[];
   simulados: Simulado[];
   savedMindMaps: SavedMindMap[];
+  savedSummaries: SavedSummary[];
+  savedHandwritings: SavedHandwriting[];
+  savedAudioExplanations: SavedAudioExplanation[];
   onStudyFlashcard: (group: FlashcardGroup) => void;
   onEditFlashcard: (group: FlashcardGroup) => void;
   onDeleteFlashcard: (groupId: string) => void;
@@ -36,9 +40,11 @@ interface ContentLibraryProps {
   onDeleteSimulado: (simuladoId: string) => void;
   onViewSavedMindMap: (mindMap: SavedMindMap) => void;
   onDeleteSavedMindMap: (id: string) => void;
+  onViewSavedSummary: (summary: SavedSummary) => void;
+  onViewSavedHandwriting: (handwriting: SavedHandwriting) => void;
 }
 
-type MethodType = 'flashcards' | 'simulado' | 'mindmap' | 'summary' | 'handwriting' | 'memory-palace' | 'audio-explanation';
+type MethodType = 'flashcards' | 'simulado' | 'mindmap' | 'summary' | 'handwriting' | 'audio-explanation';
 
 interface MethodFolder {
   id: MethodType;
@@ -52,6 +58,9 @@ export function ContentLibrary({
   flashcardGroups,
   simulados,
   savedMindMaps,
+  savedSummaries,
+  savedHandwritings,
+  savedAudioExplanations,
   onStudyFlashcard,
   onEditFlashcard,
   onDeleteFlashcard,
@@ -59,21 +68,52 @@ export function ContentLibrary({
   onDeleteSimulado,
   onViewSavedMindMap,
   onDeleteSavedMindMap,
+  onViewSavedSummary,
+  onViewSavedHandwriting,
 }: ContentLibraryProps) {
   const [selectedFolder, setSelectedFolder] = useState<MethodType | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handlePlayAudio = (audio: SavedAudioExplanation) => {
+    if (playingAudioId === audio.id) {
+      // Stop playing
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      setPlayingAudioId(null);
+    } else {
+      // Stop previous audio if playing
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      // Play new audio
+      const newAudio = new Audio(audio.audioUrl);
+      newAudio.onended = () => setPlayingAudioId(null);
+      newAudio.play();
+      audioRef.current = newAudio;
+      setPlayingAudioId(audio.id);
+    }
+  };
 
   const folders: MethodFolder[] = [
     { id: 'flashcards', name: 'Flashcards', icon: Layers, count: flashcardGroups.length, available: true },
     { id: 'simulado', name: 'Simulados', icon: FileQuestion, count: simulados.length, available: true },
     { id: 'mindmap', name: 'Mapas Mentais', icon: Brain, count: savedMindMaps.length, available: true },
-    { id: 'summary', name: 'Resumos Guiados', icon: FileText, count: 0, available: false },
-    { id: 'handwriting', name: 'Escrita Manual', icon: PenLine, count: 0, available: false },
-    { id: 'memory-palace', name: 'Palácio da Memória', icon: Building2, count: 0, available: false },
-    { id: 'audio-explanation', name: 'Explicação em Áudio', icon: Mic, count: 0, available: false },
+    { id: 'summary', name: 'Resumos', icon: FileText, count: savedSummaries.length, available: true },
+    { id: 'handwriting', name: 'Escrita Manual', icon: PenLine, count: savedHandwritings.length, available: true },
+    { id: 'audio-explanation', name: 'Explicação em Áudio', icon: Mic, count: savedAudioExplanations.length, available: true },
   ];
 
-  const totalContent = flashcardGroups.length + simulados.length + savedMindMaps.length;
+  const totalContent = flashcardGroups.length + simulados.length + savedMindMaps.length + savedSummaries.length + savedHandwritings.length + savedAudioExplanations.length;
 
   // Render folder contents
   const renderFolderContent = () => {
@@ -326,14 +366,281 @@ export function ContentLibrary({
       );
     }
 
-    // For unavailable methods
-    const folder = folders.find(f => f.id === selectedFolder);
-    if (folder && !folder.available) {
+    // Resumos folder
+    if (selectedFolder === 'summary') {
+      if (savedSummaries.length === 0) {
+        return (
+          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+            <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhum resumo salvo ainda</p>
+            <p className="text-sm">Salve resumos na aba "Criar Conteúdo"</p>
+          </div>
+        );
+      }
+
+      if (viewMode === 'list') {
+        return (
+          <div className="space-y-2">
+            {savedSummaries.map((summary) => (
+              <div
+                key={summary.id}
+                className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-foreground/20 transition-all"
+              >
+                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                  {summary.fileType === 'image' ? (
+                    <Image className="w-5 h-5 text-foreground" />
+                  ) : (
+                    <FileIcon className="w-5 h-5 text-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-foreground truncate">{summary.title}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {summary.fileType.toUpperCase()} • {format(new Date(summary.createdAt), "dd/MM/yy", { locale: ptBR })}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => onViewSavedSummary(summary)}>
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Abrir
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
       return (
-        <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
-          <folder.icon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>Nenhum conteúdo criado ainda</p>
-          <p className="text-sm">Esta funcionalidade estará disponível em breve</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {savedSummaries.map((summary) => (
+            <div
+              key={summary.id}
+              className="group bg-card border border-border rounded-2xl p-6 hover:border-foreground/20 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full"
+              onClick={() => onViewSavedSummary(summary)}
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                  {summary.fileType === 'image' ? (
+                    <Image className="w-7 h-7 text-foreground" />
+                  ) : (
+                    <FileIcon className="w-7 h-7 text-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground text-lg break-words">{summary.title}</h3>
+                  <p className="text-sm text-muted-foreground">{summary.fileName}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge variant="secondary">{summary.fileType.toUpperCase()}</Badge>
+              </div>
+              <div className="text-xs text-muted-foreground mb-4">
+                Salvo: {format(new Date(summary.createdAt), "dd 'de' MMM", { locale: ptBR })}
+              </div>
+              <div className="flex-1" />
+              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                <Button onClick={() => onViewSavedSummary(summary)} className="flex-1">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Abrir
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Escrita Manual folder
+    if (selectedFolder === 'handwriting') {
+      if (savedHandwritings.length === 0) {
+        return (
+          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+            <PenLine className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhuma escrita manual salva ainda</p>
+            <p className="text-sm">Salve escritas manuais na aba "Criar Conteúdo"</p>
+          </div>
+        );
+      }
+
+      if (viewMode === 'list') {
+        return (
+          <div className="space-y-2">
+            {savedHandwritings.map((handwriting) => (
+              <div
+                key={handwriting.id}
+                className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-foreground/20 transition-all"
+              >
+                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                  {handwriting.fileType === 'image' ? (
+                    <Image className="w-5 h-5 text-foreground" />
+                  ) : (
+                    <FileIcon className="w-5 h-5 text-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-foreground truncate">{handwriting.title}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {handwriting.fileType.toUpperCase()} • {format(new Date(handwriting.createdAt), "dd/MM/yy", { locale: ptBR })}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => onViewSavedHandwriting(handwriting)}>
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Abrir
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {savedHandwritings.map((handwriting) => (
+            <div
+              key={handwriting.id}
+              className="group bg-card border border-border rounded-2xl p-6 hover:border-foreground/20 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full"
+              onClick={() => onViewSavedHandwriting(handwriting)}
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                  {handwriting.fileType === 'image' ? (
+                    <Image className="w-7 h-7 text-foreground" />
+                  ) : (
+                    <FileIcon className="w-7 h-7 text-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground text-lg break-words">{handwriting.title}</h3>
+                  <p className="text-sm text-muted-foreground">{handwriting.fileName}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge variant="secondary">{handwriting.fileType.toUpperCase()}</Badge>
+              </div>
+              <div className="text-xs text-muted-foreground mb-4">
+                Salvo: {format(new Date(handwriting.createdAt), "dd 'de' MMM", { locale: ptBR })}
+              </div>
+              <div className="flex-1" />
+              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                <Button onClick={() => onViewSavedHandwriting(handwriting)} className="flex-1">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Abrir
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Explicação em Áudio folder
+    if (selectedFolder === 'audio-explanation') {
+      if (savedAudioExplanations.length === 0) {
+        return (
+          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+            <Mic className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>Nenhuma explicação em áudio salva ainda</p>
+            <p className="text-sm">Grave explicações na aba "Criar Conteúdo"</p>
+          </div>
+        );
+      }
+
+      if (viewMode === 'list') {
+        return (
+          <div className="space-y-2">
+            {savedAudioExplanations.map((audio) => (
+              <div
+                key={audio.id}
+                className="flex items-center gap-4 p-4 bg-card border border-border rounded-xl hover:border-foreground/20 transition-all"
+              >
+                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                  <Volume2 className="w-5 h-5 text-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-foreground truncate">{audio.title}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDuration(audio.durationSeconds)} • {format(new Date(audio.createdAt), "dd/MM/yy", { locale: ptBR })}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant={playingAudioId === audio.id ? "secondary" : "default"}
+                    onClick={() => handlePlayAudio(audio)}
+                  >
+                    {playingAudioId === audio.id ? (
+                      <>
+                        <Pause className="w-4 h-4 mr-1" />
+                        Pausar
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 mr-1" />
+                        Ouvir
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {savedAudioExplanations.map((audio) => (
+            <div
+              key={audio.id}
+              className="group bg-card border border-border rounded-2xl p-6 hover:border-foreground/20 hover:shadow-lg transition-all duration-300 flex flex-col h-full"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className={cn(
+                  "w-14 h-14 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform shrink-0",
+                  playingAudioId === audio.id ? "bg-primary" : "bg-secondary"
+                )}>
+                  {playingAudioId === audio.id ? (
+                    <Volume2 className="w-7 h-7 text-primary-foreground animate-pulse" />
+                  ) : (
+                    <Mic className="w-7 h-7 text-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground text-lg break-words">{audio.title}</h3>
+                  <p className="text-sm text-muted-foreground">Duração: {formatDuration(audio.durationSeconds)}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge variant="secondary">Áudio</Badge>
+              </div>
+              <div className="text-xs text-muted-foreground mb-4">
+                Gravado: {format(new Date(audio.createdAt), "dd 'de' MMM", { locale: ptBR })}
+              </div>
+              <div className="flex-1" />
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1"
+                  variant={playingAudioId === audio.id ? "secondary" : "default"}
+                  onClick={() => handlePlayAudio(audio)}
+                >
+                  {playingAudioId === audio.id ? (
+                    <>
+                      <Pause className="w-4 h-4 mr-2" />
+                      Pausar
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Ouvir
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       );
     }

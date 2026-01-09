@@ -1409,6 +1409,9 @@ export default function Treinos() {
             flashcardGroups={flashcardGroups}
             simulados={simulados}
             savedMindMaps={savedMindMaps}
+            savedSummaries={savedSummaries}
+            savedHandwritings={savedHandwritings}
+            savedAudioExplanations={savedAudioExplanations}
             onStudyFlashcard={(group) => setStudyingFlashcardGroup(group)}
             onEditFlashcard={(group) => {
               setEditingFlashcardGroup(group);
@@ -1421,6 +1424,12 @@ export default function Treinos() {
               window.open(mindMap.fileUrl, '_blank');
             }}
             onDeleteSavedMindMap={handleDeleteSavedMindMap}
+            onViewSavedSummary={(summary) => {
+              window.open(summary.fileUrl, '_blank');
+            }}
+            onViewSavedHandwriting={(handwriting) => {
+              window.open(handwriting.fileUrl, '_blank');
+            }}
           />
         </TabsContent>
       </Tabs>
