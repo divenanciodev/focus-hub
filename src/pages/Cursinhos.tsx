@@ -180,158 +180,179 @@ export default function Cursinhos() {
           <TabsTrigger value="banco">Cursinhos do Banco</TabsTrigger>
         </TabsList>
 
-        {/* Meus Cursinhos - Área de Edição */}
+        {/* Meus Cursinhos - Área de Edição e Gestão */}
         <TabsContent value="meus" className="mt-0">
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-6">
             <Button onClick={() => setIsCreateModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Criar cursinho
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {userCourses.map((course) => (
-              <div
-                key={course.id}
-                className="bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
-              >
-                {course.imageUrl && (
-                  <div className="aspect-video bg-muted">
-                    <img
-                      src={course.imageUrl}
-                      alt={course.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <div className="p-5 flex flex-col flex-1">
-                  <h3 className="font-semibold text-foreground mb-1">{course.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{course.theme}</p>
+          {userCourses.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">Nenhum cursinho criado ainda.</p>
+              <Button onClick={() => setIsCreateModalOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar seu primeiro cursinho
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {userCourses.map((course) => (
+                <div
+                  key={course.id}
+                  className="bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col h-[280px]"
+                >
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="font-semibold text-foreground mb-1 line-clamp-1">{course.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-1">{course.theme}</p>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{course.workload}h</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      <span>{formatDate(course.deadline)}</span>
-                    </div>
-                  </div>
-
-                  <ProgressBar value={course.progress} showLabel className="mb-4" />
-
-                  <div className="flex-1" />
-
-                  <div className="flex gap-2 pt-4 border-t border-border">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleEditCourse(course)}
-                    >
-                      <Pencil className="w-4 h-4 mr-1" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteCourse(course.id)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Excluir
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
-
-        {/* Cursinhos do Banco - Biblioteca com Grade Curricular */}
-        <TabsContent value="banco" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {userCourses.map((course) => (
-              <div
-                key={course.id}
-                className="bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
-              >
-                {course.imageUrl && (
-                  <div className="aspect-video bg-muted">
-                    <img
-                      src={course.imageUrl}
-                      alt={course.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <div className="p-5 flex flex-col flex-1">
-                  <h3 className="font-semibold text-foreground mb-1">{course.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-1">{course.theme}</p>
-                  {course.platform && (
-                    <p className="text-xs text-muted-foreground mb-3">{course.platform}</p>
-                  )}
-
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{course.workload}h</span>
-                    </div>
-                  </div>
-
-                  <ProgressBar value={course.progress} showLabel className="mb-4" />
-
-                  {/* Grade Curricular */}
-                  {course.curriculum.length > 0 && (
-                    <div className="mb-4 max-h-48 overflow-y-auto">
-                      <h4 className="text-sm font-medium text-foreground mb-2">Grade Curricular</h4>
-                      <div className="space-y-2">
-                        {course.curriculum.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-2 p-2 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
-                            onClick={() => handleToggleCurriculumItem(course.id, item.id)}
-                          >
-                            <Checkbox
-                              checked={item.completed}
-                              onCheckedChange={() => handleToggleCurriculumItem(course.id, item.id)}
-                            />
-                            <span className={`text-sm ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                              {item.title}
-                            </span>
-                          </div>
-                        ))}
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{course.workload}h</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>{formatDate(course.deadline)}</span>
                       </div>
                     </div>
-                  )}
 
-                  {course.curriculum.length === 0 && (
-                    <p className="text-sm text-muted-foreground mb-4">Nenhuma grade curricular definida.</p>
-                  )}
+                    <div className="text-sm text-muted-foreground mb-2">
+                      <span>{course.curriculum.length} itens na grade curricular</span>
+                    </div>
 
-                  <div className="flex-1" />
-
-                  <div className="flex gap-2 pt-4 border-t border-border">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setSelectedCourse(course)}
-                    >
-                      Ver detalhes
-                    </Button>
-                    {course.platform && (
-                      <Button size="sm" className="flex-1">
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        Acessar
-                      </Button>
+                    {course.imageUrl && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <Image className="w-4 h-4" />
+                        <span className="truncate">Imagem definida</span>
+                      </div>
                     )}
+
+                    <div className="flex-1" />
+
+                    <div className="flex gap-2 pt-4 border-t border-border">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleEditCourse(course)}
+                      >
+                        <Pencil className="w-4 h-4 mr-1" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteCourse(course.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Excluir
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Cursinhos do Banco - Biblioteca de Visualização */}
+        <TabsContent value="banco" className="mt-0">
+          {userCourses.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Nenhum cursinho na biblioteca ainda.</p>
+              <p className="text-sm text-muted-foreground mt-2">Crie cursinhos em "Meus Cursinhos" para visualizá-los aqui.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {userCourses.map((course) => (
+                <div
+                  key={course.id}
+                  className="bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
+                >
+                  {course.imageUrl ? (
+                    <div className="aspect-video bg-muted">
+                      <img
+                        src={course.imageUrl}
+                        alt={course.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <Image className="w-12 h-12 text-primary/40" />
+                    </div>
+                  )}
+                  <div className="p-5 flex flex-col flex-1 min-h-[280px]">
+                    <h3 className="font-semibold text-foreground mb-1">{course.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-1">{course.theme}</p>
+                    {course.platform && (
+                      <p className="text-xs text-muted-foreground mb-3">{course.platform}</p>
+                    )}
+
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{course.workload}h</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>{formatDate(course.deadline)}</span>
+                      </div>
+                    </div>
+
+                    <ProgressBar value={course.progress} showLabel className="mb-4" />
+
+                    {/* Grade Curricular */}
+                    {course.curriculum.length > 0 ? (
+                      <div className="mb-4 max-h-40 overflow-y-auto flex-1">
+                        <h4 className="text-sm font-medium text-foreground mb-2">Grade Curricular</h4>
+                        <div className="space-y-2">
+                          {course.curriculum.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center gap-2 p-2 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
+                              onClick={() => handleToggleCurriculumItem(course.id, item.id)}
+                            >
+                              <Checkbox
+                                checked={item.completed}
+                                onCheckedChange={() => handleToggleCurriculumItem(course.id, item.id)}
+                              />
+                              <span className={`text-sm ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                {item.title}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground mb-4 flex-1">Nenhuma grade curricular definida.</p>
+                    )}
+
+                    <div className="flex gap-2 pt-4 border-t border-border mt-auto">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setSelectedCourse(course)}
+                      >
+                        Ver detalhes
+                      </Button>
+                      {course.platform && (
+                        <Button size="sm" className="flex-1">
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          Acessar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
