@@ -149,7 +149,7 @@ export const mockFinancialEntries: FinancialEntry[] = [
   { id: '1', type: 'income', description: 'Salário', amount: 5000, date: new Date('2024-03-01'), category: 'Trabalho' },
   { id: '2', type: 'expense', description: 'Aluguel', amount: 1500, date: new Date('2024-03-05'), category: 'Moradia' },
   { id: '3', type: 'expense', description: 'Curso Estratégia', amount: 300, date: new Date('2024-03-10'), category: 'Educação' },
-  { id: '4', type: 'purchase', description: 'Livros Concurso', amount: 150, date: new Date('2024-03-12'), category: 'Educação' },
+  { id: '4', type: 'expense', description: 'Livros Concurso', amount: 150, date: new Date('2024-03-12'), category: 'Educação' },
   { id: '5', type: 'expense', description: 'Internet', amount: 120, date: new Date('2024-03-15'), category: 'Serviços' },
 ];
 
