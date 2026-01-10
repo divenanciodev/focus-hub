@@ -168,10 +168,49 @@ export default function TrainingSession() {
         ))}
       </div>
 
-      <div className="bg-card border border-border rounded-xl p-6 mb-6">
-        <p className="text-foreground font-medium mb-6">{question.statement}</p>
+      <div className="bg-card border border-border rounded-xl p-6 mb-6 space-y-6">
+        {/* Conteúdo associado */}
+        {question.criteriaName && (
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
+              {question.criteriaName}
+            </span>
+          </div>
+        )}
 
-        <div className="space-y-3">
+        {/* Título da questão */}
+        {question.title && (
+          <h3 className="text-lg font-semibold text-foreground">{question.title}</h3>
+        )}
+
+        {/* Textos de apoio */}
+        {question.supportTexts && question.supportTexts.length > 0 && (
+          <div className="space-y-4">
+            {question.supportTexts.map((supportText, idx) => (
+              <div key={supportText.id || idx} className="bg-muted/30 rounded-lg p-4 border-l-4 border-primary/50">
+                {supportText.title && (
+                  <h4 className="font-semibold text-foreground text-sm mb-2">{supportText.title}</h4>
+                )}
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {supportText.content}
+                </p>
+                {supportText.reference && (
+                  <p className="text-xs text-muted-foreground/70 mt-3 italic border-t border-border pt-2">
+                    {supportText.reference}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Enunciado / Comando */}
+        <div className="pt-2">
+          <p className="text-foreground font-medium">{question.statement}</p>
+        </div>
+
+        {/* Alternativas */}
+        <div className="space-y-3 pt-2">
           {question.options.map((option, i) => (
             <button
               key={i}
