@@ -32,6 +32,7 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  Clock,
 } from 'lucide-react';
 import {
   Dialog,
@@ -93,6 +94,7 @@ interface NewContestForm {
   materias: ContestMateria[];
   evaluationCriteria: EvaluationCriteria[];
   simuladoQuestions: SimuladoQuestion[];
+  simuladoTimeMinutes: number;
 }
 
 const INITIAL_FORM: NewContestForm = {
@@ -115,6 +117,7 @@ const INITIAL_FORM: NewContestForm = {
   materias: [],
   evaluationCriteria: [],
   simuladoQuestions: [],
+  simuladoTimeMinutes: 60,
 };
 
 export default function Concursos() {
@@ -201,7 +204,7 @@ export default function Concursos() {
           discipline: newContest.position,
           subject: newContest.institution || 'Geral',
           questions: processedQuestions,
-          timeMinutes: Math.max(processedQuestions.length * 3, 10), // 3 min per question, min 10
+          timeMinutes: newContest.simuladoTimeMinutes || 60,
           difficulty: 'medium',
           status: 'pending',
         });
@@ -242,6 +245,7 @@ export default function Concursos() {
       materias: contest.materias || [],
       evaluationCriteria: contest.evaluationCriteria || [],
       simuladoQuestions: [],
+      simuladoTimeMinutes: 60,
     });
     setIsCreateModalOpen(true);
     setModalStep(1);
@@ -928,6 +932,31 @@ export default function Concursos() {
               </div>
             ) : (
               <div className="space-y-6 pb-4 px-3">
+                {/* Configuração de tempo */}
+                <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border border-border">
+                  <Clock className="w-5 h-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <Label htmlFor="simulado-time" className="text-sm font-medium">
+                      Tempo do simulado
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Defina o tempo total para resolver todas as questões
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="simulado-time"
+                      type="number"
+                      min={5}
+                      max={480}
+                      value={newContest.simuladoTimeMinutes}
+                      onChange={(e) => setNewContest({ ...newContest, simuladoTimeMinutes: parseInt(e.target.value) || 60 })}
+                      className="w-20 text-center"
+                    />
+                    <span className="text-sm text-muted-foreground">min</span>
+                  </div>
+                </div>
+
                 <SimuladoQuestionsEditor
                   questions={newContest.simuladoQuestions}
                   onChange={(simuladoQuestions) => setNewContest({ ...newContest, simuladoQuestions })}
