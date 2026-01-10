@@ -677,18 +677,21 @@ export default function Concursos() {
           </DialogHeader>
 
           {/* Step Indicator */}
-          <div className="flex items-center gap-2 mb-2">
-            <div
-              className={cn(
-                'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
-                modalStep >= 1
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              1
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={cn(
+                  'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
+                  modalStep >= 1
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                1
+              </div>
+              <span className="text-xs text-muted-foreground">Dados Gerais</span>
             </div>
-            <div className="flex-1 h-1 bg-muted rounded">
+            <div className="flex-1 h-1 bg-muted rounded self-start mt-4">
               <div
                 className={cn(
                   'h-full rounded transition-all',
@@ -696,17 +699,20 @@ export default function Concursos() {
                 )}
               />
             </div>
-            <div
-              className={cn(
-                'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
-                modalStep >= 2
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              2
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={cn(
+                  'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
+                  modalStep >= 2
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                2
+              </div>
+              <span className="text-xs text-muted-foreground">Critérios</span>
             </div>
-            <div className="flex-1 h-1 bg-muted rounded">
+            <div className="flex-1 h-1 bg-muted rounded self-start mt-4">
               <div
                 className={cn(
                   'h-full rounded transition-all',
@@ -714,21 +720,19 @@ export default function Concursos() {
                 )}
               />
             </div>
-            <div
-              className={cn(
-                'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
-                modalStep >= 3
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              3
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={cn(
+                  'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
+                  modalStep >= 3
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                3
+              </div>
+              <span className="text-xs text-muted-foreground">Simulado</span>
             </div>
-          </div>
-          <div className="grid grid-cols-3 text-xs text-muted-foreground mb-4">
-            <span className="text-center">Dados Gerais</span>
-            <span className="text-center">Critérios</span>
-            <span className="text-center">Simulado</span>
           </div>
 
           <ScrollArea className="flex-1 min-h-0">
