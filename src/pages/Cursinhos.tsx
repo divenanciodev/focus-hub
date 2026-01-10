@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
-import { useCourses, Course, CurriculumItem } from '@/hooks/useCourses';
+import { useCourses, Course, CurriculumItem, CurriculumSubtopic } from '@/hooks/useCourses';
 import {
   Plus,
   ExternalLink,
@@ -13,8 +13,6 @@ import {
   Pencil,
   Trash2,
   X,
-  Link,
-  Check,
   Image,
 } from 'lucide-react';
 import {
@@ -28,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { CurriculumItemEditor } from '@/components/cursinhos/CurriculumItemEditor';
 
 export default function Cursinhos() {
   const { courses, loading, addCourse, updateCourse, deleteCourse, toggleCurriculumItem } = useCourses();
@@ -49,6 +48,7 @@ export default function Cursinhos() {
 
   const [newCurriculumItem, setNewCurriculumItem] = useState('');
   const [editCurriculumItem, setEditCurriculumItem] = useState('');
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
 
   const handleCreateCourse = async () => {
     if (newCourse.name && newCourse.theme && newCourse.workload && newCourse.deadline) {
@@ -86,9 +86,16 @@ export default function Cursinhos() {
 
   const handleAddCurriculumItem = () => {
     if (newCurriculumItem.trim()) {
+      const newOrder = newCourse.curriculum.length;
       setNewCourse({
         ...newCourse,
-        curriculum: [...newCourse.curriculum, { id: Date.now().toString(), title: newCurriculumItem.trim(), completed: false }]
+        curriculum: [...newCourse.curriculum, { 
+          id: Date.now().toString(), 
+          title: newCurriculumItem.trim(), 
+          completed: false,
+          order: newOrder,
+          subtopics: []
+        }]
       });
       setNewCurriculumItem('');
     }
@@ -97,15 +104,22 @@ export default function Cursinhos() {
   const handleRemoveCurriculumItem = (id: string) => {
     setNewCourse({
       ...newCourse,
-      curriculum: newCourse.curriculum.filter(item => item.id !== id)
+      curriculum: newCourse.curriculum.filter(item => item.id !== id).map((item, idx) => ({ ...item, order: idx }))
     });
   };
 
   const handleAddEditCurriculumItem = () => {
     if (editCurriculumItem.trim() && editingCourse) {
+      const newOrder = editingCourse.curriculum.length;
       setEditingCourse({
         ...editingCourse,
-        curriculum: [...editingCourse.curriculum, { id: Date.now().toString(), title: editCurriculumItem.trim(), completed: false }]
+        curriculum: [...editingCourse.curriculum, { 
+          id: Date.now().toString(), 
+          title: editCurriculumItem.trim(), 
+          completed: false,
+          order: newOrder,
+          subtopics: []
+        }]
       });
       setEditCurriculumItem('');
     }
@@ -115,9 +129,100 @@ export default function Cursinhos() {
     if (editingCourse) {
       setEditingCourse({
         ...editingCourse,
-        curriculum: editingCourse.curriculum.filter(item => item.id !== id)
+        curriculum: editingCourse.curriculum.filter(item => item.id !== id).map((item, idx) => ({ ...item, order: idx }))
       });
     }
+  };
+
+  const handleAddSubtopic = (itemId: string, title: string, isEdit: boolean) => {
+    if (!title.trim()) return;
+
+    const newSub: CurriculumSubtopic = {
+      id: Date.now().toString(),
+      title: title.trim(),
+      completed: false
+    };
+
+    if (isEdit && editingCourse) {
+      setEditingCourse({
+        ...editingCourse,
+        curriculum: editingCourse.curriculum.map(item => 
+          item.id === itemId 
+            ? { ...item, subtopics: [...(item.subtopics || []), newSub] } 
+            : item
+        )
+      });
+    } else {
+      setNewCourse({
+        ...newCourse,
+        curriculum: newCourse.curriculum.map(item => 
+          item.id === itemId 
+            ? { ...item, subtopics: [...(item.subtopics || []), newSub] } 
+            : item
+        )
+      });
+    }
+  };
+
+  const handleRemoveSubtopic = (itemId: string, subtopicId: string, isEdit: boolean) => {
+    if (isEdit && editingCourse) {
+      setEditingCourse({
+        ...editingCourse,
+        curriculum: editingCourse.curriculum.map(item => 
+          item.id === itemId 
+            ? { ...item, subtopics: (item.subtopics || []).filter(s => s.id !== subtopicId) } 
+            : item
+        )
+      });
+    } else {
+      setNewCourse({
+        ...newCourse,
+        curriculum: newCourse.curriculum.map(item => 
+          item.id === itemId 
+            ? { ...item, subtopics: (item.subtopics || []).filter(s => s.id !== subtopicId) } 
+            : item
+        )
+      });
+    }
+  };
+
+  const handleDragStart = (itemId: string) => {
+    setDraggedItemId(itemId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedItemId || draggedItemId === targetId) return;
+  };
+
+  const handleDrop = (targetId: string, isEdit: boolean) => {
+    if (!draggedItemId || draggedItemId === targetId) return;
+
+    const curriculum = isEdit && editingCourse 
+      ? [...editingCourse.curriculum] 
+      : [...newCourse.curriculum];
+
+    const draggedIndex = curriculum.findIndex(item => item.id === draggedItemId);
+    const targetIndex = curriculum.findIndex(item => item.id === targetId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const [draggedItem] = curriculum.splice(draggedIndex, 1);
+    curriculum.splice(targetIndex, 0, draggedItem);
+
+    const reorderedCurriculum = curriculum.map((item, idx) => ({ ...item, order: idx }));
+
+    if (isEdit && editingCourse) {
+      setEditingCourse({ ...editingCourse, curriculum: reorderedCurriculum });
+    } else {
+      setNewCourse({ ...newCourse, curriculum: reorderedCurriculum });
+    }
+
+    setDraggedItemId(null);
+  };
+
+  const sortedCurriculum = (curriculum: CurriculumItem[]) => {
+    return [...curriculum].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   };
 
   const handleToggleCurriculumItem = async (courseId: string, itemId: string) => {
@@ -424,7 +529,7 @@ export default function Cursinhos() {
 
             {/* Grade Curricular */}
             <div className="space-y-2">
-              <Label>Grade Curricular</Label>
+              <Label>Grade Curricular (arraste para reordenar)</Label>
               <div className="flex gap-2">
                 <Input
                   value={newCurriculumItem}
@@ -437,19 +542,27 @@ export default function Cursinhos() {
                 </Button>
               </div>
               {newCourse.curriculum.length > 0 && (
-                <div className="space-y-2 mt-2 max-h-40 overflow-y-auto">
-                  {newCourse.curriculum.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded">
-                      <span className="text-sm">{item.title}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive"
-                        onClick={() => handleRemoveCurriculumItem(item.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
+                  {sortedCurriculum(newCourse.curriculum).map((item) => (
+                    <CurriculumItemEditor
+                      key={item.id}
+                      item={item}
+                      onRename={(id, title) => {
+                        setNewCourse({
+                          ...newCourse,
+                          curriculum: newCourse.curriculum.map(i => 
+                            i.id === id ? { ...i, title } : i
+                          )
+                        });
+                      }}
+                      onRemove={handleRemoveCurriculumItem}
+                      onAddSubtopic={(itemId, title) => handleAddSubtopic(itemId, title, false)}
+                      onRemoveSubtopic={(itemId, subtopicId) => handleRemoveSubtopic(itemId, subtopicId, false)}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDrop={(id) => handleDrop(id, false)}
+                      isDragging={draggedItemId === item.id}
+                    />
                   ))}
                 </div>
               )}
@@ -551,7 +664,7 @@ export default function Cursinhos() {
 
               {/* Grade Curricular */}
               <div className="space-y-2">
-                <Label>Grade Curricular</Label>
+                <Label>Grade Curricular (arraste para reordenar)</Label>
                 <div className="flex gap-2">
                   <Input
                     value={editCurriculumItem}
@@ -564,19 +677,27 @@ export default function Cursinhos() {
                   </Button>
                 </div>
                 {editingCourse.curriculum.length > 0 && (
-                  <div className="space-y-2 mt-2 max-h-40 overflow-y-auto">
-                    {editingCourse.curriculum.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-2 bg-secondary rounded">
-                        <span className="text-sm">{item.title}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-destructive"
-                          onClick={() => handleRemoveEditCurriculumItem(item.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                  <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
+                    {sortedCurriculum(editingCourse.curriculum).map((item) => (
+                      <CurriculumItemEditor
+                        key={item.id}
+                        item={item}
+                        onRename={(id, title) => {
+                          setEditingCourse({
+                            ...editingCourse,
+                            curriculum: editingCourse.curriculum.map(i => 
+                              i.id === id ? { ...i, title } : i
+                            )
+                          });
+                        }}
+                        onRemove={handleRemoveEditCurriculumItem}
+                        onAddSubtopic={(itemId, title) => handleAddSubtopic(itemId, title, true)}
+                        onRemoveSubtopic={(itemId, subtopicId) => handleRemoveSubtopic(itemId, subtopicId, true)}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDrop={(id) => handleDrop(id, true)}
+                        isDragging={draggedItemId === item.id}
+                      />
                     ))}
                   </div>
                 )}
