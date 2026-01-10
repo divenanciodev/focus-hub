@@ -5,8 +5,24 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { CreateScheduleModal } from '@/components/schedule/CreateScheduleModal';
 import { ScheduleTable } from '@/components/schedule/ScheduleTable';
 import { Schedule, ScheduleBlock } from '@/types/schedule';
-import { Plus, Calendar, ArrowLeft, Settings } from 'lucide-react';
+import { Plus, Calendar, ArrowLeft, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Cronograma de exemplo para demonstrar a funcionalidade
 const exampleSchedule: Schedule = {
@@ -147,6 +163,8 @@ export default function Cronograma() {
   const [schedules, setSchedules] = useState<Schedule[]>([exampleSchedule, exampleSchedule2, exampleSchedule3]);
   const [activeSchedule, setActiveSchedule] = useState<Schedule | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [scheduleToDelete, setScheduleToDelete] = useState<Schedule | null>(null);
 
   const handleCreateSchedule = (data: Omit<Schedule, 'id' | 'blocks'>) => {
     const newSchedule: Schedule = {
@@ -168,10 +186,20 @@ export default function Cronograma() {
     );
   };
 
-  const handleDeleteSchedule = (id: string) => {
-    setSchedules(prev => prev.filter(s => s.id !== id));
-    if (activeSchedule?.id === id) {
-      setActiveSchedule(null);
+  const handleDeleteClick = (e: React.MouseEvent, schedule: Schedule) => {
+    e.stopPropagation();
+    setScheduleToDelete(schedule);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (scheduleToDelete) {
+      setSchedules(prev => prev.filter(s => s.id !== scheduleToDelete.id));
+      if (activeSchedule?.id === scheduleToDelete.id) {
+        setActiveSchedule(null);
+      }
+      setScheduleToDelete(null);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -233,17 +261,36 @@ export default function Cronograma() {
                   <h3 className="font-semibold text-foreground">{schedule.name}</h3>
                   <p className="text-sm text-muted-foreground">{schedule.objective}</p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteSchedule(schedule.id);
-                  }}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveSchedule(schedule);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => handleDeleteClick(e, schedule)}
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="text-sm text-muted-foreground space-y-1">
@@ -261,6 +308,24 @@ export default function Cronograma() {
         onOpenChange={setIsCreateModalOpen}
         onSubmit={handleCreateSchedule}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cronograma?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O cronograma "{scheduleToDelete?.name}" e todos os seus blocos serão permanentemente excluídos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
