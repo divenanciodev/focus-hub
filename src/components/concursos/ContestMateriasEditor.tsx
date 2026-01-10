@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ContestMateria, ContestTopic } from '@/types/contests';
-import { Plus, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, X, Pencil, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ContestMateriasEditorProps {
@@ -27,6 +27,8 @@ export function ContestMateriasEditor({ materias, onChange }: ContestMateriasEdi
   const [newMateriaName, setNewMateriaName] = useState('');
   const [newTopicNames, setNewTopicNames] = useState<Record<number, string>>({});
   const [newSubtopicNames, setNewSubtopicNames] = useState<Record<string, string>>({});
+  const [editingSubtopic, setEditingSubtopic] = useState<string | null>(null);
+  const [editingSubtopicValue, setEditingSubtopicValue] = useState('');
 
   const toggleExpanded = (index: number) => {
     setExpandedMaterias((prev) => {
@@ -98,6 +100,28 @@ export function ContestMateriasEditor({ materias, onChange }: ContestMateriasEdi
     const updated = [...materias];
     updated[materiaIndex].topics[topicIndex].subtopics = updated[materiaIndex].topics[topicIndex].subtopics.filter((_, i) => i !== subtopicIndex);
     onChange(updated);
+  };
+
+  const updateSubtopic = (materiaIndex: number, topicIndex: number, subtopicIndex: number, newValue: string) => {
+    const trimmed = newValue.trim();
+    if (!trimmed) return;
+    
+    const updated = [...materias];
+    updated[materiaIndex].topics[topicIndex].subtopics[subtopicIndex] = trimmed;
+    onChange(updated);
+    setEditingSubtopic(null);
+    setEditingSubtopicValue('');
+  };
+
+  const startEditingSubtopic = (materiaIndex: number, topicIndex: number, subtopicIndex: number, currentValue: string) => {
+    const key = `${materiaIndex}-${topicIndex}-${subtopicIndex}`;
+    setEditingSubtopic(key);
+    setEditingSubtopicValue(currentValue);
+  };
+
+  const cancelEditingSubtopic = () => {
+    setEditingSubtopic(null);
+    setEditingSubtopicValue('');
   };
 
   const availableMaterias = DEFAULT_MATERIAS.filter(
@@ -210,20 +234,82 @@ export function ContestMateriasEditor({ materias, onChange }: ContestMateriasEdi
 
                     {/* Subtopics */}
                     <div className="space-y-1 ml-2">
-                      {topic.subtopics.map((subtopic, subtopicIndex) => (
-                        <div key={subtopicIndex} className="flex items-center justify-between text-xs text-muted-foreground py-0.5">
-                          <span>• {subtopic}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-4 w-4 p-0 opacity-50 hover:opacity-100 hover:text-destructive"
-                            onClick={() => removeSubtopic(materiaIndex, topicIndex, subtopicIndex)}
-                          >
-                            <X className="w-2.5 h-2.5" />
-                          </Button>
-                        </div>
-                      ))}
+                      {topic.subtopics.map((subtopic, subtopicIndex) => {
+                        const editKey = `${materiaIndex}-${topicIndex}-${subtopicIndex}`;
+                        const isEditing = editingSubtopic === editKey;
+                        
+                        return (
+                          <div key={subtopicIndex} className="flex items-center justify-between text-xs text-muted-foreground py-0.5 group">
+                            {isEditing ? (
+                              <div className="flex items-center gap-1 flex-1 mr-1">
+                                <span className="text-muted-foreground">•</span>
+                                <input
+                                  type="text"
+                                  value={editingSubtopicValue}
+                                  onChange={(e) => setEditingSubtopicValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      updateSubtopic(materiaIndex, topicIndex, subtopicIndex, editingSubtopicValue);
+                                    } else if (e.key === 'Escape') {
+                                      cancelEditingSubtopic();
+                                    }
+                                  }}
+                                  className="flex-1 text-xs px-1 py-0.5 border border-input rounded bg-background"
+                                  autoFocus
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-4 w-4 p-0 text-green-600 hover:text-green-700"
+                                  onClick={() => updateSubtopic(materiaIndex, topicIndex, subtopicIndex, editingSubtopicValue)}
+                                >
+                                  <Check className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-4 w-4 p-0 text-muted-foreground hover:text-destructive"
+                                  onClick={cancelEditingSubtopic}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <span 
+                                  className="cursor-pointer hover:text-foreground transition-colors"
+                                  onDoubleClick={() => startEditingSubtopic(materiaIndex, topicIndex, subtopicIndex, subtopic)}
+                                >
+                                  • {subtopic}
+                                </span>
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-4 w-4 p-0 text-muted-foreground hover:text-foreground"
+                                    onClick={() => startEditingSubtopic(materiaIndex, topicIndex, subtopicIndex, subtopic)}
+                                  >
+                                    <Pencil className="w-2.5 h-2.5" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-4 w-4 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => removeSubtopic(materiaIndex, topicIndex, subtopicIndex)}
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </Button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
 
                       {/* Add subtopic - suporta colar múltiplos */}
                       <div className="flex gap-1 mt-1">
