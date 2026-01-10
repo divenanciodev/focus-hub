@@ -56,7 +56,7 @@ export default function TrainingSession() {
   const calculateScore = () => {
     let correct = 0;
     questions.forEach((q, i) => {
-      if (answers[i] === q.correctIndex) correct++;
+      if (answers[i] === q.correctAnswer) correct++;
     });
     return questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
   };
@@ -91,7 +91,7 @@ export default function TrainingSession() {
 
   if (isFinished) {
     const score = calculateScore();
-    const correctCount = questions.filter((q, i) => answers[i] === q.correctIndex).length;
+    const correctCount = questions.filter((q, i) => answers[i] === q.correctAnswer).length;
 
     return (
       <div className="fade-in max-w-2xl mx-auto">
