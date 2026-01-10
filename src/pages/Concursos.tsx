@@ -46,6 +46,27 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { EmptyState } from '@/components/ui/empty-state';
 
+// Formata valor para moeda brasileira
+const formatCurrency = (value: string): string => {
+  // Remove tudo exceto números
+  const numbers = value.replace(/\D/g, '');
+  if (!numbers) return '';
+  
+  // Converte para centavos e formata
+  const amount = parseInt(numbers, 10);
+  const formatted = (amount / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+  
+  return formatted;
+};
+
+// Remove formatação para salvar apenas números
+const parseCurrency = (value: string): string => {
+  return value.replace(/\D/g, '');
+};
+
 interface NewContestForm {
   name: string;
   position: string;
@@ -712,8 +733,8 @@ export default function Concursos() {
                   <Label>Remuneração</Label>
                   <Input
                     value={newContest.remuneracao}
-                    onChange={(e) => setNewContest({ ...newContest, remuneracao: e.target.value })}
-                    placeholder="Ex: R$ 1.518,00 a R$ 6.918,00"
+                    onChange={(e) => setNewContest({ ...newContest, remuneracao: formatCurrency(e.target.value) })}
+                    placeholder="R$ 0,00"
                   />
                 </div>
               </div>
@@ -733,8 +754,8 @@ export default function Concursos() {
                   <Label>Taxa de inscrição</Label>
                   <Input
                     value={newContest.taxaInscricao}
-                    onChange={(e) => setNewContest({ ...newContest, taxaInscricao: e.target.value })}
-                    placeholder="Ex: R$ 105,00 a R$ 130,00"
+                    onChange={(e) => setNewContest({ ...newContest, taxaInscricao: formatCurrency(e.target.value) })}
+                    placeholder="R$ 0,00"
                   />
                 </div>
               </div>
