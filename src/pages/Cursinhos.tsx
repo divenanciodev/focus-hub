@@ -299,57 +299,51 @@ export default function Cursinhos() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map((course) => (
                 <div
                   key={course.id}
-                  className="bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col h-[280px]"
+                  className="bg-card border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
                 >
-                  <div className="p-5 flex flex-col flex-1">
-                    <h3 className="font-semibold text-foreground mb-1 line-clamp-1">{course.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-1">{course.theme}</p>
+                  <div className="p-3 flex flex-col flex-1">
+                    <h3 className="font-medium text-sm text-foreground mb-0.5 line-clamp-2">{course.name}</h3>
+                    <p className="text-xs text-muted-foreground mb-2">{course.theme}</p>
 
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
                       <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
+                        <Clock className="w-3 h-3" />
                         <span>{course.workload}h</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-3 h-3" />
                         <span>{formatDate(course.deadline)}</span>
                       </div>
                     </div>
 
-                    <div className="text-sm text-muted-foreground mb-2">
-                      <span>{course.curriculum.length} itens na grade curricular</span>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      <span>{course.curriculum.length} itens na grade</span>
+                      {course.imageUrl && <span className="ml-2">• Imagem ✓</span>}
                     </div>
-
-                    {course.imageUrl && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <Image className="w-4 h-4" />
-                        <span className="truncate">Imagem definida</span>
-                      </div>
-                    )}
 
                     <div className="flex-1" />
 
-                    <div className="flex gap-2 pt-4 border-t border-border">
+                    <div className="flex gap-2 pt-2 border-t border-border">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 h-7 text-xs"
                         onClick={() => handleEditCourse(course)}
                       >
-                        <Pencil className="w-4 h-4 mr-1" />
+                        <Pencil className="w-3 h-3 mr-1" />
                         Editar
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 text-destructive hover:text-destructive"
+                        className="flex-1 h-7 text-xs text-destructive hover:text-destructive"
                         onClick={() => handleDeleteCourse(course.id)}
                       >
-                        <Trash2 className="w-4 h-4 mr-1" />
+                        <Trash2 className="w-3 h-3 mr-1" />
                         Excluir
                       </Button>
                     </div>
