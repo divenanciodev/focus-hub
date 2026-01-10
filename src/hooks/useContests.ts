@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Contest, ContestMateria } from '@/types/contests';
+import { Contest, ContestMateria, EvaluationCriteria } from '@/types/contests';
 
-export type { Contest, ContestMateria, ContestTopic } from '@/types/contests';
+export type { Contest, ContestMateria, ContestTopic, EvaluationCriteria, EvaluationCriteriaItem } from '@/types/contests';
 
 export function useContests() {
   const [contests, setContests] = useState<Contest[]>([]);
@@ -39,6 +39,7 @@ export function useContests() {
         inscricoesPeriodo: c.inscricoes_periodo || undefined,
         taxaInscricao: c.taxa_inscricao || undefined,
         materias: (c.materias as unknown as ContestMateria[]) || [],
+        evaluationCriteria: (c.evaluation_criteria as unknown as EvaluationCriteria[]) || [],
       }));
 
       setContests(mapped);
@@ -71,6 +72,7 @@ export function useContests() {
         inscricoes_periodo: data.inscricoesPeriodo || null,
         taxa_inscricao: data.taxaInscricao || null,
         materias: JSON.parse(JSON.stringify(data.materias || [])),
+        evaluation_criteria: JSON.parse(JSON.stringify(data.evaluationCriteria || [])),
       };
 
       const { data: newData, error } = await supabase
@@ -102,6 +104,7 @@ export function useContests() {
         inscricoesPeriodo: newData.inscricoes_periodo || undefined,
         taxaInscricao: newData.taxa_inscricao || undefined,
         materias: (newData.materias as unknown as ContestMateria[]) || [],
+        evaluationCriteria: (newData.evaluation_criteria as unknown as EvaluationCriteria[]) || [],
       };
 
       setContests((prev) => [mapped, ...prev]);
@@ -135,6 +138,7 @@ export function useContests() {
       if (data.inscricoesPeriodo !== undefined) updateData.inscricoes_periodo = data.inscricoesPeriodo || null;
       if (data.taxaInscricao !== undefined) updateData.taxa_inscricao = data.taxaInscricao || null;
       if (data.materias !== undefined) updateData.materias = data.materias;
+      if (data.evaluationCriteria !== undefined) updateData.evaluation_criteria = data.evaluationCriteria;
 
       const { error } = await supabase.from('contests').update(updateData).eq('id', id);
       if (error) throw error;

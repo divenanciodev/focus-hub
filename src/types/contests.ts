@@ -8,6 +8,22 @@ export interface ContestMateria {
   topics: ContestTopic[];
 }
 
+export interface EvaluationCriteriaItem {
+  id: string;
+  content: string;
+  questions: number;
+  weight: number;
+  totalPoints: number;
+}
+
+export interface EvaluationCriteria {
+  level: string; // Ex: "Nível Médio", "Nível Superior"
+  description?: string;
+  items: EvaluationCriteriaItem[];
+  totalQuestions: number;
+  totalPoints: number;
+}
+
 export interface Contest {
   id: string;
   name: string;
@@ -30,4 +46,5 @@ export interface Contest {
   inscricoesPeriodo?: string;
   taxaInscricao?: string;
   materias: ContestMateria[];
+  evaluationCriteria: EvaluationCriteria[];
 }
