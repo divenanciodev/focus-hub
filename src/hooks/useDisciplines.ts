@@ -1,26 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Discipline } from '@/types';
+import { Json } from '@/integrations/supabase/types';
 
-export interface Discipline {
-  id: string;
-  name: string;
-  subject: string;
-  specificSubject?: string;
-  grade?: string;
-  progress: number;
-  hoursStudied: number;
-  createdAt: Date;
-  tags: string[];
-  color?: string;
-  coverImage?: string;
-  studyPlan?: {
-    days: string[];
-    hoursPerDay: number;
-    startTime?: string;
-    preferredMethod?: string;
-  };
-}
+export type { Discipline } from '@/types';
 
 export function useDisciplines() {
   const [disciplines, setDisciplines] = useState<Discipline[]>([]);
@@ -47,7 +31,7 @@ export function useDisciplines() {
         tags: d.tags || [],
         color: d.color || undefined,
         coverImage: d.cover_image || undefined,
-        studyPlan: d.study_plan as Discipline['studyPlan'] || undefined,
+        studyPlan: d.study_plan as unknown as Discipline['studyPlan'] || undefined,
       }));
 
       setDisciplines(mapped);
@@ -72,18 +56,18 @@ export function useDisciplines() {
     try {
       const { data: newData, error } = await supabase
         .from('disciplines')
-        .insert({
+        .insert([{
           name: data.name,
           subject: data.subject,
           specific_subject: data.specificSubject,
           grade: data.grade,
           tags: data.tags,
           color: data.color,
-          study_plan: data.studyPlan,
+          study_plan: data.studyPlan as unknown as Json,
           cover_image: data.coverImage,
           progress: 0,
           hours_studied: 0,
-        })
+        }])
         .select()
         .single();
 
@@ -101,7 +85,7 @@ export function useDisciplines() {
         tags: newData.tags || [],
         color: newData.color || undefined,
         coverImage: newData.cover_image || undefined,
-        studyPlan: newData.study_plan as Discipline['studyPlan'] || undefined,
+        studyPlan: newData.study_plan as unknown as Discipline['studyPlan'] || undefined,
       };
 
       setDisciplines((prev) => [mapped, ...prev]);

@@ -5,7 +5,7 @@ export interface Discipline {
   name: string;
   subject: string;
   specificSubject?: string; // Área específica (ex: Gramática)
-  grade: string;
+  grade?: string;
   progress: number;
   hoursStudied: number;
   createdAt: Date;
@@ -18,7 +18,9 @@ export interface Discipline {
 export interface StudyPlan {
   days: string[]; // ['monday', 'tuesday', ...]
   hoursPerDay: number;
-  blockDuration: number; // minutes
+  blockDuration?: number; // minutes
+  startTime?: string;
+  preferredMethod?: string;
 }
 
 export interface VideoLink {
