@@ -4,8 +4,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { mockContests, mockBankSimulados } from '@/data/mockData';
-import { Contest, BankSimulado } from '@/types';
+import { useContests, Contest } from '@/hooks/useContests';
+import { mockBankSimulados } from '@/data/mockData';
 import { Progress } from '@/components/ui/progress';
 import {
   Plus,
@@ -16,6 +16,7 @@ import {
   Play,
   Pencil,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -37,7 +38,7 @@ import { toast } from 'sonner';
 
 export default function Concursos() {
   const navigate = useNavigate();
-  const [contests, setContests] = useState<Contest[]>(mockContests);
+  const { contests, loading, addContest, updateContest, deleteContest } = useContests();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,34 +53,24 @@ export default function Concursos() {
     examDate: '',
   });
 
-  const handleCreateContest = () => {
+  const handleCreateContest = async () => {
     if (newContest.name && newContest.position && newContest.examDate) {
       if (editingContest) {
-        // Update existing contest
-        setContests(contests.map(c => 
-          c.id === editingContest.id 
-            ? {
-                ...c,
-                name: newContest.name,
-                position: newContest.position,
-                institution: newContest.institution,
-                examDate: new Date(newContest.examDate),
-              }
-            : c
-        ));
+        await updateContest(editingContest.id, {
+          name: newContest.name,
+          position: newContest.position,
+          institution: newContest.institution,
+          examDate: new Date(newContest.examDate),
+        });
         toast.success('Concurso atualizado!');
       } else {
-        // Create new contest
-        const contest: Contest = {
-          id: Date.now().toString(),
+        await addContest({
           name: newContest.name,
           position: newContest.position,
           institution: newContest.institution,
           examDate: new Date(newContest.examDate),
           status: 'active',
-          progress: 0,
-        };
-        setContests([contest, ...contests]);
+        });
         toast.success('Concurso criado!');
       }
       setNewContest({ name: '', position: '', institution: '', examDate: '' });
@@ -92,15 +83,15 @@ export default function Concursos() {
     setEditingContest(contest);
     setNewContest({
       name: contest.name,
-      position: contest.position,
-      institution: contest.institution,
-      examDate: contest.examDate.toISOString().split('T')[0],
+      position: contest.position || '',
+      institution: contest.institution || '',
+      examDate: contest.examDate ? contest.examDate.toISOString().split('T')[0] : '',
     });
     setIsCreateModalOpen(true);
   };
 
-  const handleDeleteContest = (contestId: string) => {
-    setContests(contests.filter(c => c.id !== contestId));
+  const handleDeleteContest = async (contestId: string) => {
+    await deleteContest(contestId);
     toast.success('Concurso excluído!');
   };
 
@@ -130,6 +121,14 @@ export default function Concursos() {
     const diff = new Date(date).getTime() - now.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">
@@ -161,9 +160,8 @@ export default function Concursos() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {contests.map((contest) => {
-                const daysUntil = getDaysUntil(contest.examDate);
+                const daysUntil = contest.examDate ? getDaysUntil(contest.examDate) : 0;
                 const isPast = daysUntil < 0;
-                const progress = contest.progress || Math.floor(Math.random() * 100);
 
                 return (
                   <div
@@ -190,11 +188,11 @@ export default function Concursos() {
                     <div className="space-y-2 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{contest.institution}</span>
+                        <span className="truncate">{contest.institution || 'Não informado'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 shrink-0" />
-                        <span>{formatDate(contest.examDate)}</span>
+                        <span>{contest.examDate ? formatDate(contest.examDate) : 'Não informado'}</span>
                       </div>
                     </div>
 
@@ -202,9 +200,9 @@ export default function Concursos() {
                     <div className="mb-4">
                       <div className="flex items-center justify-between text-sm mb-1">
                         <span className="text-muted-foreground">Progresso</span>
-                        <span className="font-medium text-foreground">{progress}%</span>
+                        <span className="font-medium text-foreground">0%</span>
                       </div>
-                      <Progress value={progress} className="h-2" />
+                      <Progress value={0} className="h-2" />
                     </div>
 
                     {/* Spacer to push buttons to bottom */}

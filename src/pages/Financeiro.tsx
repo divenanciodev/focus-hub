@@ -4,7 +4,8 @@ import { StatCard } from '@/components/ui/stat-card';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { FinancialEntry, Receivable, PiggyBank, FixedExpense, PurchaseGoal, Consortium } from '@/types';
+import { useFinancial, FinancialEntry, PiggyBank, FixedExpense } from '@/hooks/useFinancial';
+import { Receivable, PurchaseGoal, Consortium } from '@/types';
 import {
   Plus,
   TrendingUp,
@@ -25,6 +26,7 @@ import {
   Users,
   ArrowDownToLine,
   ArrowUpFromLine,
+  Loader2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -47,13 +49,27 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Financeiro() {
-  // State for entries (income/expense)
-  const [entries, setEntries] = useState<FinancialEntry[]>([]);
+  const {
+    entries,
+    piggyBanks,
+    fixedExpenses,
+    loading,
+    addEntry,
+    deleteEntry,
+    addPiggyBank,
+    updatePiggyBank,
+    deletePiggyBank,
+    addFixedExpense,
+    updateFixedExpense,
+    deleteFixedExpense,
+  } = useFinancial();
+
+  // Modal states
   const [isAddEntryModalOpen, setIsAddEntryModalOpen] = useState(false);
   const [entryType, setEntryType] = useState<'income' | 'expense'>('income');
   const [newEntry, setNewEntry] = useState({ description: '', amount: '' });
 
-  // State for receivables
+  // State for receivables (local for now)
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [isAddReceivableModalOpen, setIsAddReceivableModalOpen] = useState(false);
   const [newReceivable, setNewReceivable] = useState({
@@ -64,7 +80,6 @@ export default function Financeiro() {
   });
 
   // State for piggy banks
-  const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
   const [isAddPiggyBankModalOpen, setIsAddPiggyBankModalOpen] = useState(false);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [selectedPiggyBank, setSelectedPiggyBank] = useState<PiggyBank | null>(null);
@@ -76,7 +91,6 @@ export default function Financeiro() {
   });
 
   // State for fixed expenses
-  const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
   const [isAddFixedExpenseModalOpen, setIsAddFixedExpenseModalOpen] = useState(false);
   const [newFixedExpense, setNewFixedExpense] = useState({
     name: '',
@@ -85,7 +99,7 @@ export default function Financeiro() {
     category: '',
   });
 
-  // State for purchase goals
+  // State for purchase goals (local for now)
   const [purchaseGoals, setPurchaseGoals] = useState<PurchaseGoal[]>([]);
   const [isAddPurchaseGoalModalOpen, setIsAddPurchaseGoalModalOpen] = useState(false);
   const [newPurchaseGoal, setNewPurchaseGoal] = useState({
@@ -98,7 +112,7 @@ export default function Financeiro() {
   });
   const purchaseImageInputRef = useRef<HTMLInputElement>(null);
 
-  // State for consortium
+  // State for consortium (local for now)
   const [consortiums, setConsortiums] = useState<Consortium[]>([]);
   const [isAddConsortiumModalOpen, setIsAddConsortiumModalOpen] = useState(false);
   const [newConsortium, setNewConsortium] = useState({
@@ -130,27 +144,25 @@ export default function Financeiro() {
   };
 
   // Handlers for entries
-  const handleAddEntry = () => {
+  const handleAddEntry = async () => {
     if (newEntry.description && newEntry.amount) {
-      const entry: FinancialEntry = {
-        id: Date.now().toString(),
+      await addEntry({
         type: entryType,
         description: newEntry.description,
         amount: parseFloat(newEntry.amount),
-        date: new Date(),
         category: entryType === 'income' ? 'Entrada' : 'Saída',
-      };
-      setEntries([entry, ...entries]);
+        date: new Date(),
+      });
       setNewEntry({ description: '', amount: '' });
       setIsAddEntryModalOpen(false);
     }
   };
 
-  const handleDeleteEntry = (id: string) => {
-    setEntries(entries.filter((e) => e.id !== id));
+  const handleDeleteEntry = async (id: string) => {
+    await deleteEntry(id);
   };
 
-  // Handlers for receivables
+  // Handlers for receivables (local)
   const handleAddReceivable = () => {
     if (newReceivable.personName && newReceivable.totalAmount) {
       const receivable: Receivable = {
@@ -183,47 +195,37 @@ export default function Financeiro() {
   };
 
   // Handlers for piggy banks
-  const handleAddPiggyBank = () => {
+  const handleAddPiggyBank = async () => {
     if (newPiggyBank.name && newPiggyBank.targetAmount) {
-      const piggyBank: PiggyBank = {
-        id: Date.now().toString(),
+      await addPiggyBank({
         name: newPiggyBank.name,
         targetAmount: parseFloat(newPiggyBank.targetAmount),
         currentAmount: 0,
         color: newPiggyBank.color,
-      };
-      setPiggyBanks([piggyBank, ...piggyBanks]);
+      });
       setNewPiggyBank({ name: '', targetAmount: '', color: '#8B5CF6' });
       setIsAddPiggyBankModalOpen(false);
     }
   };
 
-  const handleDeposit = () => {
+  const handleDeposit = async () => {
     if (selectedPiggyBank && depositAmount) {
-      setPiggyBanks(
-        piggyBanks.map((p) =>
-          p.id === selectedPiggyBank.id
-            ? { ...p, currentAmount: p.currentAmount + parseFloat(depositAmount) }
-            : p
-        )
-      );
+      await updatePiggyBank(selectedPiggyBank.id, {
+        currentAmount: selectedPiggyBank.currentAmount + parseFloat(depositAmount),
+      });
       setDepositAmount('');
       setIsDepositModalOpen(false);
       setSelectedPiggyBank(null);
     }
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     if (selectedPiggyBank && depositAmount) {
       const amount = parseFloat(depositAmount);
       if (amount <= selectedPiggyBank.currentAmount) {
-        setPiggyBanks(
-          piggyBanks.map((p) =>
-            p.id === selectedPiggyBank.id
-              ? { ...p, currentAmount: p.currentAmount - amount }
-              : p
-          )
-        );
+        await updatePiggyBank(selectedPiggyBank.id, {
+          currentAmount: selectedPiggyBank.currentAmount - amount,
+        });
       }
       setDepositAmount('');
       setIsDepositModalOpen(false);
@@ -231,40 +233,36 @@ export default function Financeiro() {
     }
   };
 
-  const handleDeletePiggyBank = (id: string) => {
-    setPiggyBanks(piggyBanks.filter((p) => p.id !== id));
+  const handleDeletePiggyBank = async (id: string) => {
+    await deletePiggyBank(id);
   };
 
   // Handlers for fixed expenses
-  const handleAddFixedExpense = () => {
+  const handleAddFixedExpense = async () => {
     if (newFixedExpense.name && newFixedExpense.amount && newFixedExpense.dueDay) {
-      const expense: FixedExpense = {
-        id: Date.now().toString(),
+      await addFixedExpense({
         name: newFixedExpense.name,
         amount: parseFloat(newFixedExpense.amount),
         dueDay: parseInt(newFixedExpense.dueDay),
         category: newFixedExpense.category || 'Outros',
         notificationsEnabled: true,
-      };
-      setFixedExpenses([expense, ...fixedExpenses]);
+      });
       setNewFixedExpense({ name: '', amount: '', dueDay: '', category: '' });
       setIsAddFixedExpenseModalOpen(false);
     }
   };
 
-  const toggleExpenseNotification = (id: string) => {
-    setFixedExpenses(
-      fixedExpenses.map((e) =>
-        e.id === id ? { ...e, notificationsEnabled: !e.notificationsEnabled } : e
-      )
-    );
+  const toggleExpenseNotification = async (expense: FixedExpense) => {
+    await updateFixedExpense(expense.id, {
+      notificationsEnabled: !expense.notificationsEnabled,
+    });
   };
 
-  const handleDeleteFixedExpense = (id: string) => {
-    setFixedExpenses(fixedExpenses.filter((e) => e.id !== id));
+  const handleDeleteFixedExpense = async (id: string) => {
+    await deleteFixedExpense(id);
   };
 
-  // Handlers for purchase goals
+  // Handlers for purchase goals (local)
   const handleAddPurchaseGoal = () => {
     if (newPurchaseGoal.name && newPurchaseGoal.targetAmount) {
       const goal: PurchaseGoal = {
@@ -305,7 +303,7 @@ export default function Financeiro() {
     setPurchaseGoals(purchaseGoals.filter((g) => g.id !== id));
   };
 
-  // Handlers for consortium
+  // Handlers for consortium (local)
   const handleAddConsortium = () => {
     if (newConsortium.goal && newConsortium.totalAmount && newConsortium.installments) {
       const consortium: Consortium = {
@@ -355,6 +353,14 @@ export default function Financeiro() {
   };
 
   const today = new Date().getDate();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">
@@ -466,7 +472,6 @@ export default function Financeiro() {
               {receivables.map((receivable) => {
                 const progress = (receivable.paidInstallments / receivable.installments) * 100;
                 const installmentValue = receivable.totalAmount / receivable.installments;
-                const paidAmount = installmentValue * receivable.paidInstallments;
                 const isComplete = receivable.paidInstallments >= receivable.installments;
 
                 return (
@@ -493,34 +498,37 @@ export default function Financeiro() {
                         </span>
                       </div>
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                      <div className="space-y-3">
-                        <ProgressBar value={progress} showLabel />
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Recebido: {formatCurrency(paidAmount)}</span>
-                          <span>
-                            {receivable.paidInstallments}/{receivable.installments} parcelas
+                    <CardContent className="flex-1 flex flex-col">
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Parcelas pagas</span>
+                          <span className="font-medium text-foreground">
+                            {receivable.paidInstallments}/{receivable.installments}
                           </span>
                         </div>
+                        <ProgressBar value={progress} size="sm" />
+                        <p className="text-xs text-muted-foreground">
+                          Parcela: {formatCurrency(installmentValue)}
+                        </p>
                       </div>
 
-                      <div className="flex gap-2 pt-2 border-t border-border">
+                      <div className="flex gap-2 mt-auto pt-3 border-t border-border">
                         <Button
-                          variant="outline"
                           size="sm"
+                          variant="outline"
                           className="flex-1"
                           disabled={isComplete}
                           onClick={() => handlePayReceivableInstallment(receivable.id)}
                         >
-                          <Check className="w-4 h-4 mr-2" />
-                          Marcar parcela
+                          <Check className="w-4 h-4 mr-1" />
+                          Receber parcela
                         </Button>
                         <Button
+                          size="sm"
                           variant="ghost"
-                          size="icon"
                           onClick={() => handleDeleteReceivable(receivable.id)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
                         </Button>
                       </div>
                     </CardContent>
@@ -545,11 +553,10 @@ export default function Financeiro() {
               <p className="text-muted-foreground">Nenhum cofrinho criado.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {piggyBanks.map((piggy) => {
-                const progress = piggy.targetAmount > 0 
-                  ? (piggy.currentAmount / piggy.targetAmount) * 100 
-                  : 0;
+                const progress = (piggy.currentAmount / piggy.targetAmount) * 100;
+                const isComplete = piggy.currentAmount >= piggy.targetAmount;
 
                 return (
                   <Card key={piggy.id} className="flex flex-col">
@@ -557,47 +564,54 @@ export default function Financeiro() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div
-                            className="flex items-center justify-center w-8 h-8 rounded-full"
-                            style={{ backgroundColor: piggy.color + '30' }}
+                            className="flex items-center justify-center w-10 h-10 rounded-full"
+                            style={{ backgroundColor: `${piggy.color}20` }}
                           >
-                            <PiggyBankIcon className="w-4 h-4" style={{ color: piggy.color }} />
+                            <PiggyBankIcon className="w-5 h-5" style={{ color: piggy.color }} />
                           </div>
-                          <CardTitle className="text-base font-semibold">
-                            {piggy.name}
-                          </CardTitle>
+                          <CardTitle className="text-base font-semibold">{piggy.name}</CardTitle>
                         </div>
-                        <span className="text-lg font-bold text-foreground">
-                          {formatCurrency(piggy.targetAmount)}
-                        </span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDeletePiggyBank(piggy.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
+                        </Button>
                       </div>
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                      <div className="space-y-3">
-                        <div className="text-center py-2">
-                          <p className="text-2xl font-bold text-foreground">
+                    <CardContent className="flex-1 flex flex-col">
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl font-bold text-foreground">
                             {formatCurrency(piggy.currentAmount)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">guardado</p>
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            de {formatCurrency(piggy.targetAmount)}
+                          </span>
                         </div>
-                        <ProgressBar value={progress} showLabel />
+                        <ProgressBar value={Math.min(progress, 100)} color={piggy.color} />
+                        <p className="text-xs text-muted-foreground text-center">
+                          {progress.toFixed(1)}% da meta
+                        </p>
                       </div>
 
-                      <div className="flex gap-2 pt-2 border-t border-border">
+                      <div className="flex gap-2 mt-auto pt-3 border-t border-border">
                         <Button
-                          variant="outline"
                           size="sm"
+                          variant="outline"
                           className="flex-1"
                           onClick={() => {
                             setSelectedPiggyBank(piggy);
                             setIsDepositModalOpen(true);
                           }}
                         >
-                          <ArrowDownToLine className="w-4 h-4 mr-2" />
+                          <ArrowDownToLine className="w-4 h-4 mr-1" />
                           Depositar
                         </Button>
                         <Button
-                          variant="outline"
                           size="sm"
+                          variant="outline"
                           className="flex-1"
                           disabled={piggy.currentAmount <= 0}
                           onClick={() => {
@@ -605,15 +619,8 @@ export default function Financeiro() {
                             setIsDepositModalOpen(true);
                           }}
                         >
-                          <ArrowUpFromLine className="w-4 h-4 mr-2" />
+                          <ArrowUpFromLine className="w-4 h-4 mr-1" />
                           Retirar
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeletePiggyBank(piggy.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </CardContent>
@@ -629,7 +636,7 @@ export default function Financeiro() {
           <div className="flex justify-end mb-4">
             <Button onClick={() => setIsAddFixedExpenseModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Adicionar despesa fixa
+              Nova despesa fixa
             </Button>
           </div>
 
@@ -638,84 +645,54 @@ export default function Financeiro() {
               <p className="text-muted-foreground">Nenhuma despesa fixa cadastrada.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-card border border-border rounded-xl divide-y divide-border">
               {fixedExpenses.map((expense) => {
-                const isUpcoming = expense.dueDay >= today && expense.dueDay <= today + 5;
-                const isPastDue = expense.dueDay < today;
+                const isDueSoon = expense.dueDay && (expense.dueDay - today <= 5 && expense.dueDay >= today);
+                const isOverdue = expense.dueDay && expense.dueDay < today;
 
                 return (
-                  <Card
-                    key={expense.id}
-                    className={cn(
-                      'flex flex-col',
-                      isUpcoming && 'border-warning',
-                      isPastDue && 'border-destructive'
-                    )}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
-                            <Calendar className="w-4 h-4 text-foreground" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-base font-semibold">
-                              {expense.name}
-                            </CardTitle>
-                            <p className="text-xs text-muted-foreground">{expense.category}</p>
-                          </div>
-                        </div>
-                        <span className="text-lg font-bold text-foreground">
-                          {formatCurrency(expense.amount)}
-                        </span>
+                  <div key={expense.id} className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        'flex items-center justify-center w-10 h-10 rounded-full',
+                        isOverdue ? 'bg-destructive/10' : isDueSoon ? 'bg-warning/10' : 'bg-muted'
+                      )}>
+                        <Calendar className={cn(
+                          'w-4 h-4',
+                          isOverdue ? 'text-destructive' : isDueSoon ? 'text-warning' : 'text-foreground'
+                        )} />
                       </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            'text-sm font-medium',
-                            isUpcoming && 'text-warning',
-                            isPastDue && 'text-destructive',
-                            !isUpcoming && !isPastDue && 'text-muted-foreground'
-                          )}
-                        >
-                          Vencimento: dia {expense.dueDay}
-                        </span>
-                        {isUpcoming && (
-                          <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded">
-                            Em breve
-                          </span>
+                      <div>
+                        <p className="font-medium text-foreground">{expense.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {expense.category} • Vencimento dia {expense.dueDay}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-foreground">
+                        {formatCurrency(expense.amount)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleExpenseNotification(expense)}
+                      >
+                        {expense.notificationsEnabled ? (
+                          <Bell className="w-4 h-4 text-foreground" />
+                        ) : (
+                          <BellOff className="w-4 h-4 text-muted-foreground" />
                         )}
-                        {isPastDue && (
-                          <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded">
-                            Vencido
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex gap-2 pt-2 border-t border-border justify-end">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => toggleExpenseNotification(expense.id)}
-                        >
-                          {expense.notificationsEnabled ? (
-                            <Bell className="w-4 h-4 text-primary" />
-                          ) : (
-                            <BellOff className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteFixedExpense(expense.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteFixedExpense(expense.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -727,81 +704,68 @@ export default function Financeiro() {
           <div className="flex justify-end mb-4">
             <Button onClick={() => setIsAddPurchaseGoalModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Adicionar objetivo
+              Nova meta de compra
             </Button>
           </div>
 
           {purchaseGoals.length === 0 ? (
             <div className="bg-card border border-border rounded-xl p-8 text-center">
-              <p className="text-muted-foreground">Nenhum objetivo de compra.</p>
+              <p className="text-muted-foreground">Nenhuma meta de compra.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {purchaseGoals.map((goal) => {
-                const progress = goal.targetAmount > 0
-                  ? (goal.savedAmount / goal.targetAmount) * 100
-                  : 0;
+                const progress = (goal.savedAmount / goal.targetAmount) * 100;
 
                 return (
                   <Card key={goal.id} className="flex flex-col overflow-hidden">
                     {goal.imageUrl && (
-                      <div className="h-32 w-full overflow-hidden">
-                        <img
-                          src={goal.imageUrl}
-                          alt={goal.name}
-                          className="w-full h-full object-cover"
-                        />
+                      <div className="aspect-video bg-muted">
+                        <img src={goal.imageUrl} alt={goal.name} className="w-full h-full object-cover" />
                       </div>
                     )}
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
-                            <ShoppingCart className="w-4 h-4 text-foreground" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-base font-semibold">
-                              {goal.name}
-                            </CardTitle>
-                            <span className={cn('text-xs font-medium', getPriorityColor(goal.priority))}>
-                              {goal.priority === 'high' ? 'Alta' : goal.priority === 'medium' ? 'Média' : 'Baixa'} prioridade
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-lg font-bold text-foreground">
-                          {formatCurrency(goal.targetAmount)}
+                        <CardTitle className="text-base font-semibold">{goal.name}</CardTitle>
+                        <span className={cn('text-xs font-medium', getPriorityColor(goal.priority))}>
+                          {goal.priority === 'high' ? 'Alta' : goal.priority === 'medium' ? 'Média' : 'Baixa'}
                         </span>
                       </div>
+                      {goal.description && (
+                        <p className="text-sm text-muted-foreground">{goal.description}</p>
+                      )}
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                      <div className="space-y-3">
-                        {goal.description && (
-                          <p className="text-sm text-muted-foreground">
-                            {goal.description}
-                          </p>
-                        )}
-                        <ProgressBar value={progress} showLabel />
+                    <CardContent className="flex-1 flex flex-col">
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg font-bold text-foreground">
+                            {formatCurrency(goal.savedAmount)}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            de {formatCurrency(goal.targetAmount)}
+                          </span>
+                        </div>
+                        <ProgressBar value={Math.min(progress, 100)} />
                       </div>
 
-                      <div className="flex gap-2 pt-2 border-t border-border">
+                      <div className="flex gap-2 mt-auto pt-3 border-t border-border">
                         {goal.storeLink && (
                           <Button
-                            variant="outline"
                             size="sm"
+                            variant="outline"
                             className="flex-1"
                             onClick={() => window.open(goal.storeLink, '_blank')}
                           >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            Ver na loja
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Ver loja
                           </Button>
                         )}
                         <Button
+                          size="sm"
                           variant="ghost"
-                          size="icon"
-                          className="ml-auto"
                           onClick={() => handleDeletePurchaseGoal(goal.id)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
                         </Button>
                       </div>
                     </CardContent>
@@ -817,66 +781,62 @@ export default function Financeiro() {
           <div className="flex justify-end mb-4">
             <Button onClick={() => setIsAddConsortiumModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Criar plano
+              Novo consórcio
             </Button>
           </div>
 
           {consortiums.length === 0 ? (
             <div className="bg-card border border-border rounded-xl p-8 text-center">
-              <p className="text-muted-foreground">Nenhum consórcio criado.</p>
+              <p className="text-muted-foreground">Nenhum consórcio cadastrado.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {consortiums.map((consortium) => {
                 const progress = (consortium.paidInstallments / consortium.installments) * 100;
                 const installmentValue = consortium.totalAmount / consortium.installments;
-                const paidAmount = installmentValue * consortium.paidInstallments;
+                const isComplete = consortium.paidInstallments >= consortium.installments;
 
                 return (
-                  <Card key={consortium.id} className="flex flex-col">
+                  <Card key={consortium.id} className={cn('flex flex-col', isComplete && 'opacity-60')}>
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
-                            <Target className="w-4 h-4 text-foreground" />
-                          </div>
-                          <CardTitle className="text-base font-semibold">
-                            {consortium.goal}
-                          </CardTitle>
-                        </div>
+                        <CardTitle className="text-base font-semibold">{consortium.goal}</CardTitle>
                         <span className="text-lg font-bold text-foreground">
                           {formatCurrency(consortium.totalAmount)}
                         </span>
                       </div>
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                      <div className="space-y-3">
-                        <ProgressBar value={progress} showLabel />
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Pago: {formatCurrency(paidAmount)}</span>
-                          <span>
-                            {consortium.paidInstallments}/{consortium.installments} parcelas
+                    <CardContent className="flex-1 flex flex-col">
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Parcelas pagas</span>
+                          <span className="font-medium text-foreground">
+                            {consortium.paidInstallments}/{consortium.installments}
                           </span>
                         </div>
+                        <ProgressBar value={progress} size="sm" />
+                        <p className="text-xs text-muted-foreground">
+                          Parcela: {formatCurrency(installmentValue)}
+                        </p>
                       </div>
 
-                      <div className="flex gap-2 pt-2 border-t border-border">
+                      <div className="flex gap-2 mt-auto pt-3 border-t border-border">
                         <Button
-                          variant="outline"
                           size="sm"
+                          variant="outline"
                           className="flex-1"
-                          disabled={consortium.paidInstallments >= consortium.installments}
+                          disabled={isComplete}
                           onClick={() => payConsortiumInstallment(consortium.id)}
                         >
-                          <Check className="w-4 h-4 mr-2" />
-                          Marcar parcela
+                          <Check className="w-4 h-4 mr-1" />
+                          Pagar parcela
                         </Button>
                         <Button
+                          size="sm"
                           variant="ghost"
-                          size="icon"
                           onClick={() => handleDeleteConsortium(consortium.id)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
                         </Button>
                       </div>
                     </CardContent>
@@ -893,7 +853,7 @@ export default function Financeiro() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Adicionar {entryType === 'income' ? 'Entrada' : 'Saída'}
+              {entryType === 'income' ? 'Nova Entrada' : 'Nova Saída'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -902,16 +862,18 @@ export default function Financeiro() {
               <Input
                 value={newEntry.description}
                 onChange={(e) => setNewEntry({ ...newEntry, description: e.target.value })}
-                placeholder="Ex: Salário"
+                placeholder="Ex: Salário, Conta de luz..."
               />
             </div>
             <div className="space-y-2">
-              <Label>Valor</Label>
+              <Label>Valor (R$)</Label>
               <Input
                 type="number"
                 value={newEntry.amount}
                 onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })}
-                placeholder="Ex: 1500"
+                placeholder="0,00"
+                min="0"
+                step="0.01"
               />
             </div>
           </div>
@@ -928,38 +890,34 @@ export default function Financeiro() {
       <Dialog open={isAddReceivableModalOpen} onOpenChange={setIsAddReceivableModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar Valor a Receber</DialogTitle>
+            <DialogTitle>Novo valor a receber</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nome da pessoa</Label>
               <Input
                 value={newReceivable.personName}
-                onChange={(e) =>
-                  setNewReceivable({ ...newReceivable, personName: e.target.value })
-                }
-                placeholder="Ex: João"
+                onChange={(e) => setNewReceivable({ ...newReceivable, personName: e.target.value })}
+                placeholder="Quem está devendo?"
               />
             </div>
             <div className="space-y-2">
               <Label>Descrição (opcional)</Label>
               <Input
                 value={newReceivable.description}
-                onChange={(e) =>
-                  setNewReceivable({ ...newReceivable, description: e.target.value })
-                }
-                placeholder="Ex: Empréstimo"
+                onChange={(e) => setNewReceivable({ ...newReceivable, description: e.target.value })}
+                placeholder="Referente a..."
               />
             </div>
             <div className="space-y-2">
-              <Label>Valor total</Label>
+              <Label>Valor total (R$)</Label>
               <Input
                 type="number"
                 value={newReceivable.totalAmount}
-                onChange={(e) =>
-                  setNewReceivable({ ...newReceivable, totalAmount: e.target.value })
-                }
-                placeholder="Ex: 500"
+                onChange={(e) => setNewReceivable({ ...newReceivable, totalAmount: e.target.value })}
+                placeholder="0,00"
+                min="0"
+                step="0.01"
               />
             </div>
             <div className="space-y-2">
@@ -967,10 +925,9 @@ export default function Financeiro() {
               <Input
                 type="number"
                 value={newReceivable.installments}
-                onChange={(e) =>
-                  setNewReceivable({ ...newReceivable, installments: e.target.value })
-                }
-                placeholder="Ex: 5"
+                onChange={(e) => setNewReceivable({ ...newReceivable, installments: e.target.value })}
+                placeholder="1"
+                min="1"
               />
             </div>
           </div>
@@ -987,40 +944,43 @@ export default function Financeiro() {
       <Dialog open={isAddPiggyBankModalOpen} onOpenChange={setIsAddPiggyBankModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Criar Novo Cofrinho</DialogTitle>
+            <DialogTitle>Novo Cofrinho</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nome do cofrinho</Label>
               <Input
                 value={newPiggyBank.name}
-                onChange={(e) =>
-                  setNewPiggyBank({ ...newPiggyBank, name: e.target.value })
-                }
-                placeholder="Ex: Viagem"
+                onChange={(e) => setNewPiggyBank({ ...newPiggyBank, name: e.target.value })}
+                placeholder="Ex: Viagem, Emergência..."
               />
             </div>
             <div className="space-y-2">
-              <Label>Meta de valor</Label>
+              <Label>Meta (R$)</Label>
               <Input
                 type="number"
                 value={newPiggyBank.targetAmount}
-                onChange={(e) =>
-                  setNewPiggyBank({ ...newPiggyBank, targetAmount: e.target.value })
-                }
-                placeholder="Ex: 5000"
+                onChange={(e) => setNewPiggyBank({ ...newPiggyBank, targetAmount: e.target.value })}
+                placeholder="0,00"
+                min="0"
+                step="0.01"
               />
             </div>
             <div className="space-y-2">
               <Label>Cor</Label>
-              <Input
-                type="color"
-                value={newPiggyBank.color}
-                onChange={(e) =>
-                  setNewPiggyBank({ ...newPiggyBank, color: e.target.value })
-                }
-                className="h-10 w-20"
-              />
+              <div className="flex gap-2">
+                {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'].map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setNewPiggyBank({ ...newPiggyBank, color })}
+                    className={cn(
+                      'w-8 h-8 rounded-full transition-transform',
+                      newPiggyBank.color === color && 'ring-2 ring-offset-2 ring-foreground scale-110'
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -1041,19 +1001,21 @@ export default function Financeiro() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold">
-                {selectedPiggyBank && formatCurrency(selectedPiggyBank.currentAmount)}
-              </p>
+            <div className="text-center p-4 bg-secondary/50 rounded-lg">
               <p className="text-sm text-muted-foreground">Saldo atual</p>
+              <p className="text-2xl font-bold text-foreground">
+                {formatCurrency(selectedPiggyBank?.currentAmount || 0)}
+              </p>
             </div>
             <div className="space-y-2">
-              <Label>Valor</Label>
+              <Label>Valor (R$)</Label>
               <Input
                 type="number"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="Ex: 100"
+                placeholder="0,00"
+                min="0"
+                step="0.01"
               />
             </div>
           </div>
@@ -1061,12 +1023,12 @@ export default function Financeiro() {
             <Button variant="outline" onClick={() => setIsDepositModalOpen(false)}>
               Cancelar
             </Button>
-            <Button variant="outline" onClick={handleWithdraw}>
-              <ArrowUpFromLine className="w-4 h-4 mr-2" />
+            <Button variant="outline" onClick={handleWithdraw} disabled={!depositAmount}>
+              <ArrowUpFromLine className="w-4 h-4 mr-1" />
               Retirar
             </Button>
-            <Button onClick={handleDeposit}>
-              <ArrowDownToLine className="w-4 h-4 mr-2" />
+            <Button onClick={handleDeposit} disabled={!depositAmount}>
+              <ArrowDownToLine className="w-4 h-4 mr-1" />
               Depositar
             </Button>
           </DialogFooter>
@@ -1077,61 +1039,55 @@ export default function Financeiro() {
       <Dialog open={isAddFixedExpenseModalOpen} onOpenChange={setIsAddFixedExpenseModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar Despesa Fixa</DialogTitle>
+            <DialogTitle>Nova Despesa Fixa</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nome</Label>
               <Input
                 value={newFixedExpense.name}
-                onChange={(e) =>
-                  setNewFixedExpense({ ...newFixedExpense, name: e.target.value })
-                }
-                placeholder="Ex: Aluguel"
+                onChange={(e) => setNewFixedExpense({ ...newFixedExpense, name: e.target.value })}
+                placeholder="Ex: Aluguel, Internet..."
               />
             </div>
             <div className="space-y-2">
-              <Label>Valor</Label>
+              <Label>Valor (R$)</Label>
               <Input
                 type="number"
                 value={newFixedExpense.amount}
-                onChange={(e) =>
-                  setNewFixedExpense({ ...newFixedExpense, amount: e.target.value })
-                }
-                placeholder="Ex: 1200"
+                onChange={(e) => setNewFixedExpense({ ...newFixedExpense, amount: e.target.value })}
+                placeholder="0,00"
+                min="0"
+                step="0.01"
               />
             </div>
             <div className="space-y-2">
-              <Label>Dia de vencimento</Label>
+              <Label>Dia do vencimento</Label>
               <Input
                 type="number"
+                value={newFixedExpense.dueDay}
+                onChange={(e) => setNewFixedExpense({ ...newFixedExpense, dueDay: e.target.value })}
+                placeholder="1-31"
                 min="1"
                 max="31"
-                value={newFixedExpense.dueDay}
-                onChange={(e) =>
-                  setNewFixedExpense({ ...newFixedExpense, dueDay: e.target.value })
-                }
-                placeholder="Ex: 10"
               />
             </div>
             <div className="space-y-2">
               <Label>Categoria</Label>
               <Select
                 value={newFixedExpense.category}
-                onValueChange={(v) =>
-                  setNewFixedExpense({ ...newFixedExpense, category: v })
-                }
+                onValueChange={(value) => setNewFixedExpense({ ...newFixedExpense, category: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Moradia">Moradia</SelectItem>
-                  <SelectItem value="Serviços">Serviços</SelectItem>
                   <SelectItem value="Transporte">Transporte</SelectItem>
-                  <SelectItem value="Educação">Educação</SelectItem>
+                  <SelectItem value="Alimentação">Alimentação</SelectItem>
                   <SelectItem value="Saúde">Saúde</SelectItem>
-                  <SelectItem value="Assinaturas">Assinaturas</SelectItem>
+                  <SelectItem value="Educação">Educação</SelectItem>
+                  <SelectItem value="Lazer">Lazer</SelectItem>
                   <SelectItem value="Outros">Outros</SelectItem>
                 </SelectContent>
               </Select>
@@ -1150,50 +1106,54 @@ export default function Financeiro() {
       <Dialog open={isAddPurchaseGoalModalOpen} onOpenChange={setIsAddPurchaseGoalModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar Objetivo de Compra</DialogTitle>
+            <DialogTitle>Nova Meta de Compra</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Nome do produto</Label>
+              <Label>O que você quer comprar?</Label>
               <Input
                 value={newPurchaseGoal.name}
-                onChange={(e) =>
-                  setNewPurchaseGoal({ ...newPurchaseGoal, name: e.target.value })
-                }
-                placeholder="Ex: iPhone 15"
+                onChange={(e) => setNewPurchaseGoal({ ...newPurchaseGoal, name: e.target.value })}
+                placeholder="Ex: iPhone, Notebook..."
               />
             </div>
             <div className="space-y-2">
               <Label>Descrição (opcional)</Label>
               <Input
                 value={newPurchaseGoal.description}
-                onChange={(e) =>
-                  setNewPurchaseGoal({ ...newPurchaseGoal, description: e.target.value })
-                }
-                placeholder="Ex: Modelo Pro Max 256GB"
+                onChange={(e) => setNewPurchaseGoal({ ...newPurchaseGoal, description: e.target.value })}
+                placeholder="Modelo, cor, etc..."
               />
             </div>
             <div className="space-y-2">
-              <Label>Valor</Label>
+              <Label>Valor (R$)</Label>
               <Input
                 type="number"
                 value={newPurchaseGoal.targetAmount}
-                onChange={(e) =>
-                  setNewPurchaseGoal({ ...newPurchaseGoal, targetAmount: e.target.value })
-                }
-                placeholder="Ex: 8000"
+                onChange={(e) => setNewPurchaseGoal({ ...newPurchaseGoal, targetAmount: e.target.value })}
+                placeholder="0,00"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Link da loja (opcional)</Label>
+              <Input
+                value={newPurchaseGoal.storeLink}
+                onChange={(e) => setNewPurchaseGoal({ ...newPurchaseGoal, storeLink: e.target.value })}
+                placeholder="https://..."
               />
             </div>
             <div className="space-y-2">
               <Label>Prioridade</Label>
               <Select
                 value={newPurchaseGoal.priority}
-                onValueChange={(v: 'low' | 'medium' | 'high') =>
-                  setNewPurchaseGoal({ ...newPurchaseGoal, priority: v })
+                onValueChange={(value: 'low' | 'medium' | 'high') =>
+                  setNewPurchaseGoal({ ...newPurchaseGoal, priority: value })
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Baixa</SelectItem>
@@ -1203,53 +1163,36 @@ export default function Financeiro() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Imagem</Label>
+              <Label>Imagem (opcional)</Label>
               <div className="flex gap-2">
                 <Input
+                  placeholder="Cole o link da imagem..."
                   value={newPurchaseGoal.imageUrl}
-                  onChange={(e) =>
-                    setNewPurchaseGoal({ ...newPurchaseGoal, imageUrl: e.target.value })
-                  }
-                  placeholder="URL da imagem"
+                  onChange={(e) => setNewPurchaseGoal({ ...newPurchaseGoal, imageUrl: e.target.value })}
                   className="flex-1"
                 />
                 <Button
                   type="button"
                   variant="outline"
-                  size="icon"
                   onClick={() => purchaseImageInputRef.current?.click()}
                 >
                   <Image className="w-4 h-4" />
                 </Button>
-                <input
-                  ref={purchaseImageInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePurchaseImageUpload}
-                  className="hidden"
-                />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Link da loja (opcional)</Label>
-              <div className="flex gap-2">
-                <LinkIcon className="w-4 h-4 mt-3 text-muted-foreground" />
-                <Input
-                  value={newPurchaseGoal.storeLink}
-                  onChange={(e) =>
-                    setNewPurchaseGoal({ ...newPurchaseGoal, storeLink: e.target.value })
-                  }
-                  placeholder="https://..."
-                  className="flex-1"
-                />
-              </div>
+              <input
+                ref={purchaseImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePurchaseImageUpload}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddPurchaseGoalModalOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAddPurchaseGoal}>Adicionar</Button>
+            <Button onClick={handleAddPurchaseGoal}>Criar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1258,28 +1201,26 @@ export default function Financeiro() {
       <Dialog open={isAddConsortiumModalOpen} onOpenChange={setIsAddConsortiumModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Criar Plano de Consórcio</DialogTitle>
+            <DialogTitle>Novo Consórcio</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Objetivo</Label>
               <Input
                 value={newConsortium.goal}
-                onChange={(e) =>
-                  setNewConsortium({ ...newConsortium, goal: e.target.value })
-                }
-                placeholder="Ex: Notebook para estudos"
+                onChange={(e) => setNewConsortium({ ...newConsortium, goal: e.target.value })}
+                placeholder="Ex: Carro, Imóvel..."
               />
             </div>
             <div className="space-y-2">
-              <Label>Valor total</Label>
+              <Label>Valor total (R$)</Label>
               <Input
                 type="number"
                 value={newConsortium.totalAmount}
-                onChange={(e) =>
-                  setNewConsortium({ ...newConsortium, totalAmount: e.target.value })
-                }
-                placeholder="Ex: 5000"
+                onChange={(e) => setNewConsortium({ ...newConsortium, totalAmount: e.target.value })}
+                placeholder="0,00"
+                min="0"
+                step="0.01"
               />
             </div>
             <div className="space-y-2">
@@ -1287,10 +1228,9 @@ export default function Financeiro() {
               <Input
                 type="number"
                 value={newConsortium.installments}
-                onChange={(e) =>
-                  setNewConsortium({ ...newConsortium, installments: e.target.value })
-                }
-                placeholder="Ex: 10"
+                onChange={(e) => setNewConsortium({ ...newConsortium, installments: e.target.value })}
+                placeholder="Ex: 60"
+                min="1"
               />
             </div>
           </div>

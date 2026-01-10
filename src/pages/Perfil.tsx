@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
-import { mockUserProfile } from '@/data/mockData';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -27,12 +27,13 @@ import {
   Save,
   LogOut,
   Camera,
+  Loader2,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 
 export default function Perfil() {
-  const profile = mockUserProfile;
+  const { settings, loading, updateSettings } = useUserSettings();
   const { theme, setTheme } = useTheme();
   
   // Settings state
@@ -44,8 +45,23 @@ export default function Perfil() {
   const [language, setLanguage] = useState('pt-BR');
   
   // Profile edit state
-  const [name, setName] = useState(profile.name);
-  const [email, setEmail] = useState(profile.email);
+  const [name, setName] = useState('Usuário');
+  const [email, setEmail] = useState('usuario@email.com');
+
+  // Sync state with settings from database
+  useEffect(() => {
+    if (settings) {
+      setNotifications(settings.notificationsEnabled);
+      setEmailNotifications(settings.emailNotifications);
+      setSoundEffects(settings.soundEffects);
+      setAutoSave(settings.autoSave);
+      setPomodoroTime(settings.pomodoroTime.toString());
+      setLanguage(settings.language);
+      if (settings.theme) {
+        setTheme(settings.theme);
+      }
+    }
+  }, [settings, setTheme]);
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('pt-BR', {
@@ -59,9 +75,31 @@ export default function Perfil() {
     toast.success('Perfil atualizado com sucesso!');
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
+    await updateSettings({
+      notificationsEnabled: notifications,
+      emailNotifications: emailNotifications,
+      soundEffects: soundEffects,
+      autoSave: autoSave,
+      pomodoroTime: parseInt(pomodoroTime),
+      language: language,
+      theme: theme || 'dark',
+    });
     toast.success('Configurações salvas!');
   };
+
+  const handleThemeChange = async (newTheme: string) => {
+    setTheme(newTheme);
+    await updateSettings({ theme: newTheme });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">
@@ -88,7 +126,7 @@ export default function Perfil() {
               <p className="text-sm text-muted-foreground mb-3">{email}</p>
               <span className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground text-xs font-medium px-3 py-1 rounded-full">
                 <Calendar className="w-3 h-3" />
-                Membro desde {formatDate(profile.joinedAt)}
+                Membro desde {formatDate(new Date())}
               </span>
             </div>
           </div>
@@ -166,7 +204,7 @@ export default function Perfil() {
                 </div>
                 <div className="flex items-center gap-2 bg-secondary rounded-lg p-1">
                   <button
-                    onClick={() => setTheme('light')}
+                    onClick={() => handleThemeChange('light')}
                     className={`p-2 rounded-md transition-colors ${
                       theme === 'light' ? 'bg-background shadow-sm' : 'hover:bg-background/50'
                     }`}
@@ -174,7 +212,7 @@ export default function Perfil() {
                     <Sun className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => setTheme('dark')}
+                    onClick={() => handleThemeChange('dark')}
                     className={`p-2 rounded-md transition-colors ${
                       theme === 'dark' ? 'bg-background shadow-sm' : 'hover:bg-background/50'
                     }`}

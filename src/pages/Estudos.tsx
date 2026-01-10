@@ -6,9 +6,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { CreateDisciplineModalEnhanced } from '@/components/modals/CreateDisciplineModalEnhanced';
 import { DisciplineSearch } from '@/components/studies/DisciplineSearch';
-import { useDisciplines } from '@/contexts/DisciplinesContext';
-import { Discipline, StudyPlan } from '@/types';
-import { Plus, BookOpen, Edit2, Trash2 } from 'lucide-react';
+import { useDisciplines, Discipline } from '@/contexts/DisciplinesContext';
+import { Plus, BookOpen, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -30,7 +29,7 @@ interface SearchFilters {
 
 export default function Estudos() {
   const navigate = useNavigate();
-  const { disciplines, addDiscipline, updateDiscipline, deleteDiscipline } = useDisciplines();
+  const { disciplines, loading, addDiscipline, updateDiscipline, deleteDiscipline } = useDisciplines();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingDiscipline, setEditingDiscipline] = useState<Discipline | null>(null);
@@ -43,33 +42,45 @@ export default function Estudos() {
     hoursRange: null,
   });
 
-  const handleCreateDiscipline = (data: {
+  const handleCreateDiscipline = async (data: {
     name: string;
     subject: string;
     specificSubject: string;
     grade: string;
     tags: string[];
     color: string;
-    studyPlan: StudyPlan;
+    studyPlan: Discipline['studyPlan'];
     coverImage?: string;
   }) => {
-    addDiscipline(data);
+    await addDiscipline({
+      ...data,
+      specificSubject: data.specificSubject || undefined,
+      grade: data.grade || undefined,
+    });
+    setIsCreateModalOpen(false);
   };
 
-  const handleEditDiscipline = (data: {
+  const handleEditDiscipline = async (data: {
     name: string;
     subject: string;
     specificSubject: string;
     grade: string;
     tags: string[];
     color: string;
-    studyPlan: StudyPlan;
+    studyPlan: Discipline['studyPlan'];
     coverImage?: string;
   }) => {
     if (editingDiscipline) {
-      updateDiscipline(editingDiscipline.id, data);
-      toast.success('Disciplina atualizada com sucesso!');
+      const success = await updateDiscipline(editingDiscipline.id, {
+        ...data,
+        specificSubject: data.specificSubject || undefined,
+        grade: data.grade || undefined,
+      });
+      if (success) {
+        toast.success('Disciplina atualizada com sucesso!');
+      }
       setEditingDiscipline(null);
+      setIsEditModalOpen(false);
     }
   };
 
@@ -85,10 +96,9 @@ export default function Estudos() {
     setIsEditModalOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (disciplineToDelete) {
-      deleteDiscipline(disciplineToDelete.id);
-      toast.success('Disciplina excluída com sucesso!');
+      await deleteDiscipline(disciplineToDelete.id);
       setDisciplineToDelete(null);
       setDeleteDialogOpen(false);
     }
@@ -142,6 +152,13 @@ export default function Estudos() {
     });
   }, [disciplines, searchFilters]);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">
@@ -259,7 +276,23 @@ export default function Estudos() {
           if (!open) setEditingDiscipline(null);
         }}
         onSubmit={handleEditDiscipline}
-        initialData={editingDiscipline || undefined}
+        initialData={editingDiscipline ? {
+          id: editingDiscipline.id,
+          name: editingDiscipline.name,
+          subject: editingDiscipline.subject,
+          specificSubject: editingDiscipline.specificSubject || '',
+          grade: editingDiscipline.grade || '',
+          progress: editingDiscipline.progress,
+          hoursStudied: editingDiscipline.hoursStudied,
+          createdAt: editingDiscipline.createdAt,
+          tags: editingDiscipline.tags,
+          color: editingDiscipline.color,
+          coverImage: editingDiscipline.coverImage,
+          studyPlan: editingDiscipline.studyPlan ? {
+            ...editingDiscipline.studyPlan,
+            blockDuration: editingDiscipline.studyPlan.hoursPerDay * 60,
+          } : undefined,
+        } : undefined}
       />
 
       {/* Delete Confirmation Dialog */}

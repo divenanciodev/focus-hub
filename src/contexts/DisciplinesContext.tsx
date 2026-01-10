@@ -1,74 +1,47 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { Discipline, StudyPlan } from '@/types';
-import { mockDisciplines } from '@/data/mockData';
+import { createContext, useContext, ReactNode } from 'react';
+import { useDisciplines as useDisciplinesHook, Discipline } from '@/hooks/useDisciplines';
 
 interface DisciplinesContextType {
   disciplines: Discipline[];
+  loading: boolean;
   addDiscipline: (data: {
     name: string;
     subject: string;
-    specificSubject: string;
-    grade: string;
+    specificSubject?: string;
+    grade?: string;
     tags: string[];
     color: string;
-    studyPlan: StudyPlan;
-  }) => void;
-  updateDiscipline: (id: string, data: Partial<Discipline>) => void;
-  deleteDiscipline: (id: string) => void;
+    studyPlan?: Discipline['studyPlan'];
+    coverImage?: string;
+  }) => Promise<Discipline | null>;
+  updateDiscipline: (id: string, data: Partial<Discipline>) => Promise<boolean>;
+  deleteDiscipline: (id: string) => Promise<boolean>;
   getDiscipline: (id: string) => Discipline | undefined;
+  refetch: () => Promise<void>;
 }
 
 const DisciplinesContext = createContext<DisciplinesContextType | undefined>(undefined);
 
 export function DisciplinesProvider({ children }: { children: ReactNode }) {
-  const [disciplines, setDisciplines] = useState<Discipline[]>(mockDisciplines);
-
-  const addDiscipline = (data: {
-    name: string;
-    subject: string;
-    specificSubject: string;
-    grade: string;
-    tags: string[];
-    color: string;
-    studyPlan: StudyPlan;
-  }) => {
-    const newDiscipline: Discipline = {
-      id: Date.now().toString(),
-      name: data.name,
-      subject: data.subject,
-      specificSubject: data.specificSubject,
-      grade: data.grade,
-      progress: 0,
-      hoursStudied: 0,
-      createdAt: new Date(),
-      tags: data.tags,
-      color: data.color,
-      studyPlan: data.studyPlan,
-    };
-    setDisciplines(prev => [newDiscipline, ...prev]);
-  };
-
-  const updateDiscipline = (id: string, data: Partial<Discipline>) => {
-    setDisciplines(prev => 
-      prev.map(d => d.id === id ? { ...d, ...data } : d)
-    );
-  };
-
-  const deleteDiscipline = (id: string) => {
-    setDisciplines(prev => prev.filter(d => d.id !== id));
-  };
-
-  const getDiscipline = (id: string) => {
-    return disciplines.find(d => d.id === id);
-  };
+  const {
+    disciplines,
+    loading,
+    addDiscipline,
+    updateDiscipline,
+    deleteDiscipline,
+    getDiscipline,
+    refetch,
+  } = useDisciplinesHook();
 
   return (
     <DisciplinesContext.Provider value={{ 
       disciplines, 
+      loading,
       addDiscipline, 
       updateDiscipline, 
       deleteDiscipline,
-      getDiscipline 
+      getDiscipline,
+      refetch,
     }}>
       {children}
     </DisciplinesContext.Provider>
@@ -82,3 +55,6 @@ export function useDisciplines() {
   }
   return context;
 }
+
+// Re-export the Discipline type for convenience
+export type { Discipline } from '@/hooks/useDisciplines';
