@@ -141,28 +141,31 @@ export function EvaluationCriteriaEditor({ criteria, onChange }: EvaluationCrite
         const isExpanded = expandedCriteria.has(critIdx);
 
         return (
-          <div key={critIdx} className="border border-border rounded-lg overflow-hidden">
-            {/* Header */}
+          <div key={critIdx} className="border border-border rounded-lg overflow-hidden bg-card">
+            {/* Header - Clicável para expandir/recolher */}
             <div
-              className="flex items-center justify-between p-3 bg-muted/50 cursor-pointer"
+              className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
               onClick={() => toggleExpanded(critIdx)}
             >
-              <div className="flex items-center gap-2">
-                {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                )}
-                <span className="font-medium text-sm">{crit.level}</span>
-                <span className="text-xs text-muted-foreground">
-                  ({crit.items.length} conteúdos • {crit.totalQuestions} questões •{' '}
-                  {crit.totalPoints.toFixed(1)} pts)
-                </span>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
+                  {isExpanded ? (
+                    <ChevronUp className="w-4 h-4 text-primary" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-primary" />
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-sm">{crit.level}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {crit.items.length} conteúdos • {crit.totalQuestions} questões • {crit.totalPoints.toFixed(1)} pontos
+                  </span>
+                </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-destructive hover:text-destructive h-7 w-7 p-0"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeCriteria(critIdx);
