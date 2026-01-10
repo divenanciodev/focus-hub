@@ -441,14 +441,6 @@ export default function Concursos() {
                       )}
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">Progresso</span>
-                        <span className="font-medium text-foreground">0%</span>
-                      </div>
-                      <Progress value={0} className="h-2" />
-                    </div>
 
                     {/* Expandable Details */}
                     <Button
@@ -641,57 +633,92 @@ export default function Concursos() {
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredSimulados.map((simulado) => (
-                <div
-                  key={simulado.id}
-                  className="bg-card border border-border rounded-xl p-6 hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col h-full"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1 min-w-0 pr-4">
-                      <h3 className="font-semibold text-foreground">{simulado.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {simulado.discipline || 'Geral'}
-                      </p>
+              {filteredSimulados.map((simulado) => {
+                const progressPercent = simulado.status === 'completed' ? 100 : 0;
+                
+                return (
+                  <div
+                    key={simulado.id}
+                    className="bg-card border border-border rounded-xl p-4 hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0 pr-4">
+                        <h3 className="font-semibold text-foreground text-base">{simulado.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {simulado.discipline || 'Geral'}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          'text-xs px-2.5 py-1 rounded-full font-medium shrink-0',
+                          simulado.status === 'completed'
+                            ? 'bg-success/10 text-success'
+                            : 'bg-primary/10 text-primary'
+                        )}
+                      >
+                        {simulado.status === 'completed' ? 'Concluído' : 'Pendente'}
+                      </span>
+                    </div>
+
+                    {/* Info badges */}
+                    <div className="flex flex-wrap gap-2 mb-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <FileQuestion className="w-4 h-4 shrink-0" />
+                        <span>{simulado.questions.length} questões</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 shrink-0" />
+                        <span>{simulado.timeMinutes} min</span>
+                      </div>
+                    </div>
+
+                    {/* Difficulty and Score */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <span
+                        className={cn(
+                          'text-xs px-2 py-1 rounded',
+                          simulado.difficulty === 'easy' && 'bg-success/10 text-success',
+                          simulado.difficulty === 'medium' && 'bg-warning/10 text-warning',
+                          simulado.difficulty === 'hard' && 'bg-destructive/10 text-destructive'
+                        )}
+                      >
+                        {simulado.difficulty === 'easy'
+                          ? 'Fácil'
+                          : simulado.difficulty === 'medium'
+                            ? 'Médio'
+                            : 'Difícil'}
+                      </span>
+                      {simulado.status === 'completed' && simulado.score !== undefined && (
+                        <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
+                          Nota: {simulado.score}%
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-muted-foreground">Progresso</span>
+                        <span className="font-medium text-foreground">{progressPercent}%</span>
+                      </div>
+                      <Progress value={progressPercent} className="h-2" />
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="mt-auto pt-3 border-t border-border">
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => navigate(`/treinos/${simulado.id}`)}
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        {simulado.status === 'completed' ? 'Refazer simulado' : 'Resolver simulado'}
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                      {simulado.questions.length} questões
-                    </span>
-                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                      {simulado.timeMinutes} min
-                    </span>
-                    <span
-                      className={cn(
-                        'text-xs px-2 py-1 rounded',
-                        simulado.difficulty === 'easy' && 'bg-success/10 text-success',
-                        simulado.difficulty === 'medium' && 'bg-warning/10 text-warning',
-                        simulado.difficulty === 'hard' && 'bg-destructive/10 text-destructive'
-                      )}
-                    >
-                      {simulado.difficulty === 'easy'
-                        ? 'Fácil'
-                        : simulado.difficulty === 'medium'
-                          ? 'Médio'
-                          : 'Difícil'}
-                    </span>
-                  </div>
-
-                  <div className="flex-1" />
-
-                  <div className="pt-4 border-t border-border">
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      onClick={() => navigate(`/treinos/${simulado.id}`)}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Resolver simulado
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </TabsContent>
