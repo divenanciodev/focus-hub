@@ -4,20 +4,44 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, Trash2, ChevronDown, ChevronUp, Check, GripVertical } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Check, GripVertical, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SimuladoQuestion } from '@/types/training';
+import { EvaluationCriteria } from '@/hooks/useContests';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface CriteriaOption {
+  id: string;
+  name: string;
+  level: string;
+}
 
 interface SimuladoQuestionsEditorProps {
   questions: SimuladoQuestion[];
   onChange: (questions: SimuladoQuestion[]) => void;
+  evaluationCriteria?: EvaluationCriteria[];
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-export function SimuladoQuestionsEditor({ questions, onChange }: SimuladoQuestionsEditorProps) {
+export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteria = [] }: SimuladoQuestionsEditorProps) {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [pasteAlternatives, setPasteAlternatives] = useState<{ [key: string]: string }>({});
+
+  // Gera lista de opções de conteúdo a partir dos critérios de avaliação
+  const criteriaOptions: CriteriaOption[] = evaluationCriteria.flatMap((criteria) =>
+    criteria.items.map((item) => ({
+      id: item.id,
+      name: item.content,
+      level: criteria.level,
+    }))
+  );
 
   const toggleExpanded = (id: string) => {
     setExpandedQuestions((prev) => {
@@ -146,6 +170,11 @@ export function SimuladoQuestionsEditor({ questions, onChange }: SimuladoQuestio
                 <span className="text-sm text-muted-foreground flex-1 truncate">
                   {question.text || '(Sem enunciado)'}
                 </span>
+                {question.criteriaName && (
+                  <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded shrink-0 max-w-[120px] truncate" title={question.criteriaName}>
+                    {question.criteriaName}
+                  </span>
+                )}
                 {question.options && question.options[(question.correctAnswer as number)]?.trim() && (
                   <span className="text-xs px-2 py-0.5 bg-success/10 text-success rounded shrink-0">
                     Gabarito: {getOptionLabel(question.correctAnswer as number)}
@@ -182,6 +211,50 @@ export function SimuladoQuestionsEditor({ questions, onChange }: SimuladoQuestio
                       className="resize-none min-h-[100px] text-sm"
                     />
                   </div>
+
+                  {/* Criteria/Content Selector */}
+                  {criteriaOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-muted-foreground" />
+                        <Label className="text-xs">Conteúdo associado</Label>
+                      </div>
+                      <Select
+                        value={question.criteriaId || ''}
+                        onValueChange={(value) => {
+                          const selectedCriteria = criteriaOptions.find((c) => c.id === value);
+                          updateQuestion(question.id, {
+                            criteriaId: value || undefined,
+                            criteriaName: selectedCriteria?.name || undefined,
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Selecione o conteúdo relacionado..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Group by level */}
+                          {evaluationCriteria.map((criteria) => (
+                            <div key={criteria.level}>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50">
+                                {criteria.level}
+                              </div>
+                              {criteria.items.map((item) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  {item.content}
+                                </SelectItem>
+                              ))}
+                            </div>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {question.criteriaName && (
+                        <p className="text-xs text-muted-foreground">
+                          Selecionado: <span className="font-medium text-foreground">{question.criteriaName}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Paste Alternatives */}
                   <div className="space-y-2 p-3 bg-muted/30 rounded-lg">

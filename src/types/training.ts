@@ -132,6 +132,8 @@ export interface SimuladoQuestion {
   correctAnswer: string | number;
   userAnswer?: string | number;
   isCorrect?: boolean;
+  criteriaId?: string; // ID do conteúdo/critério de avaliação associado
+  criteriaName?: string; // Nome do conteúdo para exibição
 }
 
 export interface Simulado {

@@ -919,6 +919,7 @@ export default function Concursos() {
                 <SimuladoQuestionsEditor
                   questions={newContest.simuladoQuestions}
                   onChange={(simuladoQuestions) => setNewContest({ ...newContest, simuladoQuestions })}
+                  evaluationCriteria={newContest.evaluationCriteria}
                 />
               </div>
             )}
