@@ -4,9 +4,13 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useContests, Contest } from '@/hooks/useContests';
+import { useContests, Contest, ContestMateria } from '@/hooks/useContests';
 import { useSimulados } from '@/hooks/useSimulados';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ContestMateriasEditor } from '@/components/concursos/ContestMateriasEditor';
 import {
   Plus,
   Calendar,
@@ -18,6 +22,10 @@ import {
   Trash2,
   Loader2,
   FileQuestion,
+  ExternalLink,
+  FileText,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   Dialog,
@@ -38,6 +46,46 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { EmptyState } from '@/components/ui/empty-state';
 
+interface NewContestForm {
+  name: string;
+  position: string;
+  institution: string;
+  examDate: string;
+  isPreparingOnly: boolean;
+  bancaUrl: string;
+  editalUrl: string;
+  situacao: string;
+  cargos: string;
+  escolaridade: string;
+  carreiras: string;
+  lotacao: string;
+  vagas: string;
+  remuneracao: string;
+  inscricoesPeriodo: string;
+  taxaInscricao: string;
+  materias: ContestMateria[];
+}
+
+const INITIAL_FORM: NewContestForm = {
+  name: '',
+  position: '',
+  institution: '',
+  examDate: '',
+  isPreparingOnly: false,
+  bancaUrl: '',
+  editalUrl: '',
+  situacao: '',
+  cargos: '',
+  escolaridade: '',
+  carreiras: '',
+  lotacao: '',
+  vagas: '',
+  remuneracao: '',
+  inscricoesPeriodo: '',
+  taxaInscricao: '',
+  materias: [],
+};
+
 export default function Concursos() {
   const navigate = useNavigate();
   const { contests, loading, addContest, updateContest, deleteContest } = useContests();
@@ -46,39 +94,64 @@ export default function Concursos() {
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   // Form state
-  const [newContest, setNewContest] = useState({
-    name: '',
-    position: '',
-    institution: '',
-    examDate: '',
-  });
+  const [newContest, setNewContest] = useState<NewContestForm>(INITIAL_FORM);
+
+  const toggleCardExpanded = (id: string) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const handleCreateContest = async () => {
-    if (newContest.name && newContest.position && newContest.examDate) {
-      if (editingContest) {
-        await updateContest(editingContest.id, {
-          name: newContest.name,
-          position: newContest.position,
-          institution: newContest.institution,
-          examDate: new Date(newContest.examDate),
-        });
-        toast.success('Concurso atualizado!');
-      } else {
-        await addContest({
-          name: newContest.name,
-          position: newContest.position,
-          institution: newContest.institution,
-          examDate: new Date(newContest.examDate),
-          status: 'active',
-        });
-        toast.success('Concurso criado!');
-      }
-      setNewContest({ name: '', position: '', institution: '', examDate: '' });
-      setEditingContest(null);
-      setIsCreateModalOpen(false);
+    if (!newContest.name || !newContest.position) {
+      toast.error('Preencha nome e cargo');
+      return;
     }
+
+    if (!newContest.isPreparingOnly && !newContest.examDate) {
+      toast.error('Informe a data da prova ou marque como "preparação"');
+      return;
+    }
+
+    const contestData = {
+      name: newContest.name,
+      position: newContest.position,
+      institution: newContest.institution,
+      examDate: newContest.examDate ? new Date(newContest.examDate) : null,
+      status: 'active' as const,
+      isPreparingOnly: newContest.isPreparingOnly,
+      bancaUrl: newContest.bancaUrl || undefined,
+      editalUrl: newContest.editalUrl || undefined,
+      situacao: newContest.situacao || undefined,
+      cargos: newContest.cargos || undefined,
+      escolaridade: newContest.escolaridade || undefined,
+      carreiras: newContest.carreiras || undefined,
+      lotacao: newContest.lotacao || undefined,
+      vagas: newContest.vagas || undefined,
+      remuneracao: newContest.remuneracao || undefined,
+      inscricoesPeriodo: newContest.inscricoesPeriodo || undefined,
+      taxaInscricao: newContest.taxaInscricao || undefined,
+      materias: newContest.materias,
+    };
+
+    if (editingContest) {
+      await updateContest(editingContest.id, contestData);
+    } else {
+      await addContest(contestData);
+    }
+
+    setNewContest(INITIAL_FORM);
+    setEditingContest(null);
+    setIsCreateModalOpen(false);
   };
 
   const handleEditContest = (contest: Contest) => {
@@ -88,25 +161,38 @@ export default function Concursos() {
       position: contest.position || '',
       institution: contest.institution || '',
       examDate: contest.examDate ? contest.examDate.toISOString().split('T')[0] : '',
+      isPreparingOnly: contest.isPreparingOnly,
+      bancaUrl: contest.bancaUrl || '',
+      editalUrl: contest.editalUrl || '',
+      situacao: contest.situacao || '',
+      cargos: contest.cargos || '',
+      escolaridade: contest.escolaridade || '',
+      carreiras: contest.carreiras || '',
+      lotacao: contest.lotacao || '',
+      vagas: contest.vagas || '',
+      remuneracao: contest.remuneracao || '',
+      inscricoesPeriodo: contest.inscricoesPeriodo || '',
+      taxaInscricao: contest.taxaInscricao || '',
+      materias: contest.materias || [],
     });
     setIsCreateModalOpen(true);
   };
 
   const handleDeleteContest = async (contestId: string) => {
     await deleteContest(contestId);
-    toast.success('Concurso excluído!');
   };
 
   const handleCloseModal = () => {
     setIsCreateModalOpen(false);
     setEditingContest(null);
-    setNewContest({ name: '', position: '', institution: '', examDate: '' });
+    setNewContest(INITIAL_FORM);
   };
 
   // Filter simulados based on search and difficulty
   const filteredSimulados = simulados.filter((s) => {
-    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (s.discipline?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesSearch =
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.discipline?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesDifficulty = difficultyFilter === 'all' || s.difficulty === difficultyFilter;
     return matchesSearch && matchesDifficulty;
   });
@@ -119,7 +205,8 @@ export default function Concursos() {
     });
   };
 
-  const getDaysUntil = (date: Date) => {
+  const getDaysUntil = (date: Date | null) => {
+    if (!date) return null;
     const now = new Date();
     const diff = new Date(date).getTime() - now.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
@@ -135,10 +222,7 @@ export default function Concursos() {
 
   return (
     <div className="fade-in">
-      <PageHeader
-        title="Concursos"
-        description="Gerencie seus concursos e acesse simulados"
-      />
+      <PageHeader title="Concursos" description="Gerencie seus concursos e acesse simulados" />
 
       <Tabs defaultValue="meus" className="w-full">
         <TabsList className="mb-6">
@@ -163,44 +247,87 @@ export default function Concursos() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {contests.map((contest) => {
-                const daysUntil = contest.examDate ? getDaysUntil(contest.examDate) : 0;
-                const isPast = daysUntil < 0;
+                const daysUntil = getDaysUntil(contest.examDate);
+                const isPast = daysUntil !== null && daysUntil < 0;
+                const isExpanded = expandedCards.has(contest.id);
 
                 return (
                   <div
                     key={contest.id}
-                    className="bg-card border border-border rounded-xl p-6 hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col h-full"
+                    className="bg-card border border-border rounded-xl p-4 hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
                   >
-                    <div className="flex items-start justify-between mb-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0 pr-4">
-                        <h3 className="font-semibold text-foreground text-lg">{contest.name}</h3>
+                        <h3 className="font-semibold text-foreground text-base">{contest.name}</h3>
                         <p className="text-sm text-muted-foreground">{contest.position}</p>
                       </div>
-                      <span className={cn(
-                        'text-xs px-2.5 py-1 rounded-full font-medium shrink-0',
-                        isPast
-                          ? 'bg-muted text-muted-foreground'
-                          : daysUntil <= 30
-                            ? 'bg-warning/10 text-warning'
-                            : 'bg-success/10 text-success'
-                      )}>
-                        {isPast ? 'Realizado' : `${daysUntil} dias`}
+                      <span
+                        className={cn(
+                          'text-xs px-2.5 py-1 rounded-full font-medium shrink-0',
+                          contest.isPreparingOnly
+                            ? 'bg-primary/10 text-primary'
+                            : isPast
+                              ? 'bg-muted text-muted-foreground'
+                              : daysUntil !== null && daysUntil <= 30
+                                ? 'bg-warning/10 text-warning'
+                                : 'bg-success/10 text-success'
+                        )}
+                      >
+                        {contest.isPreparingOnly
+                          ? 'Preparação'
+                          : isPast
+                            ? 'Realizado'
+                            : `${daysUntil} dias`}
                       </span>
                     </div>
 
-                    <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                    {/* Basic Info */}
+                    <div className="space-y-1.5 text-sm text-muted-foreground mb-3">
                       <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 shrink-0" />
                         <span className="truncate">{contest.institution || 'Não informado'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 shrink-0" />
-                        <span>{contest.examDate ? formatDate(contest.examDate) : 'Não informado'}</span>
+                        <span>
+                          {contest.isPreparingOnly
+                            ? 'Preparando para área'
+                            : contest.examDate
+                              ? formatDate(contest.examDate)
+                              : 'Não informado'}
+                        </span>
                       </div>
+                      {contest.bancaUrl && (
+                        <div className="flex items-center gap-2">
+                          <ExternalLink className="w-4 h-4 shrink-0" />
+                          <a
+                            href={contest.bancaUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline truncate"
+                          >
+                            Banca Organizadora
+                          </a>
+                        </div>
+                      )}
+                      {contest.editalUrl && (
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 shrink-0" />
+                          <a
+                            href={contest.editalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline truncate"
+                          >
+                            Ver Edital
+                          </a>
+                        </div>
+                      )}
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="mb-4">
+                    <div className="mb-3">
                       <div className="flex items-center justify-between text-sm mb-1">
                         <span className="text-muted-foreground">Progresso</span>
                         <span className="font-medium text-foreground">0%</span>
@@ -208,33 +335,132 @@ export default function Concursos() {
                       <Progress value={0} className="h-2" />
                     </div>
 
-                    {/* Spacer to push buttons to bottom */}
-                    <div className="flex-1" />
+                    {/* Expandable Details */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-between mb-2"
+                      onClick={() => toggleCardExpanded(contest.id)}
+                    >
+                      <span className="text-xs">
+                        {isExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
+                        {contest.materias.length > 0 && ` (${contest.materias.length} matérias)`}
+                      </span>
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </Button>
 
-                    {/* Action Buttons - Fixed at bottom */}
-                    <div className="pt-4 border-t border-border flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    {isExpanded && (
+                      <div className="space-y-2 text-xs text-muted-foreground border-t border-border pt-3 mb-3">
+                        {contest.situacao && (
+                          <div className="flex justify-between">
+                            <span>Situação:</span>
+                            <span className="text-foreground font-medium">{contest.situacao}</span>
+                          </div>
+                        )}
+                        {contest.cargos && (
+                          <div className="flex justify-between">
+                            <span>Cargos:</span>
+                            <span className="text-foreground">{contest.cargos}</span>
+                          </div>
+                        )}
+                        {contest.escolaridade && (
+                          <div className="flex justify-between">
+                            <span>Escolaridade:</span>
+                            <span className="text-foreground">{contest.escolaridade}</span>
+                          </div>
+                        )}
+                        {contest.carreiras && (
+                          <div className="flex justify-between">
+                            <span>Carreiras:</span>
+                            <span className="text-foreground">{contest.carreiras}</span>
+                          </div>
+                        )}
+                        {contest.lotacao && (
+                          <div className="flex justify-between">
+                            <span>Lotação:</span>
+                            <span className="text-foreground">{contest.lotacao}</span>
+                          </div>
+                        )}
+                        {contest.vagas && (
+                          <div className="flex justify-between">
+                            <span>Vagas:</span>
+                            <span className="text-foreground">{contest.vagas}</span>
+                          </div>
+                        )}
+                        {contest.remuneracao && (
+                          <div className="flex justify-between">
+                            <span>Remuneração:</span>
+                            <span className="text-foreground">{contest.remuneracao}</span>
+                          </div>
+                        )}
+                        {contest.inscricoesPeriodo && (
+                          <div className="flex justify-between">
+                            <span>Inscrições:</span>
+                            <span className="text-foreground">{contest.inscricoesPeriodo}</span>
+                          </div>
+                        )}
+                        {contest.taxaInscricao && (
+                          <div className="flex justify-between">
+                            <span>Taxa:</span>
+                            <span className="text-foreground">{contest.taxaInscricao}</span>
+                          </div>
+                        )}
+
+                        {/* Materias display */}
+                        {contest.materias.length > 0 && (
+                          <div className="pt-2 border-t border-border">
+                            <span className="font-medium text-foreground">Conteúdo Programático:</span>
+                            <div className="mt-2 space-y-2">
+                              {contest.materias.map((materia, idx) => (
+                                <div key={idx} className="pl-2 border-l-2 border-primary/30">
+                                  <span className="font-medium text-foreground">{materia.name}</span>
+                                  {materia.topics.length > 0 && (
+                                    <ul className="ml-3 mt-1 space-y-0.5">
+                                      {materia.topics.map((topic, tIdx) => (
+                                        <li key={tIdx}>
+                                          <span className="text-muted-foreground">• {topic.name}</span>
+                                          {topic.subtopics.length > 0 && (
+                                            <ul className="ml-4">
+                                              {topic.subtopics.map((sub, sIdx) => (
+                                                <li key={sIdx} className="text-muted-foreground/70">
+                                                  - {sub}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          )}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="mt-auto pt-3 border-t border-border flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="flex-none"
                         onClick={() => handleEditContest(contest)}
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="flex-none text-destructive hover:text-destructive"
                         onClick={() => handleDeleteContest(contest.id)}
                       >
                         <Trash2 className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
-                        Cronograma
-                      </Button>
-                      <Button size="sm" className="flex-1" onClick={() => navigate('/treinos')}>
-                        <Target className="w-4 h-4 mr-1" />
-                        Treinos
                       </Button>
                     </div>
                   </div>
@@ -291,7 +517,9 @@ export default function Concursos() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1 min-w-0 pr-4">
                       <h3 className="font-semibold text-foreground">{simulado.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">{simulado.discipline || 'Geral'}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {simulado.discipline || 'Geral'}
+                      </p>
                     </div>
                   </div>
 
@@ -302,20 +530,30 @@ export default function Concursos() {
                     <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
                       {simulado.timeMinutes} min
                     </span>
-                    <span className={cn(
-                      'text-xs px-2 py-1 rounded',
-                      simulado.difficulty === 'easy' && 'bg-success/10 text-success',
-                      simulado.difficulty === 'medium' && 'bg-warning/10 text-warning',
-                      simulado.difficulty === 'hard' && 'bg-destructive/10 text-destructive'
-                    )}>
-                      {simulado.difficulty === 'easy' ? 'Fácil' : simulado.difficulty === 'medium' ? 'Médio' : 'Difícil'}
+                    <span
+                      className={cn(
+                        'text-xs px-2 py-1 rounded',
+                        simulado.difficulty === 'easy' && 'bg-success/10 text-success',
+                        simulado.difficulty === 'medium' && 'bg-warning/10 text-warning',
+                        simulado.difficulty === 'hard' && 'bg-destructive/10 text-destructive'
+                      )}
+                    >
+                      {simulado.difficulty === 'easy'
+                        ? 'Fácil'
+                        : simulado.difficulty === 'medium'
+                          ? 'Médio'
+                          : 'Difícil'}
                     </span>
                   </div>
 
                   <div className="flex-1" />
 
                   <div className="pt-4 border-t border-border">
-                    <Button size="sm" className="w-full" onClick={() => navigate(`/treinos/${simulado.id}`)}>
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={() => navigate(`/treinos/${simulado.id}`)}
+                    >
                       <Play className="w-4 h-4 mr-2" />
                       Resolver simulado
                     </Button>
@@ -329,51 +567,190 @@ export default function Concursos() {
 
       {/* Create/Edit Contest Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={handleCloseModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{editingContest ? 'Editar Concurso' : 'Novo Concurso'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome do concurso</Label>
-              <Input
-                value={newContest.name}
-                onChange={(e) => setNewContest({ ...newContest, name: e.target.value })}
-                placeholder="Ex: Concurso TRT-SP"
+          <ScrollArea className="max-h-[70vh] pr-4">
+            <div className="space-y-4 pb-4">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nome do concurso *</Label>
+                  <Input
+                    value={newContest.name}
+                    onChange={(e) => setNewContest({ ...newContest, name: e.target.value })}
+                    placeholder="Ex: Concurso TRT-SP"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cargo *</Label>
+                  <Input
+                    value={newContest.position}
+                    onChange={(e) => setNewContest({ ...newContest, position: e.target.value })}
+                    placeholder="Ex: Analista Judiciário"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Instituição</Label>
+                  <Input
+                    value={newContest.institution}
+                    onChange={(e) => setNewContest({ ...newContest, institution: e.target.value })}
+                    placeholder="Ex: TRT"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Situação atual</Label>
+                  <Input
+                    value={newContest.situacao}
+                    onChange={(e) => setNewContest({ ...newContest, situacao: e.target.value })}
+                    placeholder="Ex: Edital publicado"
+                  />
+                </div>
+              </div>
+
+              {/* Date options */}
+              <div className="space-y-3 p-3 border border-border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Apenas preparação para área</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Marque se não tem data específica de prova
+                    </p>
+                  </div>
+                  <Switch
+                    checked={newContest.isPreparingOnly}
+                    onCheckedChange={(checked) =>
+                      setNewContest({ ...newContest, isPreparingOnly: checked, examDate: checked ? '' : newContest.examDate })
+                    }
+                  />
+                </div>
+                {!newContest.isPreparingOnly && (
+                  <div className="space-y-2">
+                    <Label>Data da prova</Label>
+                    <Input
+                      type="date"
+                      value={newContest.examDate}
+                      onChange={(e) => setNewContest({ ...newContest, examDate: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Links */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Link da Banca Organizadora</Label>
+                  <Input
+                    value={newContest.bancaUrl}
+                    onChange={(e) => setNewContest({ ...newContest, bancaUrl: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Link do Edital (PDF)</Label>
+                  <Input
+                    value={newContest.editalUrl}
+                    onChange={(e) => setNewContest({ ...newContest, editalUrl: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cargos</Label>
+                  <Input
+                    value={newContest.cargos}
+                    onChange={(e) => setNewContest({ ...newContest, cargos: e.target.value })}
+                    placeholder="Ex: Diversos"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Escolaridade</Label>
+                  <Input
+                    value={newContest.escolaridade}
+                    onChange={(e) => setNewContest({ ...newContest, escolaridade: e.target.value })}
+                    placeholder="Ex: Nível médio e superior"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Carreiras</Label>
+                  <Input
+                    value={newContest.carreiras}
+                    onChange={(e) => setNewContest({ ...newContest, carreiras: e.target.value })}
+                    placeholder="Ex: Administrativa, fiscal, TI"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Lotação</Label>
+                  <Input
+                    value={newContest.lotacao}
+                    onChange={(e) => setNewContest({ ...newContest, lotacao: e.target.value })}
+                    placeholder="Ex: Maranhão"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Número de vagas</Label>
+                  <Input
+                    value={newContest.vagas}
+                    onChange={(e) => setNewContest({ ...newContest, vagas: e.target.value })}
+                    placeholder="Ex: 45 + 21 CR"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Remuneração</Label>
+                  <Input
+                    value={newContest.remuneracao}
+                    onChange={(e) => setNewContest({ ...newContest, remuneracao: e.target.value })}
+                    placeholder="Ex: R$ 1.518,00 a R$ 6.918,00"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Período de inscrições</Label>
+                  <Input
+                    value={newContest.inscricoesPeriodo}
+                    onChange={(e) =>
+                      setNewContest({ ...newContest, inscricoesPeriodo: e.target.value })
+                    }
+                    placeholder="Ex: 05/12/2025 a 05/01/2026"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Taxa de inscrição</Label>
+                  <Input
+                    value={newContest.taxaInscricao}
+                    onChange={(e) => setNewContest({ ...newContest, taxaInscricao: e.target.value })}
+                    placeholder="Ex: R$ 105,00 a R$ 130,00"
+                  />
+                </div>
+              </div>
+
+              {/* Materias Editor */}
+              <ContestMateriasEditor
+                materias={newContest.materias}
+                onChange={(materias) => setNewContest({ ...newContest, materias })}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Cargo</Label>
-              <Input
-                value={newContest.position}
-                onChange={(e) => setNewContest({ ...newContest, position: e.target.value })}
-                placeholder="Ex: Analista Judiciário"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Instituição</Label>
-              <Input
-                value={newContest.institution}
-                onChange={(e) => setNewContest({ ...newContest, institution: e.target.value })}
-                placeholder="Ex: TRT"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Data da prova</Label>
-              <Input
-                type="date"
-                value={newContest.examDate}
-                onChange={(e) => setNewContest({ ...newContest, examDate: e.target.value })}
-              />
-            </div>
-          </div>
+          </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseModal}>
               Cancelar
             </Button>
-            <Button onClick={handleCreateContest}>
-              {editingContest ? 'Salvar' : 'Criar'}
-            </Button>
+            <Button onClick={handleCreateContest}>{editingContest ? 'Salvar' : 'Criar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -16,37 +16,76 @@ export type Database = {
     Tables: {
       contests: {
         Row: {
+          banca_url: string | null
+          cargos: string | null
+          carreiras: string | null
           created_at: string | null
+          edital_url: string | null
+          escolaridade: string | null
           exam_date: string | null
           id: string
+          inscricoes_periodo: string | null
           institution: string | null
+          is_preparing_only: boolean | null
+          lotacao: string | null
+          materias: Json | null
           name: string
           position: string | null
+          remuneracao: string | null
+          situacao: string | null
           status: string | null
+          taxa_inscricao: string | null
           updated_at: string | null
           user_id: string | null
+          vagas: string | null
         }
         Insert: {
+          banca_url?: string | null
+          cargos?: string | null
+          carreiras?: string | null
           created_at?: string | null
+          edital_url?: string | null
+          escolaridade?: string | null
           exam_date?: string | null
           id?: string
+          inscricoes_periodo?: string | null
           institution?: string | null
+          is_preparing_only?: boolean | null
+          lotacao?: string | null
+          materias?: Json | null
           name: string
           position?: string | null
+          remuneracao?: string | null
+          situacao?: string | null
           status?: string | null
+          taxa_inscricao?: string | null
           updated_at?: string | null
           user_id?: string | null
+          vagas?: string | null
         }
         Update: {
+          banca_url?: string | null
+          cargos?: string | null
+          carreiras?: string | null
           created_at?: string | null
+          edital_url?: string | null
+          escolaridade?: string | null
           exam_date?: string | null
           id?: string
+          inscricoes_periodo?: string | null
           institution?: string | null
+          is_preparing_only?: boolean | null
+          lotacao?: string | null
+          materias?: Json | null
           name?: string
           position?: string | null
+          remuneracao?: string | null
+          situacao?: string | null
           status?: string | null
+          taxa_inscricao?: string | null
           updated_at?: string | null
           user_id?: string | null
+          vagas?: string | null
         }
         Relationships: []
       }
