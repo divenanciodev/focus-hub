@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
-import { Objective, ObjectiveStep } from '@/types';
+import { useObjectives, Objective } from '@/hooks/useObjectives';
 import {
   Plus,
   Target,
@@ -14,6 +14,7 @@ import {
   Trash2,
   DollarSign,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import {
   Dialog,
@@ -35,42 +36,8 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
-const mockObjectives: Objective[] = [
-  {
-    id: '1',
-    title: 'Cortar o cabelo',
-    description: 'Ir ao barbeiro próximo de casa',
-    requiresMoney: true,
-    estimatedCost: 50,
-    priority: 'medium',
-    status: 'pending',
-    steps: [
-      { id: '1-1', title: 'Pesquisar barbeiros na região', completed: true },
-      { id: '1-2', title: 'Agendar horário', completed: false },
-      { id: '1-3', title: 'Ir ao barbeiro', completed: false },
-    ],
-    createdAt: new Date(),
-  },
-  {
-    id: '2',
-    title: 'Arrancar dente do siso',
-    description: 'Procedimento odontológico necessário',
-    requiresMoney: true,
-    estimatedCost: 800,
-    priority: 'high',
-    status: 'in_progress',
-    steps: [
-      { id: '2-1', title: 'Marcar consulta de avaliação', completed: true },
-      { id: '2-2', title: 'Fazer raio-x', completed: true },
-      { id: '2-3', title: 'Agendar cirurgia', completed: false },
-      { id: '2-4', title: 'Realizar extração', completed: false },
-    ],
-    createdAt: new Date(),
-  },
-];
-
 export default function Objetivos() {
-  const [objectives, setObjectives] = useState<Objective[]>(mockObjectives);
+  const { objectives, loading, addObjective, updateObjective, deleteObjective } = useObjectives();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [expandedObjective, setExpandedObjective] = useState<string | null>(null);
 
@@ -83,16 +50,15 @@ export default function Objetivos() {
     priority: 'medium' as 'low' | 'medium' | 'high',
   });
 
-  const handleCreateObjective = () => {
+  const handleCreateObjective = async () => {
     if (newObjective.title) {
-      const objective: Objective = {
-        id: Date.now().toString(),
+      await addObjective({
         title: newObjective.title,
         description: newObjective.description,
+        priority: newObjective.priority,
         status: 'pending',
         requiresMoney: newObjective.requiresMoney,
         estimatedCost: newObjective.requiresMoney ? parseFloat(newObjective.estimatedCost) || 0 : undefined,
-        priority: newObjective.priority,
         steps: newObjective.steps
           .filter((s) => s.trim())
           .map((s, i) => ({
@@ -100,9 +66,7 @@ export default function Objetivos() {
             title: s,
             completed: false,
           })),
-        createdAt: new Date(),
-      };
-      setObjectives([objective, ...objectives]);
+      });
       setNewObjective({
         title: '',
         description: '',
@@ -115,28 +79,21 @@ export default function Objetivos() {
     }
   };
 
-  const toggleStep = (objectiveId: string, stepId: string) => {
-    setObjectives(
-      objectives.map((o) => {
-        if (o.id === objectiveId) {
-          const updatedSteps = o.steps.map((s) =>
-            s.id === stepId ? { ...s, completed: !s.completed } : s
-          );
-          const allCompleted = updatedSteps.length > 0 && updatedSteps.every((s) => s.completed);
-          const someCompleted = updatedSteps.some((s) => s.completed);
-          return {
-            ...o,
-            steps: updatedSteps,
-            status: allCompleted ? 'completed' : someCompleted ? 'in_progress' : 'pending',
-          };
-        }
-        return o;
-      })
+  const toggleStep = async (objective: Objective, stepId: string) => {
+    const updatedSteps = objective.steps.map((s) =>
+      s.id === stepId ? { ...s, completed: !s.completed } : s
     );
+    const allCompleted = updatedSteps.length > 0 && updatedSteps.every((s) => s.completed);
+    const someCompleted = updatedSteps.some((s) => s.completed);
+    
+    await updateObjective(objective.id, {
+      steps: updatedSteps,
+      status: allCompleted ? 'completed' : someCompleted ? 'in_progress' : 'pending',
+    });
   };
 
-  const deleteObjective = (objectiveId: string) => {
-    setObjectives(objectives.filter((o) => o.id !== objectiveId));
+  const handleDeleteObjective = async (objectiveId: string) => {
+    await deleteObjective(objectiveId);
   };
 
   const addStepField = () => {
@@ -206,6 +163,14 @@ export default function Objetivos() {
       currency: 'BRL',
     }).format(value);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">
@@ -330,7 +295,7 @@ export default function Objetivos() {
                           {objective.steps.map((step) => (
                             <div
                               key={step.id}
-                              onClick={() => toggleStep(objective.id, step.id)}
+                              onClick={() => toggleStep(objective, step.id)}
                               className={cn(
                                 'flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors',
                                 step.completed
@@ -362,7 +327,7 @@ export default function Objetivos() {
                 {/* Actions */}
                 <div className="border-t border-border p-3 flex justify-end">
                   <button
-                    onClick={() => deleteObjective(objective.id)}
+                    onClick={() => handleDeleteObjective(objective.id)}
                     className="text-muted-foreground hover:text-destructive transition-colors p-2 rounded-lg hover:bg-destructive/10"
                   >
                     <Trash2 className="w-4 h-4" />

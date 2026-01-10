@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,13 @@ import {
   ChevronLeft,
   FolderPlus,
   Link as LinkIcon,
+  Loader2,
 } from 'lucide-react';
-import { BankFolder, BankSubfolder, BankLink } from '@/types/linkBank';
+import { useLinkBank, BankFolder, BankSubfolder, BankLink } from '@/hooks/useLinkBank';
+
+type LinkFolder = BankFolder;
+type LinkSubfolder = BankSubfolder;
+type Link = BankLink;
 import { FolderCard } from '@/components/banco/FolderCard';
 import { SubfolderCard } from '@/components/banco/SubfolderCard';
 import { LinkCard } from '@/components/banco/LinkCard';
@@ -19,12 +24,28 @@ import { CreateLinkModal } from '@/components/banco/CreateLinkModal';
 import { EmptyState } from '@/components/ui/empty-state';
 
 export default function Banco() {
-  const [folders, setFolders] = useState<BankFolder[]>([]);
+  const {
+    folders,
+    subfolders,
+    links,
+    loading,
+    addFolder,
+    updateFolder,
+    deleteFolder,
+    addSubfolder,
+    updateSubfolder,
+    deleteSubfolder,
+    addLink,
+    updateLink,
+    deleteLink,
+    refetch,
+  } = useLinkBank();
+
   const [searchTerm, setSearchTerm] = useState('');
   
   // Navigation state
-  const [currentFolder, setCurrentFolder] = useState<BankFolder | null>(null);
-  const [currentSubfolder, setCurrentSubfolder] = useState<BankSubfolder | null>(null);
+  const [currentFolder, setCurrentFolder] = useState<LinkFolder | null>(null);
+  const [currentSubfolder, setCurrentSubfolder] = useState<LinkSubfolder | null>(null);
 
   // Modal states
   const [folderModalOpen, setFolderModalOpen] = useState(false);
@@ -32,17 +53,31 @@ export default function Banco() {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   
   // Editing states
-  const [editingFolder, setEditingFolder] = useState<BankFolder | null>(null);
-  const [editingSubfolder, setEditingSubfolder] = useState<BankSubfolder | null>(null);
-  const [editingLink, setEditingLink] = useState<BankLink | null>(null);
+  const [editingFolder, setEditingFolder] = useState<LinkFolder | null>(null);
+  const [editingSubfolder, setEditingSubfolder] = useState<LinkSubfolder | null>(null);
+  const [editingLink, setEditingLink] = useState<Link | null>(null);
+
+  // Reload data when navigation changes
+  useEffect(() => {
+    refetch();
+  }, [currentFolder, currentSubfolder]);
+
+  // Filter subfolders and links based on current selection
+  const currentSubfolders = currentFolder 
+    ? subfolders.filter(sf => sf.folderId === currentFolder.id)
+    : [];
+  
+  const currentLinks = currentSubfolder 
+    ? links.filter(l => l.subfolderId === currentSubfolder.id)
+    : [];
 
   // Navigation
-  const navigateToFolder = (folder: BankFolder) => {
+  const navigateToFolder = (folder: LinkFolder) => {
     setCurrentFolder(folder);
     setCurrentSubfolder(null);
   };
 
-  const navigateToSubfolder = (subfolder: BankSubfolder) => {
+  const navigateToSubfolder = (subfolder: LinkSubfolder) => {
     setCurrentSubfolder(subfolder);
   };
 
@@ -55,183 +90,49 @@ export default function Banco() {
   };
 
   // Folder CRUD
-  const handleCreateFolder = (data: Omit<BankFolder, 'id' | 'subfolders' | 'createdAt'>) => {
+  const handleCreateFolder = async (data: { name: string; description?: string; color?: string }) => {
     if (editingFolder) {
-      setFolders(folders.map(f => 
-        f.id === editingFolder.id 
-          ? { ...f, ...data }
-          : f
-      ));
-      if (currentFolder?.id === editingFolder.id) {
-        setCurrentFolder({ ...currentFolder, ...data });
-      }
+      await updateFolder(editingFolder.id, data);
       setEditingFolder(null);
     } else {
-      const newFolder: BankFolder = {
-        id: crypto.randomUUID(),
-        ...data,
-        subfolders: [],
-        createdAt: new Date(),
-      };
-      setFolders([...folders, newFolder]);
+      await addFolder(data);
     }
   };
 
-  const handleDeleteFolder = (folderId: string) => {
-    setFolders(folders.filter(f => f.id !== folderId));
+  const handleDeleteFolder = async (folderId: string) => {
+    await deleteFolder(folderId);
   };
 
   // Subfolder CRUD
-  const handleCreateSubfolder = (data: Omit<BankSubfolder, 'id' | 'links' | 'createdAt'>) => {
+  const handleCreateSubfolder = async (data: { name: string; description?: string }) => {
     if (!currentFolder) return;
 
     if (editingSubfolder) {
-      const updatedFolders = folders.map(f => {
-        if (f.id === currentFolder.id) {
-          return {
-            ...f,
-            subfolders: f.subfolders.map(sf =>
-              sf.id === editingSubfolder.id ? { ...sf, ...data } : sf
-            ),
-          };
-        }
-        return f;
-      });
-      setFolders(updatedFolders);
-      
-      const updatedFolder = updatedFolders.find(f => f.id === currentFolder.id);
-      if (updatedFolder) setCurrentFolder(updatedFolder);
-      
-      if (currentSubfolder?.id === editingSubfolder.id) {
-        setCurrentSubfolder({ ...currentSubfolder, ...data });
-      }
+      await updateSubfolder(editingSubfolder.id, data);
       setEditingSubfolder(null);
     } else {
-      const newSubfolder: BankSubfolder = {
-        id: crypto.randomUUID(),
-        ...data,
-        links: [],
-        createdAt: new Date(),
-      };
-
-      const updatedFolders = folders.map(f => {
-        if (f.id === currentFolder.id) {
-          return { ...f, subfolders: [...f.subfolders, newSubfolder] };
-        }
-        return f;
-      });
-      setFolders(updatedFolders);
-      
-      const updatedFolder = updatedFolders.find(f => f.id === currentFolder.id);
-      if (updatedFolder) setCurrentFolder(updatedFolder);
+      await addSubfolder({ ...data, folderId: currentFolder.id });
     }
   };
 
-  const handleDeleteSubfolder = (subfolderId: string) => {
-    if (!currentFolder) return;
-    
-    const updatedFolders = folders.map(f => {
-      if (f.id === currentFolder.id) {
-        return { ...f, subfolders: f.subfolders.filter(sf => sf.id !== subfolderId) };
-      }
-      return f;
-    });
-    setFolders(updatedFolders);
-    
-    const updatedFolder = updatedFolders.find(f => f.id === currentFolder.id);
-    if (updatedFolder) setCurrentFolder(updatedFolder);
+  const handleDeleteSubfolder = async (subfolderId: string) => {
+    await deleteSubfolder(subfolderId);
   };
 
   // Link CRUD
-  const handleCreateLink = (data: Omit<BankLink, 'id' | 'createdAt'>) => {
-    if (!currentFolder || !currentSubfolder) return;
+  const handleCreateLink = async (data: { name: string; url: string; description?: string; imageUrl?: string }) => {
+    if (!currentSubfolder) return;
 
     if (editingLink) {
-      const updatedFolders = folders.map(f => {
-        if (f.id === currentFolder.id) {
-          return {
-            ...f,
-            subfolders: f.subfolders.map(sf => {
-              if (sf.id === currentSubfolder.id) {
-                return {
-                  ...sf,
-                  links: sf.links.map(l =>
-                    l.id === editingLink.id ? { ...l, ...data } : l
-                  ),
-                };
-              }
-              return sf;
-            }),
-          };
-        }
-        return f;
-      });
-      setFolders(updatedFolders);
-      
-      const updatedFolder = updatedFolders.find(f => f.id === currentFolder.id);
-      if (updatedFolder) {
-        setCurrentFolder(updatedFolder);
-        const updatedSubfolder = updatedFolder.subfolders.find(sf => sf.id === currentSubfolder.id);
-        if (updatedSubfolder) setCurrentSubfolder(updatedSubfolder);
-      }
+      await updateLink(editingLink.id, data);
       setEditingLink(null);
     } else {
-      const newLink: BankLink = {
-        id: crypto.randomUUID(),
-        ...data,
-        createdAt: new Date(),
-      };
-
-      const updatedFolders = folders.map(f => {
-        if (f.id === currentFolder.id) {
-          return {
-            ...f,
-            subfolders: f.subfolders.map(sf => {
-              if (sf.id === currentSubfolder.id) {
-                return { ...sf, links: [...sf.links, newLink] };
-              }
-              return sf;
-            }),
-          };
-        }
-        return f;
-      });
-      setFolders(updatedFolders);
-      
-      const updatedFolder = updatedFolders.find(f => f.id === currentFolder.id);
-      if (updatedFolder) {
-        setCurrentFolder(updatedFolder);
-        const updatedSubfolder = updatedFolder.subfolders.find(sf => sf.id === currentSubfolder.id);
-        if (updatedSubfolder) setCurrentSubfolder(updatedSubfolder);
-      }
+      await addLink({ ...data, subfolderId: currentSubfolder.id });
     }
   };
 
-  const handleDeleteLink = (linkId: string) => {
-    if (!currentFolder || !currentSubfolder) return;
-    
-    const updatedFolders = folders.map(f => {
-      if (f.id === currentFolder.id) {
-        return {
-          ...f,
-          subfolders: f.subfolders.map(sf => {
-            if (sf.id === currentSubfolder.id) {
-              return { ...sf, links: sf.links.filter(l => l.id !== linkId) };
-            }
-            return sf;
-          }),
-        };
-      }
-      return f;
-    });
-    setFolders(updatedFolders);
-    
-    const updatedFolder = updatedFolders.find(f => f.id === currentFolder.id);
-    if (updatedFolder) {
-      setCurrentFolder(updatedFolder);
-      const updatedSubfolder = updatedFolder.subfolders.find(sf => sf.id === currentSubfolder.id);
-      if (updatedSubfolder) setCurrentSubfolder(updatedSubfolder);
-    }
+  const handleDeleteLink = async (linkId: string) => {
+    await deleteLink(linkId);
   };
 
   // Filtering
@@ -244,18 +145,16 @@ export default function Banco() {
   };
 
   const getFilteredSubfolders = () => {
-    if (!currentFolder) return [];
-    if (!searchTerm) return currentFolder.subfolders;
-    return currentFolder.subfolders.filter(sf => 
+    if (!searchTerm) return currentSubfolders;
+    return currentSubfolders.filter(sf => 
       sf.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sf.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   };
 
   const getFilteredLinks = () => {
-    if (!currentSubfolder) return [];
-    if (!searchTerm) return currentSubfolder.links;
-    return currentSubfolder.links.filter(l => 
+    if (!searchTerm) return currentLinks;
+    return currentLinks.filter(l => 
       l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.url.toLowerCase().includes(searchTerm.toLowerCase())
@@ -269,6 +168,14 @@ export default function Banco() {
     if (currentSubfolder) parts.push(currentSubfolder.name);
     return parts;
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">
@@ -354,7 +261,14 @@ export default function Banco() {
               {getFilteredFolders().map((folder) => (
                 <FolderCard
                   key={folder.id}
-                  folder={folder}
+                  folder={{
+                    id: folder.id,
+                    name: folder.name,
+                    description: folder.description,
+                    color: folder.color,
+                    subfolders: [],
+                    createdAt: folder.createdAt,
+                  }}
                   onClick={() => navigateToFolder(folder)}
                   onEdit={() => { setEditingFolder(folder); setFolderModalOpen(true); }}
                   onDelete={() => handleDeleteFolder(folder.id)}
@@ -384,7 +298,13 @@ export default function Banco() {
               {getFilteredSubfolders().map((subfolder) => (
                 <SubfolderCard
                   key={subfolder.id}
-                  subfolder={subfolder}
+                  subfolder={{
+                    id: subfolder.id,
+                    name: subfolder.name,
+                    description: subfolder.description,
+                    links: [],
+                    createdAt: subfolder.createdAt,
+                  }}
                   onClick={() => navigateToSubfolder(subfolder)}
                   onEdit={() => { setEditingSubfolder(subfolder); setSubfolderModalOpen(true); }}
                   onDelete={() => handleDeleteSubfolder(subfolder.id)}
@@ -414,7 +334,14 @@ export default function Banco() {
               {getFilteredLinks().map((link) => (
                 <LinkCard
                   key={link.id}
-                  link={link}
+                  link={{
+                    id: link.id,
+                    name: link.name,
+                    url: link.url,
+                    description: link.description,
+                    imageUrl: link.imageUrl,
+                    createdAt: link.createdAt,
+                  }}
                   onEdit={() => { setEditingLink(link); setLinkModalOpen(true); }}
                   onDelete={() => handleDeleteLink(link.id)}
                 />
@@ -429,21 +356,41 @@ export default function Banco() {
         open={folderModalOpen}
         onOpenChange={setFolderModalOpen}
         onSubmit={handleCreateFolder}
-        editingFolder={editingFolder}
+        editingFolder={editingFolder ? {
+          id: editingFolder.id,
+          name: editingFolder.name,
+          description: editingFolder.description,
+          color: editingFolder.color,
+          subfolders: [],
+          createdAt: editingFolder.createdAt,
+        } : null}
       />
 
       <CreateSubfolderModal
         open={subfolderModalOpen}
         onOpenChange={setSubfolderModalOpen}
         onSubmit={handleCreateSubfolder}
-        editingSubfolder={editingSubfolder}
+        editingSubfolder={editingSubfolder ? {
+          id: editingSubfolder.id,
+          name: editingSubfolder.name,
+          description: editingSubfolder.description,
+          links: [],
+          createdAt: editingSubfolder.createdAt,
+        } : null}
       />
 
       <CreateLinkModal
         open={linkModalOpen}
         onOpenChange={setLinkModalOpen}
         onSubmit={handleCreateLink}
-        editingLink={editingLink}
+        editingLink={editingLink ? {
+          id: editingLink.id,
+          name: editingLink.name,
+          url: editingLink.url,
+          description: editingLink.description,
+          imageUrl: editingLink.imageUrl,
+          createdAt: editingLink.createdAt,
+        } : null}
       />
     </div>
   );

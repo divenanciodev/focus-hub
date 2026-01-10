@@ -4,7 +4,9 @@ import { StatCard } from '@/components/ui/stat-card';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { HabitsDashboardWidget } from '@/components/habits/HabitsDashboardWidget';
 import { TrainingMetricsDashboard } from '@/components/training/TrainingMetricsDashboard';
-import { mockDashboardStats, mockObjectives, mockDisciplines } from '@/data/mockData';
+import { useDisciplines } from '@/contexts/DisciplinesContext';
+import { useObjectives } from '@/hooks/useObjectives';
+import { useFinancial } from '@/hooks/useFinancial';
 import {
   Clock,
   TrendingUp,
@@ -15,32 +17,53 @@ import {
   AlertCircle,
   CheckCircle2,
   Calendar,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TrainingMetrics } from '@/types/training';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const stats = mockDashboardStats;
+  const { disciplines, loading: loadingDisciplines } = useDisciplines();
+  const { objectives, loading: loadingObjectives } = useObjectives();
+  const { piggyBanks, loading: loadingFinancial } = useFinancial();
 
-  const pendingObjectives = mockObjectives.filter(o => o.status !== 'completed');
-  const recentDisciplines = mockDisciplines.slice(0, 3);
+  const loading = loadingDisciplines || loadingObjectives || loadingFinancial;
 
-  // Mock training metrics for dashboard
+  // Calculate stats from real data
+  const totalHoursStudied = disciplines.reduce((acc, d) => acc + d.hoursStudied, 0);
+  const averageProgress = disciplines.length > 0 
+    ? Math.round(disciplines.reduce((acc, d) => acc + d.progress, 0) / disciplines.length) 
+    : 0;
+  const totalSaved = piggyBanks.reduce((acc, p) => acc + p.currentAmount, 0);
+  const totalTarget = piggyBanks.reduce((acc, p) => acc + p.targetAmount, 0);
+  const financialProgress = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
+  const pendingObjectives = objectives.filter(o => o.status !== 'completed');
+  const recentDisciplines = disciplines.slice(0, 3);
+
+  // Training metrics (will be updated when we integrate training hooks)
   const trainingMetrics: TrainingMetrics = {
-    totalTrainings: 12,
-    totalStudyTimeMinutes: 480,
+    totalTrainings: 0,
+    totalStudyTimeMinutes: Math.round(totalHoursStudied * 60),
     byType: {
-      'flashcards': 5,
-      'simulado': 4,
-      'activity': 1,
-      'mindmap': 1,
-      'summary': 1,
+      'flashcards': 0,
+      'simulado': 0,
+      'activity': 0,
+      'mindmap': 0,
+      'summary': 0,
       'handwriting': 0,
       'audio-explanation': 0,
     },
-    completedToday: 2,
+    completedToday: 0,
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">
@@ -52,34 +75,30 @@ export default function Dashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
-          title="Horas estudadas hoje"
-          value={`${stats.hoursToday}h`}
+          title="Horas estudadas"
+          value={`${totalHoursStudied.toFixed(1)}h`}
           icon={Clock}
-          trend="up"
-          trendValue="+0.5h"
           onClick={() => navigate('/estudos')}
         />
         <StatCard
           title="Progresso geral"
-          value={`${stats.generalProgress}%`}
+          value={`${averageProgress}%`}
           icon={TrendingUp}
-          trend="up"
-          trendValue="+3%"
           onClick={() => navigate('/estudos')}
         >
-          <ProgressBar value={stats.generalProgress} className="mt-3" />
+          <ProgressBar value={averageProgress} className="mt-3" />
         </StatCard>
         <StatCard
           title="Progresso financeiro"
-          value={`${stats.financialProgress}%`}
+          value={`${financialProgress}%`}
           icon={Wallet}
           onClick={() => navigate('/financeiro')}
         >
-          <ProgressBar value={stats.financialProgress} className="mt-3" />
+          <ProgressBar value={financialProgress} className="mt-3" />
         </StatCard>
         <StatCard
           title="Tarefas pendentes"
-          value={stats.pendingTasks}
+          value={pendingObjectives.length}
           icon={ListTodo}
           onClick={() => navigate('/objetivos')}
         />
@@ -98,26 +117,32 @@ export default function Dashboard() {
               Ver todas
             </Button>
           </div>
-          <div className="space-y-3">
-            {recentDisciplines.map((discipline) => (
-              <div
-                key={discipline.id}
-                onClick={() => navigate('/estudos')}
-                className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors"
-              >
-                <div className="flex-1">
-                  <p className="font-medium text-foreground text-sm">{discipline.name}</p>
-                  <p className="text-xs text-muted-foreground">{discipline.hoursStudied}h estudadas</p>
+          {recentDisciplines.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">
+              Nenhuma disciplina cadastrada ainda.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {recentDisciplines.map((discipline) => (
+                <div
+                  key={discipline.id}
+                  onClick={() => navigate('/estudos')}
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground text-sm">{discipline.name}</p>
+                    <p className="text-xs text-muted-foreground">{discipline.hoursStudied}h estudadas</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <ProgressBar value={discipline.progress} className="w-20" size="sm" />
+                    <span className="text-sm font-medium text-foreground w-10 text-right">
+                      {discipline.progress}%
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <ProgressBar value={discipline.progress} className="w-20" size="sm" />
-                  <span className="text-sm font-medium text-foreground w-10 text-right">
-                    {discipline.progress}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Pending Objectives */}
@@ -131,36 +156,42 @@ export default function Dashboard() {
               Ver todos
             </Button>
           </div>
-          <div className="space-y-3">
-            {pendingObjectives.slice(0, 3).map((objective) => {
-              const completedSteps = objective.steps.filter(s => s.completed).length;
-              const totalSteps = objective.steps.length;
-              const progress = (completedSteps / totalSteps) * 100;
+          {pendingObjectives.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">
+              Nenhum objetivo pendente.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {pendingObjectives.slice(0, 3).map((objective) => {
+                const completedSteps = objective.steps.filter(s => s.completed).length;
+                const totalSteps = objective.steps.length;
+                const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
 
-              return (
-                <div
-                  key={objective.id}
-                  onClick={() => navigate('/objetivos')}
-                  className="p-3 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors"
-                >
-                  <div className="flex items-start gap-2">
-                    {objective.status === 'in_progress' ? (
-                      <AlertCircle className="w-4 h-4 text-warning mt-0.5" />
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4 text-muted-foreground mt-0.5" />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground text-sm">{objective.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {completedSteps}/{totalSteps} etapas
-                      </p>
-                      <ProgressBar value={progress} className="mt-2" size="sm" />
+                return (
+                  <div
+                    key={objective.id}
+                    onClick={() => navigate('/objetivos')}
+                    className="p-3 rounded-lg bg-secondary/50 hover:bg-secondary cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-start gap-2">
+                      {objective.status === 'in_progress' ? (
+                        <AlertCircle className="w-4 h-4 text-warning mt-0.5" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-muted-foreground mt-0.5" />
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground text-sm">{objective.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {completedSteps}/{totalSteps} etapas
+                        </p>
+                        <ProgressBar value={progress} className="mt-2" size="sm" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
