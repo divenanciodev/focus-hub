@@ -77,11 +77,19 @@ export function ContestMateriasEditor({ materias, onChange }: ContestMateriasEdi
 
   const addSubtopic = (materiaIndex: number, topicIndex: number) => {
     const key = `${materiaIndex}-${topicIndex}`;
-    const subtopicName = newSubtopicNames[key]?.trim();
-    if (!subtopicName) return;
+    const rawValue = newSubtopicNames[key]?.trim();
+    if (!rawValue) return;
+    
+    // Suporta múltiplos subtópicos separados por quebra de linha
+    const subtopics = rawValue
+      .split(/[\n\r]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+    
+    if (subtopics.length === 0) return;
     
     const updated = [...materias];
-    updated[materiaIndex].topics[topicIndex].subtopics.push(subtopicName);
+    updated[materiaIndex].topics[topicIndex].subtopics.push(...subtopics);
     onChange(updated);
     setNewSubtopicNames((prev) => ({ ...prev, [key]: '' }));
   };
@@ -217,9 +225,9 @@ export function ContestMateriasEditor({ materias, onChange }: ContestMateriasEdi
                         </div>
                       ))}
 
-                      {/* Add subtopic */}
+                      {/* Add subtopic - suporta colar múltiplos */}
                       <div className="flex gap-1 mt-1">
-                        <Input
+                        <textarea
                           value={newSubtopicNames[`${materiaIndex}-${topicIndex}`] || ''}
                           onChange={(e) =>
                             setNewSubtopicNames((prev) => ({
@@ -227,17 +235,26 @@ export function ContestMateriasEditor({ materias, onChange }: ContestMateriasEdi
                               [`${materiaIndex}-${topicIndex}`]: e.target.value,
                             }))
                           }
-                          placeholder="Adicionar subtópico..."
-                          className="text-xs h-6"
-                          onKeyDown={(e) =>
-                            e.key === 'Enter' && (e.preventDefault(), addSubtopic(materiaIndex, topicIndex))
-                          }
+                          placeholder="Cole vários subtópicos (um por linha) ou digite..."
+                          className="flex-1 text-xs min-h-[24px] max-h-[80px] py-1 px-2 rounded-md border border-input bg-background resize-none"
+                          rows={1}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              addSubtopic(materiaIndex, topicIndex);
+                            }
+                          }}
+                          onInput={(e) => {
+                            const target = e.target as HTMLTextAreaElement;
+                            target.style.height = 'auto';
+                            target.style.height = Math.min(target.scrollHeight, 80) + 'px';
+                          }}
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-6 px-2"
+                          className="h-6 px-2 self-end"
                           onClick={() => addSubtopic(materiaIndex, topicIndex)}
                         >
                           <Plus className="w-3 h-3" />
