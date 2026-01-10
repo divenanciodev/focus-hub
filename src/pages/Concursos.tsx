@@ -567,7 +567,7 @@ export default function Concursos() {
 
       {/* Create/Edit Contest Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={handleCloseModal}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh]">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{editingContest ? 'Editar Concurso' : 'Novo Concurso'}</DialogTitle>
           </DialogHeader>
