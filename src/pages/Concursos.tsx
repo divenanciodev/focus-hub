@@ -360,220 +360,46 @@ export default function Concursos() {
               <p className="text-sm">Clique em "Novo concurso" para começar</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
               {contests.map((contest) => {
                 const daysUntil = getDaysUntil(contest.examDate);
                 const isPast = daysUntil !== null && daysUntil < 0;
-                const isExpanded = expandedCards.has(contest.id);
 
                 return (
                   <div
                     key={contest.id}
-                    className="bg-card border border-border rounded-xl p-4 hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
+                    className="bg-card border border-border rounded-lg p-4 hover:border-foreground/20 transition-all duration-200 flex items-center justify-between gap-4"
                   >
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 min-w-0 pr-4">
-                        <h3 className="font-semibold text-foreground text-base">{contest.name}</h3>
-                        <p className="text-sm text-muted-foreground">{contest.position}</p>
-                      </div>
-                      <span
-                        className={cn(
-                          'text-xs px-2.5 py-1 rounded-full font-medium shrink-0',
-                          contest.isPreparingOnly
-                            ? 'bg-primary/10 text-primary'
-                            : isPast
-                              ? 'bg-muted text-muted-foreground'
-                              : daysUntil !== null && daysUntil <= 30
-                                ? 'bg-warning/10 text-warning'
-                                : 'bg-success/10 text-success'
-                        )}
-                      >
-                        {contest.isPreparingOnly
-                          ? 'Preparação'
-                          : isPast
-                            ? 'Realizado'
-                            : `${daysUntil} dias`}
-                      </span>
-                    </div>
-
-                    {/* Basic Info */}
-                    <div className="space-y-1.5 text-sm text-muted-foreground mb-3">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{contest.institution || 'Não informado'}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 shrink-0" />
-                        <span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-semibold text-foreground">{contest.name}</h3>
+                        <span
+                          className={cn(
+                            'text-xs px-2 py-0.5 rounded-full font-medium',
+                            contest.isPreparingOnly
+                              ? 'bg-primary/10 text-primary'
+                              : isPast
+                                ? 'bg-muted text-muted-foreground'
+                                : daysUntil !== null && daysUntil <= 30
+                                  ? 'bg-warning/10 text-warning'
+                                  : 'bg-success/10 text-success'
+                          )}
+                        >
                           {contest.isPreparingOnly
-                            ? 'Preparando para área'
-                            : contest.examDate
-                              ? formatDate(contest.examDate)
-                              : 'Não informado'}
+                            ? 'Preparação'
+                            : isPast
+                              ? 'Realizado'
+                              : `${daysUntil} dias`}
                         </span>
                       </div>
-                      {contest.bancaUrl && (
-                        <div className="flex items-center gap-2">
-                          <ExternalLink className="w-4 h-4 shrink-0" />
-                          <a
-                            href={contest.bancaUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline truncate"
-                          >
-                            Banca Organizadora
-                          </a>
-                        </div>
-                      )}
-                      {contest.editalUrl && (
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 shrink-0" />
-                          <a
-                            href={contest.editalUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline truncate"
-                          >
-                            Ver Edital
-                          </a>
-                        </div>
-                      )}
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {contest.position} • {contest.institution || 'Instituição não informada'}
+                      </p>
                     </div>
-
-
-                    {/* Expandable Details */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-between mb-2"
-                      onClick={() => toggleCardExpanded(contest.id)}
-                    >
-                      <span className="text-xs">
-                        {isExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
-                        {contest.materias.length > 0 && ` (${contest.materias.length} matérias)`}
-                      </span>
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )}
-                    </Button>
-
-                    {isExpanded && (
-                      <div className="space-y-2 text-xs text-muted-foreground border-t border-border pt-3 mb-3">
-                        {contest.situacao && (
-                          <div className="flex justify-between">
-                            <span>Situação:</span>
-                            <span className="text-foreground font-medium">{contest.situacao}</span>
-                          </div>
-                        )}
-                        {contest.cargos && (
-                          <div className="flex justify-between">
-                            <span>Cargos:</span>
-                            <span className="text-foreground">{contest.cargos}</span>
-                          </div>
-                        )}
-                        {contest.escolaridade && (
-                          <div className="flex justify-between">
-                            <span>Escolaridade:</span>
-                            <span className="text-foreground">{contest.escolaridade}</span>
-                          </div>
-                        )}
-                        {contest.carreiras && (
-                          <div className="flex justify-between">
-                            <span>Carreiras:</span>
-                            <span className="text-foreground">{contest.carreiras}</span>
-                          </div>
-                        )}
-                        {contest.lotacao && (
-                          <div className="flex justify-between">
-                            <span>Lotação:</span>
-                            <span className="text-foreground">{contest.lotacao}</span>
-                          </div>
-                        )}
-                        {contest.vagas && (
-                          <div className="flex justify-between">
-                            <span>Vagas:</span>
-                            <span className="text-foreground">{contest.vagas}</span>
-                          </div>
-                        )}
-                        {contest.remuneracao && (
-                          <div className="flex justify-between">
-                            <span>Remuneração:</span>
-                            <span className="text-foreground">{contest.remuneracao}</span>
-                          </div>
-                        )}
-                        {contest.inscricoesPeriodo && (
-                          <div className="flex justify-between">
-                            <span>Inscrições:</span>
-                            <span className="text-foreground">{contest.inscricoesPeriodo}</span>
-                          </div>
-                        )}
-                        {contest.taxaInscricao && (
-                          <div className="flex justify-between">
-                            <span>Taxa:</span>
-                            <span className="text-foreground">{contest.taxaInscricao}</span>
-                          </div>
-                        )}
-
-                        {/* Materias display */}
-                        {contest.materias.length > 0 && (
-                          <div className="pt-2 border-t border-border">
-                            <span className="font-medium text-foreground">Conteúdo Programático:</span>
-                            <div className="mt-2 space-y-2">
-                              {contest.materias.map((materia, idx) => (
-                                <div key={idx} className="pl-2 border-l-2 border-primary/30">
-                                  <span className="font-medium text-foreground">{materia.name}</span>
-                                  {materia.topics.length > 0 && (
-                                    <ul className="ml-3 mt-1 space-y-0.5">
-                                      {materia.topics.map((topic, tIdx) => (
-                                        <li key={tIdx}>
-                                          <span className="text-muted-foreground">• {topic.name}</span>
-                                          {topic.subtopics.length > 0 && (
-                                            <ul className="ml-4">
-                                              {topic.subtopics.map((sub, sIdx) => (
-                                                <li key={sIdx} className="text-muted-foreground/70">
-                                                  - {sub}
-                                                </li>
-                                              ))}
-                                            </ul>
-                                          )}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Evaluation Criteria display */}
-                        {contest.evaluationCriteria && contest.evaluationCriteria.length > 0 && (
-                          <div className="pt-2 border-t border-border">
-                            <span className="font-medium text-foreground">Critérios de Avaliação:</span>
-                            <div className="mt-2 space-y-2">
-                              {contest.evaluationCriteria.map((crit, idx) => (
-                                <div key={idx} className="pl-2 border-l-2 border-warning/30">
-                                  <span className="font-medium text-foreground">{crit.level}</span>
-                                  <span className="text-muted-foreground ml-2">
-                                    ({crit.totalQuestions} questões • {crit.totalPoints.toFixed(1)} pts)
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="mt-auto pt-3 border-t border-border flex gap-2">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-none"
                         onClick={() => handleEditContest(contest)}
                       >
                         <Pencil className="w-4 h-4" />
@@ -581,7 +407,7 @@ export default function Concursos() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-none text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive"
                         onClick={() => handleDeleteContest(contest.id)}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -635,6 +461,7 @@ export default function Concursos() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredSimulados.map((simulado) => {
                 const progressPercent = simulado.status === 'completed' ? 100 : 0;
+                const isExpanded = expandedCards.has(simulado.id);
                 
                 return (
                   <div
@@ -704,6 +531,56 @@ export default function Concursos() {
                       </div>
                       <Progress value={progressPercent} className="h-2" />
                     </div>
+
+                    {/* Ver Detalhes Button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-between mb-2"
+                      onClick={() => toggleCardExpanded(simulado.id)}
+                    >
+                      <span className="text-xs">
+                        {isExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
+                        {simulado.subject && ` (${simulado.subject})`}
+                      </span>
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </Button>
+
+                    {/* Expanded Details */}
+                    {isExpanded && (
+                      <div className="space-y-2 text-xs text-muted-foreground border-t border-border pt-3 mb-3">
+                        {simulado.subject && (
+                          <div className="flex justify-between">
+                            <span>Matéria:</span>
+                            <span className="text-foreground font-medium">{simulado.subject}</span>
+                          </div>
+                        )}
+                        {simulado.discipline && (
+                          <div className="flex justify-between">
+                            <span>Disciplina:</span>
+                            <span className="text-foreground">{simulado.discipline}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span>Total de questões:</span>
+                          <span className="text-foreground">{simulado.questions.length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Tempo limite:</span>
+                          <span className="text-foreground">{simulado.timeMinutes} minutos</span>
+                        </div>
+                        {simulado.status === 'completed' && simulado.score !== undefined && (
+                          <div className="flex justify-between">
+                            <span>Última pontuação:</span>
+                            <span className="text-foreground font-medium">{simulado.score}%</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Action Button */}
                     <div className="mt-auto pt-3 border-t border-border">
