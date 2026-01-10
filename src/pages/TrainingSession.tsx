@@ -191,8 +191,8 @@ export default function TrainingSession() {
                 {supportText.title && (
                   <h4 className="font-semibold text-foreground text-sm mb-2">{supportText.title}</h4>
                 )}
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed text-justify">
-                  {supportText.content}
+                <p className="text-sm text-muted-foreground leading-relaxed text-justify">
+                  {supportText.content?.replace(/\n/g, ' ')}
                 </p>
                 {supportText.reference && (
                   <p className="text-xs text-muted-foreground/70 mt-3 italic border-t border-border pt-2">
