@@ -632,7 +632,7 @@ export default function Concursos() {
 
       {/* Create/Edit Contest Modal - Two Steps */}
       <Dialog open={isCreateModalOpen} onOpenChange={handleCloseModal}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh]">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] pb-6">
           <DialogHeader>
             <DialogTitle>
               {editingContest ? 'Editar Concurso' : 'Novo Concurso'}
@@ -863,7 +863,7 @@ export default function Concursos() {
             )}
           </ScrollArea>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2 pt-4 mt-2 border-t border-border">
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
             {modalStep === 1 ? (
               <>
                 <Button variant="outline" onClick={handleCloseModal}>
