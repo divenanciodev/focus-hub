@@ -571,7 +571,7 @@ export default function Concursos() {
           <DialogHeader>
             <DialogTitle>{editingContest ? 'Editar Concurso' : 'Novo Concurso'}</DialogTitle>
           </DialogHeader>
-          <ScrollArea className="max-h-[70vh] pr-4">
+          <ScrollArea className="max-h-[70vh] pr-4 overflow-visible [&>div>div]:overflow-visible">
             <div className="space-y-4 pb-4">
               {/* Basic Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -134,7 +134,7 @@ export function ContestMateriasEditor({ materias, onChange }: ContestMateriasEdi
       </div>
 
       {/* Materias list */}
-      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+      <div className="space-y-2 max-h-[300px] overflow-y-auto overflow-x-visible pr-1">
         {materias.map((materia, materiaIndex) => (
           <div key={materiaIndex} className="border border-border rounded-lg overflow-hidden">
             {/* Materia header */}
