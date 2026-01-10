@@ -46,7 +46,11 @@ export default function Cursinhos() {
     deadline: '',
     imageUrl: '',
     curriculum: [] as CurriculumItem[],
+    links: [] as { name: string; url: string }[],
   });
+
+  const [newLink, setNewLink] = useState({ name: '', url: '' });
+  const [editLink, setEditLink] = useState({ name: '', url: '' });
 
   const [newCurriculumItem, setNewCurriculumItem] = useState('');
   const [editCurriculumItem, setEditCurriculumItem] = useState('');
@@ -65,6 +69,39 @@ export default function Cursinhos() {
     });
   };
 
+  const handleAddLink = (isEdit: boolean) => {
+    const link = isEdit ? editLink : newLink;
+    if (!link.name.trim() || !link.url.trim()) return;
+    
+    if (isEdit && editingCourse) {
+      setEditingCourse({
+        ...editingCourse,
+        links: [...editingCourse.links, { name: link.name.trim(), url: link.url.trim() }]
+      });
+      setEditLink({ name: '', url: '' });
+    } else {
+      setNewCourse({
+        ...newCourse,
+        links: [...newCourse.links, { name: link.name.trim(), url: link.url.trim() }]
+      });
+      setNewLink({ name: '', url: '' });
+    }
+  };
+
+  const handleRemoveLink = (index: number, isEdit: boolean) => {
+    if (isEdit && editingCourse) {
+      setEditingCourse({
+        ...editingCourse,
+        links: editingCourse.links.filter((_, i) => i !== index)
+      });
+    } else {
+      setNewCourse({
+        ...newCourse,
+        links: newCourse.links.filter((_, i) => i !== index)
+      });
+    }
+  };
+
   const handleCreateCourse = async () => {
     if (newCourse.name && newCourse.theme && newCourse.workload && newCourse.deadline) {
       await addCourse({
@@ -74,10 +111,11 @@ export default function Cursinhos() {
         deadline: new Date(newCourse.deadline),
         progress: 0,
         imageUrl: newCourse.imageUrl || undefined,
-        links: [],
+        links: newCourse.links,
         curriculum: newCourse.curriculum,
       });
-      setNewCourse({ name: '', theme: '', workload: '', deadline: '', imageUrl: '', curriculum: [] });
+      setNewCourse({ name: '', theme: '', workload: '', deadline: '', imageUrl: '', curriculum: [], links: [] });
+      setNewLink({ name: '', url: '' });
       setIsCreateModalOpen(false);
     }
   };
@@ -416,21 +454,36 @@ export default function Cursinhos() {
                           )}
                         </button>
                         {expandedCurriculums.has(course.id) && (
-                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
                             {course.curriculum.map((item) => (
-                              <div
-                                key={item.id}
-                                className="flex items-center gap-1.5 p-1.5 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
-                                onClick={() => handleToggleCurriculumItem(course.id, item.id)}
-                              >
-                                <Checkbox
-                                  checked={item.completed}
-                                  onCheckedChange={() => handleToggleCurriculumItem(course.id, item.id)}
-                                  className="h-3.5 w-3.5"
-                                />
-                                <span className={`text-xs ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                                  {item.title}
-                                </span>
+                              <div key={item.id}>
+                                <div
+                                  className="flex items-center gap-1.5 p-1.5 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
+                                  onClick={() => handleToggleCurriculumItem(course.id, item.id)}
+                                >
+                                  <Checkbox
+                                    checked={item.completed}
+                                    onCheckedChange={() => handleToggleCurriculumItem(course.id, item.id)}
+                                    className="h-3.5 w-3.5"
+                                  />
+                                  <span className={`text-xs font-medium ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                    {item.title}
+                                  </span>
+                                </div>
+                                {/* Subtópicos */}
+                                {item.subtopics && item.subtopics.length > 0 && (
+                                  <div className="ml-5 mt-0.5 space-y-0.5">
+                                    {item.subtopics.map((sub) => (
+                                      <div
+                                        key={sub.id}
+                                        className="flex items-center gap-1.5 p-1 pl-2 rounded bg-muted/50 text-xs text-muted-foreground"
+                                      >
+                                        <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                                        <span className={sub.completed ? 'line-through' : ''}>{sub.title}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -545,6 +598,50 @@ export default function Cursinhos() {
                   >
                     <X className="w-4 h-4" />
                   </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Links do Curso */}
+            <div className="space-y-2">
+              <Label>Links do Curso</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newLink.name}
+                  onChange={(e) => setNewLink({ ...newLink, name: e.target.value })}
+                  placeholder="Nome do link"
+                  className="flex-1"
+                />
+                <Input
+                  value={newLink.url}
+                  onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
+                  placeholder="URL do curso"
+                  className="flex-1"
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddLink(false))}
+                />
+                <Button type="button" variant="outline" onClick={() => handleAddLink(false)}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {newCourse.links.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {newCourse.links.map((link, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 rounded bg-secondary/50 text-sm">
+                      <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                      <span className="flex-1 truncate">{link.name}</span>
+                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[150px]">
+                        {link.url}
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => handleRemoveLink(idx, false)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -680,6 +777,50 @@ export default function Cursinhos() {
                     >
                       <X className="w-4 h-4" />
                     </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Links do Curso */}
+              <div className="space-y-2">
+                <Label>Links do Curso</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={editLink.name}
+                    onChange={(e) => setEditLink({ ...editLink, name: e.target.value })}
+                    placeholder="Nome do link"
+                    className="flex-1"
+                  />
+                  <Input
+                    value={editLink.url}
+                    onChange={(e) => setEditLink({ ...editLink, url: e.target.value })}
+                    placeholder="URL do curso"
+                    className="flex-1"
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddLink(true))}
+                  />
+                  <Button type="button" variant="outline" onClick={() => handleAddLink(true)}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                {editingCourse.links.length > 0 && (
+                  <div className="space-y-1 mt-2">
+                    {editingCourse.links.map((link, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 rounded bg-secondary/50 text-sm">
+                        <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                        <span className="flex-1 truncate">{link.name}</span>
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[150px]">
+                          {link.url}
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          onClick={() => handleRemoveLink(idx, true)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
