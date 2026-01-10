@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -17,6 +17,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePrefetch, preloadComponent } from '@/hooks/usePrefetch';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -34,6 +35,12 @@ const menuItems = [
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { onMouseEnter } = usePrefetch();
+
+  const handleMouseEnter = useCallback((path: string) => {
+    onMouseEnter(path);
+    preloadComponent(path);
+  }, [onMouseEnter]);
 
   return (
     <aside
@@ -67,6 +74,7 @@ export function AppSidebar() {
               <li key={item.path}>
                 <NavLink
                   to={item.path}
+                  onMouseEnter={() => handleMouseEnter(item.path)}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group',
                     isActive
