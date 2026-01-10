@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronUp, ClipboardPaste, FileText } from 'lucide-react';
 import { EvaluationCriteria, EvaluationCriteriaItem } from '@/types/contests';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 
 interface EvaluationCriteriaEditorProps {
   criteria: EvaluationCriteria[];
@@ -18,6 +20,8 @@ export function EvaluationCriteriaEditor({ criteria, onChange }: EvaluationCrite
   const [expandedCriteria, setExpandedCriteria] = useState<Set<number>>(new Set([0]));
   const [editingItem, setEditingItem] = useState<{ criteriaIdx: number; itemId: string } | null>(null);
   const [editingItemValues, setEditingItemValues] = useState<Partial<EvaluationCriteriaItem>>({});
+  const [pasteText, setPasteText] = useState('');
+  const [pasteTargetCriteria, setPasteTargetCriteria] = useState<number | null>(null);
 
   const toggleExpanded = (idx: number) => {
     setExpandedCriteria((prev) => {
@@ -122,6 +126,73 @@ export function EvaluationCriteriaEditor({ criteria, onChange }: EvaluationCrite
     const items = updated[criteriaIdx].items;
     updated[criteriaIdx].totalQuestions = items.reduce((sum, item) => sum + item.questions, 0);
     updated[criteriaIdx].totalPoints = items.reduce((sum, item) => sum + item.totalPoints, 0);
+  };
+
+  // Parse pasted text to extract content items
+  // Supports formats like:
+  // "Língua Portuguesa 10 2.5" or "Língua Portuguesa | 10 | 2.5" or "Língua Portuguesa, 10, 2.5"
+  // or tabular: "Língua Portuguesa\t10\t2.5"
+  const parseAndAddItems = (criteriaIdx: number) => {
+    if (!pasteText.trim()) {
+      toast.error('Cole o texto com os dados para importar');
+      return;
+    }
+
+    const lines = pasteText.trim().split('\n').filter((line) => line.trim());
+    const parsedItems: EvaluationCriteriaItem[] = [];
+
+    for (const line of lines) {
+      // Try different separators: tab, pipe, comma, or multiple spaces
+      let parts: string[] = [];
+      
+      if (line.includes('\t')) {
+        parts = line.split('\t').map((p) => p.trim()).filter(Boolean);
+      } else if (line.includes('|')) {
+        parts = line.split('|').map((p) => p.trim()).filter(Boolean);
+      } else if (line.includes(';')) {
+        parts = line.split(';').map((p) => p.trim()).filter(Boolean);
+      } else {
+        // Try to extract numbers from the end
+        const match = line.match(/^(.+?)\s+(\d+)\s+([\d.,]+)$/);
+        if (match) {
+          parts = [match[1].trim(), match[2], match[3].replace(',', '.')];
+        } else {
+          // Just content, no numbers
+          parts = [line.trim()];
+        }
+      }
+
+      if (parts.length >= 1) {
+        const content = parts[0];
+        const questions = parts.length >= 2 ? parseInt(parts[1]) || 0 : 0;
+        const weight = parts.length >= 3 ? parseFloat(parts[2].replace(',', '.')) || 0 : 0;
+
+        parsedItems.push({
+          id: generateId(),
+          content,
+          questions,
+          weight,
+          totalPoints: questions * weight,
+        });
+      }
+    }
+
+    if (parsedItems.length === 0) {
+      toast.error('Não foi possível interpretar o texto. Verifique o formato.');
+      return;
+    }
+
+    const updated = [...criteria];
+    updated[criteriaIdx] = {
+      ...updated[criteriaIdx],
+      items: [...updated[criteriaIdx].items, ...parsedItems],
+    };
+    recalculateTotals(updated, criteriaIdx);
+    onChange(updated);
+
+    toast.success(`${parsedItems.length} conteúdo(s) importado(s) com sucesso!`);
+    setPasteText('');
+    setPasteTargetCriteria(null);
   };
 
   return (
@@ -313,11 +384,50 @@ export function EvaluationCriteriaEditor({ criteria, onChange }: EvaluationCrite
                   </div>
                 )}
 
-                {/* Add Item Button */}
-                <Button variant="outline" size="sm" className="w-full" onClick={() => addItem(critIdx)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar conteúdo
-                </Button>
+                {/* Add Item Section with Tabs */}
+                <div className="pt-2 border-t border-border">
+                  <Tabs defaultValue="manual" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 h-8">
+                      <TabsTrigger value="manual" className="text-xs gap-1">
+                        <FileText className="w-3 h-3" />
+                        Manual
+                      </TabsTrigger>
+                      <TabsTrigger value="paste" className="text-xs gap-1">
+                        <ClipboardPaste className="w-3 h-3" />
+                        Colar texto
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="manual" className="mt-2">
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => addItem(critIdx)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar conteúdo
+                      </Button>
+                    </TabsContent>
+                    
+                    <TabsContent value="paste" className="mt-2 space-y-2">
+                      <Textarea
+                        value={pasteTargetCriteria === critIdx ? pasteText : ''}
+                        onChange={(e) => {
+                          setPasteTargetCriteria(critIdx);
+                          setPasteText(e.target.value);
+                        }}
+                        placeholder={`Cole aqui o texto com os conteúdos. Formatos aceitos:\n• Língua Portuguesa | 10 | 2.5\n• Matemática; 15; 2.0\n• Informática\t8\t1.5\n• Direito Constitucional 12 2.0\n\nCada linha = 1 conteúdo (Conteúdo | Questões | Peso)`}
+                        className="resize-none h-24 text-xs"
+                      />
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => parseAndAddItems(critIdx)}
+                        disabled={pasteTargetCriteria !== critIdx || !pasteText.trim()}
+                      >
+                        <ClipboardPaste className="w-4 h-4 mr-2" />
+                        Importar conteúdos
+                      </Button>
+                    </TabsContent>
+                  </Tabs>
+                </div>
               </div>
             )}
           </div>
