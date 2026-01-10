@@ -847,17 +847,18 @@ export default function Concursos() {
                   </div>
                 </div>
 
+              </div>
+            ) : (
+              <div className="space-y-6 pb-4 px-3">
+                <EvaluationCriteriaEditor
+                  criteria={newContest.evaluationCriteria}
+                  onChange={(evaluationCriteria) => setNewContest({ ...newContest, evaluationCriteria })}
+                />
+
                 {/* Materias Editor */}
                 <ContestMateriasEditor
                   materias={newContest.materias}
                   onChange={(materias) => setNewContest({ ...newContest, materias })}
-                />
-              </div>
-            ) : (
-              <div className="space-y-4 pb-4 px-3">
-                <EvaluationCriteriaEditor
-                  criteria={newContest.evaluationCriteria}
-                  onChange={(evaluationCriteria) => setNewContest({ ...newContest, evaluationCriteria })}
                 />
               </div>
             )}
