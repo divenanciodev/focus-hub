@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useContests, Contest } from '@/hooks/useContests';
-import { mockBankSimulados } from '@/data/mockData';
+import { useSimulados } from '@/hooks/useSimulados';
 import { Progress } from '@/components/ui/progress';
 import {
   Plus,
@@ -17,6 +17,7 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  FileQuestion,
 } from 'lucide-react';
 import {
   Dialog,
@@ -35,15 +36,16 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function Concursos() {
   const navigate = useNavigate();
   const { contests, loading, addContest, updateContest, deleteContest } = useContests();
+  const { simulados, loading: loadingSimulados } = useSimulados();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [areaFilter, setAreaFilter] = useState('all');
-  const [bancaFilter, setBancaFilter] = useState('all');
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
 
   // Form state
   const [newContest, setNewContest] = useState({
@@ -101,11 +103,12 @@ export default function Concursos() {
     setNewContest({ name: '', position: '', institution: '', examDate: '' });
   };
 
-  const filteredSimulados = mockBankSimulados.filter((s) => {
-    const matchesSearch = s.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesArea = areaFilter === 'all' || s.area === areaFilter;
-    const matchesBanca = bancaFilter === 'all' || s.banca === bancaFilter;
-    return matchesSearch && matchesArea && matchesBanca;
+  // Filter simulados based on search and difficulty
+  const filteredSimulados = simulados.filter((s) => {
+    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (s.discipline?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesDifficulty = difficultyFilter === 'all' || s.difficulty === difficultyFilter;
+    return matchesSearch && matchesDifficulty;
   });
 
   const formatDate = (date: Date) => {
@@ -253,77 +256,74 @@ export default function Concursos() {
                 className="pl-9"
               />
             </div>
-            <Select value={areaFilter} onValueChange={setAreaFilter}>
+            <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
               <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Área" />
+                <SelectValue placeholder="Dificuldade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas áreas</SelectItem>
-                <SelectItem value="Direito">Direito</SelectItem>
-                <SelectItem value="Línguas">Línguas</SelectItem>
-                <SelectItem value="Exatas">Exatas</SelectItem>
-                <SelectItem value="Tecnologia">Tecnologia</SelectItem>
-                <SelectItem value="Conhecimentos Gerais">Conhecimentos Gerais</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={bancaFilter} onValueChange={setBancaFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Banca" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas bancas</SelectItem>
-                <SelectItem value="CESPE">CESPE</SelectItem>
-                <SelectItem value="FCC">FCC</SelectItem>
-                <SelectItem value="FGV">FGV</SelectItem>
-                <SelectItem value="VUNESP">VUNESP</SelectItem>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="easy">Fácil</SelectItem>
+                <SelectItem value="medium">Médio</SelectItem>
+                <SelectItem value="hard">Difícil</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Simulados Grid - 2 columns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredSimulados.map((simulado) => (
-              <div
-                key={simulado.id}
-                className="bg-card border border-border rounded-xl p-6 hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col h-full"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1 min-w-0 pr-4">
-                    <h3 className="font-semibold text-foreground">{simulado.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{simulado.area}</p>
+          {loadingSimulados ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredSimulados.length === 0 ? (
+            <EmptyState
+              icon={FileQuestion}
+              title="Nenhum simulado encontrado"
+              description="Crie simulados na página de Treinos para praticá-los aqui"
+              actionLabel="Ir para Treinos"
+              onAction={() => navigate('/treinos')}
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredSimulados.map((simulado) => (
+                <div
+                  key={simulado.id}
+                  className="bg-card border border-border rounded-xl p-6 hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col h-full"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1 min-w-0 pr-4">
+                      <h3 className="font-semibold text-foreground">{simulado.name}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{simulado.discipline || 'Geral'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
+                      {simulado.questions.length} questões
+                    </span>
+                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
+                      {simulado.timeMinutes} min
+                    </span>
+                    <span className={cn(
+                      'text-xs px-2 py-1 rounded',
+                      simulado.difficulty === 'easy' && 'bg-success/10 text-success',
+                      simulado.difficulty === 'medium' && 'bg-warning/10 text-warning',
+                      simulado.difficulty === 'hard' && 'bg-destructive/10 text-destructive'
+                    )}>
+                      {simulado.difficulty === 'easy' ? 'Fácil' : simulado.difficulty === 'medium' ? 'Médio' : 'Difícil'}
+                    </span>
+                  </div>
+
+                  <div className="flex-1" />
+
+                  <div className="pt-4 border-t border-border">
+                    <Button size="sm" className="w-full" onClick={() => navigate(`/treinos/${simulado.id}`)}>
+                      <Play className="w-4 h-4 mr-2" />
+                      Resolver simulado
+                    </Button>
                   </div>
                 </div>
-
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                    {simulado.banca}
-                  </span>
-                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                    {simulado.questionCount} questões
-                  </span>
-                  <span className={cn(
-                    'text-xs px-2 py-1 rounded',
-                    simulado.difficulty === 'easy' && 'bg-success/10 text-success',
-                    simulado.difficulty === 'medium' && 'bg-warning/10 text-warning',
-                    simulado.difficulty === 'hard' && 'bg-destructive/10 text-destructive'
-                  )}>
-                    {simulado.difficulty === 'easy' ? 'Fácil' : simulado.difficulty === 'medium' ? 'Médio' : 'Difícil'}
-                  </span>
-                </div>
-
-                {/* Spacer to push button to bottom */}
-                <div className="flex-1" />
-
-                {/* Action Button - Fixed at bottom */}
-                <div className="pt-4 border-t border-border">
-                  <Button size="sm" className="w-full" onClick={() => navigate(`/treinos/${simulado.id}`)}>
-                    <Play className="w-4 h-4 mr-2" />
-                    Resolver simulado
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

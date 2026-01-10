@@ -1,36 +1,60 @@
-import { useState, useMemo } from 'react';
-import { format, isToday, startOfWeek, addDays } from 'date-fns';
+import { useMemo } from 'react';
+import { format, isToday, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
-import { CheckSquare, ArrowRight } from 'lucide-react';
+import { CheckSquare, ArrowRight, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProgressBar } from '@/components/ui/progress-bar';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
-import { Habit, defaultHabits } from '@/types/habits';
+import { useHabits } from '@/hooks/useHabits';
 
 export function HabitsDashboardWidget() {
   const navigate = useNavigate();
-  const [todayHabits, setTodayHabits] = useState<Habit[]>(
-    defaultHabits.map(h => ({ ...h, completed: false }))
-  );
+  const { habits, loadingHabits, useHabitLogs, toggleHabitLog } = useHabits();
 
   const today = new Date();
-  const completedCount = todayHabits.filter(h => h.completed).length;
-  const progress = Math.round((completedCount / todayHabits.length) * 100);
-
-  // Get week view data (simplified)
   const weekStart = startOfWeek(today, { weekStartsOn: 0 });
+  const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
+
+  const { data: habitLogs = [], isLoading: loadingLogs } = useHabitLogs(weekStart, weekEnd);
+
   const weekDays = useMemo(() => 
     Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i)),
     [weekStart]
   );
 
-  const handleToggleHabit = (habitId: string) => {
-    setTodayHabits(prev =>
-      prev.map(h => h.id === habitId ? { ...h, completed: !h.completed } : h)
-    );
+  // Get today's habit status
+  const todayKey = format(today, 'yyyy-MM-dd');
+  const todayLogs = habitLogs.filter(log => log.date === todayKey);
+
+  const todayHabits = habits.map(habit => {
+    const log = todayLogs.find(l => l.habitId === habit.id);
+    return {
+      ...habit,
+      completed: log?.completed ?? false,
+    };
+  });
+
+  const completedCount = todayHabits.filter(h => h.completed).length;
+  const progress = todayHabits.length > 0 ? Math.round((completedCount / todayHabits.length) * 100) : 0;
+
+  const handleToggleHabit = (habitId: string, currentCompleted: boolean) => {
+    toggleHabitLog.mutate({ habitId, date: today, completed: !currentCompleted });
   };
+
+  const loading = loadingHabits || loadingLogs;
+
+  if (loading) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-5">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card border border-border rounded-xl p-5">
@@ -66,43 +90,55 @@ export function HabitsDashboardWidget() {
         })}
       </div>
 
-      {/* Today's Progress */}
-      <div className="bg-secondary/30 rounded-lg p-3 mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-foreground">Progresso de Hoje</span>
-          <span className={cn(
-            "font-bold",
-            progress === 100 ? "text-green-500" : "text-foreground"
-          )}>
-            {progress}%
-          </span>
-        </div>
-        <ProgressBar value={progress} />
-      </div>
-
-      {/* Today's Habits */}
-      <div className="space-y-2">
-        {todayHabits.slice(0, 5).map((habit) => (
-          <div
-            key={habit.id}
-            onClick={() => handleToggleHabit(habit.id)}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors"
-          >
-            <Checkbox checked={habit.completed} className="h-4 w-4" />
-            <span className={cn(
-              "text-sm flex-1",
-              habit.completed && "line-through text-muted-foreground"
-            )}>
-              {habit.icon} {habit.name}
-            </span>
+      {habits.length === 0 ? (
+        <EmptyState
+          icon={CheckSquare}
+          title="Nenhum hábito cadastrado"
+          description="Crie hábitos para acompanhar sua rotina diária"
+          actionLabel="Adicionar hábito"
+          onAction={() => navigate('/habitos')}
+        />
+      ) : (
+        <>
+          {/* Today's Progress */}
+          <div className="bg-secondary/30 rounded-lg p-3 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-foreground">Progresso de Hoje</span>
+              <span className={cn(
+                "font-bold",
+                progress === 100 ? "text-green-500" : "text-foreground"
+              )}>
+                {progress}%
+              </span>
+            </div>
+            <ProgressBar value={progress} />
           </div>
-        ))}
-        {todayHabits.length > 5 && (
-          <p className="text-xs text-muted-foreground text-center pt-1">
-            +{todayHabits.length - 5} mais hábitos
-          </p>
-        )}
-      </div>
+
+          {/* Today's Habits */}
+          <div className="space-y-2">
+            {todayHabits.slice(0, 5).map((habit) => (
+              <div
+                key={habit.id}
+                onClick={() => handleToggleHabit(habit.id, habit.completed)}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors"
+              >
+                <Checkbox checked={habit.completed} className="h-4 w-4" />
+                <span className={cn(
+                  "text-sm flex-1",
+                  habit.completed && "line-through text-muted-foreground"
+                )}>
+                  {habit.icon} {habit.name}
+                </span>
+              </div>
+            ))}
+            {todayHabits.length > 5 && (
+              <p className="text-xs text-muted-foreground text-center pt-1">
+                +{todayHabits.length - 5} mais hábitos
+              </p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
