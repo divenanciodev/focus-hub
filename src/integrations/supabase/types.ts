@@ -438,6 +438,51 @@ export type Database = {
         }
         Relationships: []
       }
+      schedules: {
+        Row: {
+          block_duration: number | null
+          blocks: Json | null
+          created_at: string | null
+          end_time: string | null
+          hours_per_day: number | null
+          id: string
+          name: string
+          objective: string | null
+          rest_duration: number | null
+          start_time: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          block_duration?: number | null
+          blocks?: Json | null
+          created_at?: string | null
+          end_time?: string | null
+          hours_per_day?: number | null
+          id?: string
+          name: string
+          objective?: string | null
+          rest_duration?: number | null
+          start_time?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          block_duration?: number | null
+          blocks?: Json | null
+          created_at?: string | null
+          end_time?: string | null
+          hours_per_day?: number | null
+          id?: string
+          name?: string
+          objective?: string | null
+          rest_duration?: number | null
+          start_time?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       simulados: {
         Row: {
           created_at: string | null
