@@ -5,8 +5,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { CreateScheduleModal } from '@/components/schedule/CreateScheduleModal';
 import { ScheduleTable } from '@/components/schedule/ScheduleTable';
 import { Schedule, ScheduleBlock } from '@/types/schedule';
-import { Plus, Calendar, ArrowLeft, MoreVertical, Pencil, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Plus, Calendar, ArrowLeft, MoreVertical, Pencil, Trash2, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,167 +22,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-// Cronograma de exemplo para demonstrar a funcionalidade
-const exampleSchedule: Schedule = {
-  id: 'example-1',
-  name: 'Cronograma Concurso INSS',
-  objective: 'Aprovação INSS 2025',
-  hoursPerDay: 6,
-  startTime: '06:00',
-  endTime: '22:00',
-  blockDuration: 60,
-  restDuration: 10,
-  blocks: {
-    // Segunda-feira
-    'monday-06:00': { id: '1', subject: 'Português', activityType: 'Estudo', color: '#3b82f6', duration: 60 },
-    'monday-07:00': { id: '2', subject: 'Português', activityType: 'Revisão', color: '#3b82f6', duration: 60 },
-    'monday-08:00': { id: '3', subject: 'Direito Constitucional', activityType: 'Estudo', color: '#ef4444', duration: 60 },
-    'monday-09:00': { id: '4', subject: 'Direito Constitucional', activityType: 'Estudo', color: '#ef4444', duration: 60 },
-    'monday-14:00': { id: '5', subject: 'Raciocínio Lógico', activityType: 'Estudo', color: '#22c55e', duration: 60 },
-    'monday-15:00': { id: '6', subject: 'Raciocínio Lógico', activityType: 'Exercícios', color: '#22c55e', duration: 60 },
-    'monday-19:00': { id: '7', subject: 'Informática', activityType: 'Estudo', color: '#8b5cf6', duration: 60 },
-    
-    // Terça-feira
-    'tuesday-06:00': { id: '8', subject: 'Direito Administrativo', activityType: 'Estudo', color: '#f97316', duration: 60 },
-    'tuesday-07:00': { id: '9', subject: 'Direito Administrativo', activityType: 'Estudo', color: '#f97316', duration: 60 },
-    'tuesday-08:00': { id: '10', subject: 'Direito Previdenciário', activityType: 'Estudo', color: '#ec4899', duration: 60 },
-    'tuesday-09:00': { id: '11', subject: 'Direito Previdenciário', activityType: 'Estudo', color: '#ec4899', duration: 60 },
-    'tuesday-14:00': { id: '12', subject: 'Português', activityType: 'Simulado', color: '#3b82f6', duration: 60 },
-    'tuesday-15:00': { id: '13', subject: 'Ética', activityType: 'Estudo', color: '#14b8a6', duration: 60 },
-    'tuesday-19:00': { id: '14', subject: 'Atualidades', activityType: 'Leitura', color: '#6b7280', duration: 60 },
-    
-    // Quarta-feira
-    'wednesday-06:00': { id: '15', subject: 'Português', activityType: 'Estudo', color: '#3b82f6', duration: 60 },
-    'wednesday-07:00': { id: '16', subject: 'Direito Constitucional', activityType: 'Revisão', color: '#ef4444', duration: 60 },
-    'wednesday-08:00': { id: '17', subject: 'Direito Constitucional', activityType: 'Exercícios', color: '#ef4444', duration: 60 },
-    'wednesday-09:00': { id: '18', subject: 'Direito Administrativo', activityType: 'Revisão', color: '#f97316', duration: 60 },
-    'wednesday-14:00': { id: '19', subject: 'Raciocínio Lógico', activityType: 'Simulado', color: '#22c55e', duration: 60 },
-    'wednesday-15:00': { id: '20', subject: 'Informática', activityType: 'Exercícios', color: '#8b5cf6', duration: 60 },
-    'wednesday-19:00': { id: '21', subject: 'Direito Previdenciário', activityType: 'Estudo', color: '#ec4899', duration: 60 },
-    
-    // Quinta-feira
-    'thursday-06:00': { id: '22', subject: 'Direito Previdenciário', activityType: 'Estudo', color: '#ec4899', duration: 60 },
-    'thursday-07:00': { id: '23', subject: 'Direito Previdenciário', activityType: 'Exercícios', color: '#ec4899', duration: 60 },
-    'thursday-08:00': { id: '24', subject: 'Ética', activityType: 'Revisão', color: '#14b8a6', duration: 60 },
-    'thursday-09:00': { id: '25', subject: 'Português', activityType: 'Redação', color: '#3b82f6', duration: 60 },
-    'thursday-14:00': { id: '26', subject: 'Direito Administrativo', activityType: 'Estudo', color: '#f97316', duration: 60 },
-    'thursday-15:00': { id: '27', subject: 'Direito Administrativo', activityType: 'Exercícios', color: '#f97316', duration: 60 },
-    'thursday-19:00': { id: '28', subject: 'Direito Constitucional', activityType: 'Simulado', color: '#ef4444', duration: 60 },
-    
-    // Sexta-feira
-    'friday-06:00': { id: '29', subject: 'Revisão Geral', activityType: 'Revisão', color: '#6b7280', duration: 60 },
-    'friday-07:00': { id: '30', subject: 'Português', activityType: 'Exercícios', color: '#3b82f6', duration: 60 },
-    'friday-08:00': { id: '31', subject: 'Raciocínio Lógico', activityType: 'Estudo', color: '#22c55e', duration: 60 },
-    'friday-09:00': { id: '32', subject: 'Informática', activityType: 'Estudo', color: '#8b5cf6', duration: 60 },
-    'friday-14:00': { id: '33', subject: 'Direito Previdenciário', activityType: 'Simulado', color: '#ec4899', duration: 60 },
-    'friday-15:00': { id: '34', subject: 'Direito Previdenciário', activityType: 'Simulado', color: '#ec4899', duration: 60 },
-    
-    // Sábado
-    'saturday-08:00': { id: '35', subject: 'Simulado Completo', activityType: 'Simulado', color: '#000000', duration: 60 },
-    'saturday-09:00': { id: '36', subject: 'Simulado Completo', activityType: 'Simulado', color: '#000000', duration: 60 },
-    'saturday-10:00': { id: '37', subject: 'Simulado Completo', activityType: 'Simulado', color: '#000000', duration: 60 },
-    'saturday-11:00': { id: '38', subject: 'Simulado Completo', activityType: 'Simulado', color: '#000000', duration: 60 },
-    'saturday-14:00': { id: '39', subject: 'Correção', activityType: 'Revisão', color: '#6b7280', duration: 60 },
-    'saturday-15:00': { id: '40', subject: 'Correção', activityType: 'Revisão', color: '#6b7280', duration: 60 },
-    
-    // Domingo
-    'sunday-09:00': { id: '41', subject: 'Revisão Semanal', activityType: 'Revisão', color: '#6b7280', duration: 60 },
-    'sunday-10:00': { id: '42', subject: 'Revisão Semanal', activityType: 'Revisão', color: '#6b7280', duration: 60 },
-    'sunday-14:00': { id: '43', subject: 'Leitura Complementar', activityType: 'Leitura', color: '#14b8a6', duration: 60 },
-  },
-};
-
-// Segundo cronograma de exemplo - Concurso TRT
-const exampleSchedule2: Schedule = {
-  id: 'example-2',
-  name: 'Cronograma TRT',
-  objective: 'Aprovação TRT 2025',
-  hoursPerDay: 4,
-  startTime: '18:00',
-  endTime: '23:00',
-  blockDuration: 60,
-  restDuration: 15,
-  blocks: {
-    'monday-18:00': { id: '44', subject: 'Direito do Trabalho', activityType: 'Estudo', color: '#ef4444', duration: 60 },
-    'monday-19:00': { id: '45', subject: 'Direito do Trabalho', activityType: 'Exercícios', color: '#ef4444', duration: 60 },
-    'monday-20:00': { id: '46', subject: 'Processo do Trabalho', activityType: 'Estudo', color: '#f97316', duration: 60 },
-    'tuesday-18:00': { id: '47', subject: 'Português', activityType: 'Estudo', color: '#3b82f6', duration: 60 },
-    'tuesday-19:00': { id: '48', subject: 'Português', activityType: 'Redação', color: '#3b82f6', duration: 60 },
-    'tuesday-20:00': { id: '49', subject: 'Direito Constitucional', activityType: 'Estudo', color: '#22c55e', duration: 60 },
-    'wednesday-18:00': { id: '50', subject: 'Direito Administrativo', activityType: 'Estudo', color: '#8b5cf6', duration: 60 },
-    'wednesday-19:00': { id: '51', subject: 'Direito Administrativo', activityType: 'Revisão', color: '#8b5cf6', duration: 60 },
-    'wednesday-20:00': { id: '52', subject: 'Informática', activityType: 'Exercícios', color: '#ec4899', duration: 60 },
-    'thursday-18:00': { id: '53', subject: 'Direito do Trabalho', activityType: 'Revisão', color: '#ef4444', duration: 60 },
-    'thursday-19:00': { id: '54', subject: 'Processo do Trabalho', activityType: 'Exercícios', color: '#f97316', duration: 60 },
-    'friday-18:00': { id: '55', subject: 'Simulado Geral', activityType: 'Simulado', color: '#000000', duration: 60 },
-    'friday-19:00': { id: '56', subject: 'Simulado Geral', activityType: 'Simulado', color: '#000000', duration: 60 },
-    'friday-20:00': { id: '57', subject: 'Correção', activityType: 'Revisão', color: '#6b7280', duration: 60 },
-    'saturday-09:00': { id: '58', subject: 'Revisão Semanal', activityType: 'Revisão', color: '#14b8a6', duration: 60 },
-    'saturday-10:00': { id: '59', subject: 'Revisão Semanal', activityType: 'Revisão', color: '#14b8a6', duration: 60 },
-  },
-};
-
-// Terceiro cronograma de exemplo - OAB
-const exampleSchedule3: Schedule = {
-  id: 'example-3',
-  name: 'Cronograma OAB',
-  objective: 'Aprovação OAB 1ª Fase',
-  hoursPerDay: 5,
-  startTime: '08:00',
-  endTime: '18:00',
-  blockDuration: 60,
-  restDuration: 10,
-  blocks: {
-    'monday-08:00': { id: '60', subject: 'Ética Profissional', activityType: 'Estudo', color: '#14b8a6', duration: 60 },
-    'monday-09:00': { id: '61', subject: 'Ética Profissional', activityType: 'Exercícios', color: '#14b8a6', duration: 60 },
-    'monday-10:00': { id: '62', subject: 'Direito Civil', activityType: 'Estudo', color: '#3b82f6', duration: 60 },
-    'monday-14:00': { id: '63', subject: 'Direito Civil', activityType: 'Exercícios', color: '#3b82f6', duration: 60 },
-    'tuesday-08:00': { id: '64', subject: 'Direito Penal', activityType: 'Estudo', color: '#ef4444', duration: 60 },
-    'tuesday-09:00': { id: '65', subject: 'Direito Penal', activityType: 'Estudo', color: '#ef4444', duration: 60 },
-    'tuesday-10:00': { id: '66', subject: 'Processo Civil', activityType: 'Estudo', color: '#8b5cf6', duration: 60 },
-    'tuesday-14:00': { id: '67', subject: 'Processo Penal', activityType: 'Estudo', color: '#ec4899', duration: 60 },
-    'wednesday-08:00': { id: '68', subject: 'Direito Constitucional', activityType: 'Estudo', color: '#22c55e', duration: 60 },
-    'wednesday-09:00': { id: '69', subject: 'Direito Constitucional', activityType: 'Revisão', color: '#22c55e', duration: 60 },
-    'wednesday-10:00': { id: '70', subject: 'Direito Administrativo', activityType: 'Estudo', color: '#f97316', duration: 60 },
-    'wednesday-14:00': { id: '71', subject: 'Direito do Trabalho', activityType: 'Estudo', color: '#eab308', duration: 60 },
-    'thursday-08:00': { id: '72', subject: 'Direito Empresarial', activityType: 'Estudo', color: '#6b7280', duration: 60 },
-    'thursday-09:00': { id: '73', subject: 'Direito Tributário', activityType: 'Estudo', color: '#000000', duration: 60 },
-    'thursday-10:00': { id: '74', subject: 'ECA e Idoso', activityType: 'Estudo', color: '#14b8a6', duration: 60 },
-    'friday-08:00': { id: '75', subject: 'Simulado OAB', activityType: 'Simulado', color: '#000000', duration: 60 },
-    'friday-09:00': { id: '76', subject: 'Simulado OAB', activityType: 'Simulado', color: '#000000', duration: 60 },
-    'friday-10:00': { id: '77', subject: 'Simulado OAB', activityType: 'Simulado', color: '#000000', duration: 60 },
-    'friday-14:00': { id: '78', subject: 'Correção', activityType: 'Revisão', color: '#6b7280', duration: 60 },
-    'saturday-08:00': { id: '79', subject: 'Revisão Ética', activityType: 'Revisão', color: '#14b8a6', duration: 60 },
-    'saturday-09:00': { id: '80', subject: 'Revisão Geral', activityType: 'Revisão', color: '#6b7280', duration: 60 },
-  },
-};
+import { useSchedules } from '@/hooks/useSchedules';
 
 export default function Cronograma() {
-  const [schedules, setSchedules] = useState<Schedule[]>([exampleSchedule, exampleSchedule2, exampleSchedule3]);
+  const { schedules, isLoading, createSchedule, updateBlocks, deleteSchedule } = useSchedules();
   const [activeSchedule, setActiveSchedule] = useState<Schedule | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState<Schedule | null>(null);
 
   const handleCreateSchedule = (data: Omit<Schedule, 'id' | 'blocks'>) => {
-    const newSchedule: Schedule = {
-      ...data,
-      id: Date.now().toString(),
-      blocks: {},
-    };
-    setSchedules([...schedules, newSchedule]);
-    setActiveSchedule(newSchedule);
+    createSchedule.mutate(data, {
+      onSuccess: (newSchedule) => {
+        setActiveSchedule(newSchedule);
+      },
+    });
   };
 
   const handleUpdateBlocks = (blocks: { [key: string]: ScheduleBlock }) => {
     if (!activeSchedule) return;
     
-    const updatedSchedule = { ...activeSchedule, blocks };
-    setActiveSchedule(updatedSchedule);
-    setSchedules(prev =>
-      prev.map(s => s.id === activeSchedule.id ? updatedSchedule : s)
-    );
+    updateBlocks.mutate({ id: activeSchedule.id, blocks }, {
+      onSuccess: (updatedSchedule) => {
+        setActiveSchedule(updatedSchedule);
+      },
+    });
   };
 
   const handleDeleteClick = (e: React.MouseEvent, schedule: Schedule) => {
@@ -194,7 +57,7 @@ export default function Cronograma() {
 
   const confirmDelete = () => {
     if (scheduleToDelete) {
-      setSchedules(prev => prev.filter(s => s.id !== scheduleToDelete.id));
+      deleteSchedule.mutate(scheduleToDelete.id);
       if (activeSchedule?.id === scheduleToDelete.id) {
         setActiveSchedule(null);
       }
@@ -202,6 +65,14 @@ export default function Cronograma() {
       setDeleteDialogOpen(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (activeSchedule) {
     return (
