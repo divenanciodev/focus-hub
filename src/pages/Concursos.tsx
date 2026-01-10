@@ -184,21 +184,33 @@ export default function Concursos() {
 
     // Create simulado if there are questions
     if (newContest.simuladoQuestions.length > 0) {
+      // Filter questions that have at least the statement filled
       const validQuestions = newContest.simuladoQuestions.filter(
-        (q) => q.statement.trim() && q.options?.some((o) => o.trim())
+        (q) => q.statement?.trim()
       );
 
       if (validQuestions.length > 0) {
-        await addSimulado({
+        // Ensure each question has proper structure
+        const processedQuestions = validQuestions.map((q) => ({
+          ...q,
+          options: q.options?.filter((o) => o.trim()) || [],
+        }));
+
+        const result = await addSimulado({
           name: `Simulado - ${newContest.name}`,
           discipline: newContest.position,
           subject: newContest.institution || 'Geral',
-          questions: validQuestions,
-          timeMinutes: validQuestions.length * 3, // 3 min per question
+          questions: processedQuestions,
+          timeMinutes: Math.max(processedQuestions.length * 3, 10), // 3 min per question, min 10
           difficulty: 'medium',
           status: 'pending',
         });
-        toast.success(`Simulado criado com ${validQuestions.length} questões!`);
+        
+        if (result) {
+          toast.success(`Simulado criado com ${processedQuestions.length} questões!`);
+        }
+      } else {
+        toast.warning('Nenhuma questão válida para criar simulado. Preencha o enunciado.');
       }
     }
 
