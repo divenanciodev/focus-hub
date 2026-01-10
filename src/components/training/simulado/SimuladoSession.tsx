@@ -147,7 +147,7 @@ export function SimuladoSession({
                       <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                     )}
                     <div className="flex-1">
-                      <p className="font-medium mb-2">{index + 1}. {q.text}</p>
+                      <p className="font-medium mb-2">{index + 1}. {q.statement}</p>
                       <div className="space-y-1 text-sm">
                         {q.options?.map((opt, optIndex) => (
                           <p
@@ -236,7 +236,7 @@ export function SimuladoSession({
                   <span className="text-sm text-muted-foreground">
                     Questão {currentIndex + 1}
                   </span>
-                  <p className="text-lg font-medium mt-2">{currentQuestion.text}</p>
+                  <p className="text-lg font-medium mt-2">{currentQuestion.statement}</p>
                 </div>
                 <Button
                   variant={flagged.has(currentQuestion.id) ? 'secondary' : 'ghost'}

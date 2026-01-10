@@ -124,16 +124,29 @@ export interface SpacedRepetitionData {
   repetitions: number;   // Number of successful reviews
 }
 
+// Texto de suporte para questão (pode ter múltiplos)
+export interface QuestionSupportText {
+  id: string;
+  title?: string;
+  content: string;
+  reference?: string; // De onde o texto foi tirado
+}
+
 export interface SimuladoQuestion {
   id: string;
-  text: string;
+  // Conteúdo associado (vem primeiro)
+  criteriaId?: string;
+  criteriaName?: string;
+  // Estrutura da questão
+  title?: string; // Título opcional da questão
+  supportTexts?: QuestionSupportText[]; // Textos de suporte
+  // Enunciado e alternativas
+  statement: string; // Enunciado antes das alternativas (comando da questão)
   type: 'multiple-choice' | 'true-false' | 'short-answer';
   options?: string[];
   correctAnswer: string | number;
   userAnswer?: string | number;
   isCorrect?: boolean;
-  criteriaId?: string; // ID do conteúdo/critério de avaliação associado
-  criteriaName?: string; // Nome do conteúdo para exibição
 }
 
 export interface Simulado {

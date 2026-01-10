@@ -185,7 +185,7 @@ export default function Concursos() {
     // Create simulado if there are questions
     if (newContest.simuladoQuestions.length > 0) {
       const validQuestions = newContest.simuladoQuestions.filter(
-        (q) => q.text.trim() && q.options?.some((o) => o.trim())
+        (q) => q.statement.trim() && q.options?.some((o) => o.trim())
       );
 
       if (validQuestions.length > 0) {
