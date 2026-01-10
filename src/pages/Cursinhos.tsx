@@ -14,6 +14,8 @@ import {
   Trash2,
   X,
   Image,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   Dialog,
@@ -49,6 +51,19 @@ export default function Cursinhos() {
   const [newCurriculumItem, setNewCurriculumItem] = useState('');
   const [editCurriculumItem, setEditCurriculumItem] = useState('');
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [expandedCurriculums, setExpandedCurriculums] = useState<Set<string>>(new Set());
+
+  const toggleCurriculumExpanded = (courseId: string) => {
+    setExpandedCurriculums(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(courseId)) {
+        newSet.delete(courseId);
+      } else {
+        newSet.add(courseId);
+      }
+      return newSet;
+    });
+  };
 
   const handleCreateCourse = async () => {
     if (newCourse.name && newCourse.theme && newCourse.workload && newCourse.deadline) {
@@ -391,26 +406,41 @@ export default function Cursinhos() {
 
                     {/* Grade Curricular */}
                     {course.curriculum.length > 0 ? (
-                      <div className="mb-2 max-h-24 overflow-y-auto flex-1">
-                        <h4 className="text-xs font-medium text-foreground mb-1">Grade Curricular</h4>
-                        <div className="space-y-1">
-                          {course.curriculum.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex items-center gap-1.5 p-1.5 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
-                              onClick={() => handleToggleCurriculumItem(course.id, item.id)}
-                            >
-                              <Checkbox
-                                checked={item.completed}
-                                onCheckedChange={() => handleToggleCurriculumItem(course.id, item.id)}
-                                className="h-3.5 w-3.5"
-                              />
-                              <span className={`text-xs ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                                {item.title}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="mb-2 flex-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCurriculumExpanded(course.id);
+                          }}
+                          className="flex items-center justify-between w-full text-xs font-medium text-foreground mb-1 hover:text-primary transition-colors"
+                        >
+                          <span>Grade Curricular ({course.curriculum.filter(i => i.completed).length}/{course.curriculum.length})</span>
+                          {expandedCurriculums.has(course.id) ? (
+                            <ChevronUp className="w-3 h-3" />
+                          ) : (
+                            <ChevronDown className="w-3 h-3" />
+                          )}
+                        </button>
+                        {expandedCurriculums.has(course.id) && (
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                            {course.curriculum.map((item) => (
+                              <div
+                                key={item.id}
+                                className="flex items-center gap-1.5 p-1.5 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
+                                onClick={() => handleToggleCurriculumItem(course.id, item.id)}
+                              >
+                                <Checkbox
+                                  checked={item.completed}
+                                  onCheckedChange={() => handleToggleCurriculumItem(course.id, item.id)}
+                                  className="h-3.5 w-3.5"
+                                />
+                                <span className={`text-xs ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                  {item.title}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground mb-2 flex-1">Sem grade curricular.</p>
