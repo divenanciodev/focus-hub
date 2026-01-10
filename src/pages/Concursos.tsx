@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ContestMateriasEditor } from '@/components/concursos/ContestMateriasEditor';
 import { EvaluationCriteriaEditor } from '@/components/concursos/EvaluationCriteriaEditor';
+import { EditalUpload } from '@/components/concursos/EditalUpload';
 import {
   Plus,
   Calendar,
@@ -758,14 +759,10 @@ export default function Concursos() {
                       placeholder="https://..."
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Link do Edital (PDF)</Label>
-                    <Input
-                      value={newContest.editalUrl}
-                      onChange={(e) => setNewContest({ ...newContest, editalUrl: e.target.value })}
-                      placeholder="https://..."
-                    />
-                  </div>
+                  <EditalUpload
+                    value={newContest.editalUrl}
+                    onChange={(url) => setNewContest({ ...newContest, editalUrl: url })}
+                  />
                 </div>
 
                 {/* Additional Info */}
