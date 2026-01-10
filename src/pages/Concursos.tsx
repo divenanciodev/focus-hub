@@ -95,6 +95,7 @@ interface NewContestForm {
   evaluationCriteria: EvaluationCriteria[];
   simuladoQuestions: SimuladoQuestion[];
   simuladoTimeMinutes: number;
+  existingSimuladoId?: string;
 }
 
 const INITIAL_FORM: NewContestForm = {
@@ -123,7 +124,7 @@ const INITIAL_FORM: NewContestForm = {
 export default function Concursos() {
   const navigate = useNavigate();
   const { contests, loading, addContest, updateContest, deleteContest } = useContests();
-  const { simulados, loading: loadingSimulados, addSimulado } = useSimulados();
+  const { simulados, loading: loadingSimulados, addSimulado, updateSimulado } = useSimulados();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -185,7 +186,7 @@ export default function Concursos() {
       await addContest(contestData);
     }
 
-    // Create simulado if there are questions
+    // Create or update simulado if there are questions
     if (newContest.simuladoQuestions.length > 0) {
       // Filter questions that have at least the statement filled
       const validQuestions = newContest.simuladoQuestions.filter(
@@ -199,18 +200,27 @@ export default function Concursos() {
           options: q.options?.filter((o) => o.trim()) || [],
         }));
 
-        const result = await addSimulado({
+        const simuladoData = {
           name: `Simulado - ${newContest.name}`,
           discipline: newContest.position,
           subject: newContest.institution || 'Geral',
           questions: processedQuestions,
           timeMinutes: newContest.simuladoTimeMinutes || 60,
-          difficulty: 'medium',
-          status: 'pending',
-        });
-        
-        if (result) {
-          toast.success(`Simulado criado com ${processedQuestions.length} questões!`);
+          difficulty: 'medium' as const,
+          status: 'pending' as const,
+        };
+
+        // If editing an existing simulado, update it instead of creating a new one
+        if (newContest.existingSimuladoId) {
+          const success = await updateSimulado(newContest.existingSimuladoId, simuladoData);
+          if (success) {
+            toast.success(`Simulado atualizado com ${processedQuestions.length} questões!`);
+          }
+        } else {
+          const result = await addSimulado(simuladoData);
+          if (result) {
+            toast.success(`Simulado criado com ${processedQuestions.length} questões!`);
+          }
         }
       } else {
         toast.warning('Nenhuma questão válida para criar simulado. Preencha o enunciado.');
@@ -225,6 +235,12 @@ export default function Concursos() {
 
   const handleEditContest = (contest: Contest) => {
     setEditingContest(contest);
+    
+    // Find existing simulado for this contest
+    const existingSimulado = simulados.find(
+      (s) => s.name === `Simulado - ${contest.name}`
+    );
+    
     setNewContest({
       name: contest.name,
       position: contest.position || '',
@@ -244,8 +260,9 @@ export default function Concursos() {
       taxaInscricao: contest.taxaInscricao || '',
       materias: contest.materias || [],
       evaluationCriteria: contest.evaluationCriteria || [],
-      simuladoQuestions: [],
-      simuladoTimeMinutes: 60,
+      simuladoQuestions: existingSimulado?.questions || [],
+      simuladoTimeMinutes: existingSimulado?.timeMinutes || 60,
+      existingSimuladoId: existingSimulado?.id,
     });
     setIsCreateModalOpen(true);
     setModalStep(1);

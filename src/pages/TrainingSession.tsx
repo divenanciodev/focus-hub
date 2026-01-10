@@ -191,7 +191,7 @@ export default function TrainingSession() {
                 {supportText.title && (
                   <h4 className="font-semibold text-foreground text-sm mb-2">{supportText.title}</h4>
                 )}
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed text-justify">
                   {supportText.content}
                 </p>
                 {supportText.reference && (
@@ -206,7 +206,7 @@ export default function TrainingSession() {
 
         {/* Enunciado / Comando */}
         <div className="pt-2">
-          <p className="text-foreground font-medium">{question.statement}</p>
+          <p className="text-foreground font-medium text-justify">{question.statement}</p>
         </div>
 
         {/* Alternativas */}
