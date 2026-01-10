@@ -13,6 +13,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ContestMateriasEditor } from '@/components/concursos/ContestMateriasEditor';
 import { EvaluationCriteriaEditor } from '@/components/concursos/EvaluationCriteriaEditor';
 import { EditalUpload } from '@/components/concursos/EditalUpload';
+import { SimuladoQuestionsEditor } from '@/components/concursos/SimuladoQuestionsEditor';
+import { SimuladoQuestion } from '@/types/training';
 import {
   Plus,
   Calendar,
@@ -90,6 +92,7 @@ interface NewContestForm {
   taxaInscricao: string;
   materias: ContestMateria[];
   evaluationCriteria: EvaluationCriteria[];
+  simuladoQuestions: SimuladoQuestion[];
 }
 
 const INITIAL_FORM: NewContestForm = {
@@ -111,18 +114,19 @@ const INITIAL_FORM: NewContestForm = {
   taxaInscricao: '',
   materias: [],
   evaluationCriteria: [],
+  simuladoQuestions: [],
 };
 
 export default function Concursos() {
   const navigate = useNavigate();
   const { contests, loading, addContest, updateContest, deleteContest } = useContests();
-  const { simulados, loading: loadingSimulados } = useSimulados();
+  const { simulados, loading: loadingSimulados, addSimulado } = useSimulados();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-  const [modalStep, setModalStep] = useState<1 | 2>(1);
+  const [modalStep, setModalStep] = useState<1 | 2 | 3>(1);
 
   // Form state
   const [newContest, setNewContest] = useState<NewContestForm>(INITIAL_FORM);
@@ -178,6 +182,26 @@ export default function Concursos() {
       await addContest(contestData);
     }
 
+    // Create simulado if there are questions
+    if (newContest.simuladoQuestions.length > 0) {
+      const validQuestions = newContest.simuladoQuestions.filter(
+        (q) => q.text.trim() && q.options?.some((o) => o.trim())
+      );
+
+      if (validQuestions.length > 0) {
+        await addSimulado({
+          name: `Simulado - ${newContest.name}`,
+          discipline: newContest.position,
+          subject: newContest.institution || 'Geral',
+          questions: validQuestions,
+          timeMinutes: validQuestions.length * 3, // 3 min per question
+          difficulty: 'medium',
+          status: 'pending',
+        });
+        toast.success(`Simulado criado com ${validQuestions.length} questões!`);
+      }
+    }
+
     setNewContest(INITIAL_FORM);
     setEditingContest(null);
     setIsCreateModalOpen(false);
@@ -205,6 +229,7 @@ export default function Concursos() {
       taxaInscricao: contest.taxaInscricao || '',
       materias: contest.materias || [],
       evaluationCriteria: contest.evaluationCriteria || [],
+      simuladoQuestions: [],
     });
     setIsCreateModalOpen(true);
     setModalStep(1);
@@ -222,19 +247,27 @@ export default function Concursos() {
   };
 
   const handleNextStep = () => {
-    if (!newContest.name || !newContest.position) {
-      toast.error('Preencha nome e cargo antes de continuar');
-      return;
+    if (modalStep === 1) {
+      if (!newContest.name || !newContest.position) {
+        toast.error('Preencha nome e cargo antes de continuar');
+        return;
+      }
+      if (!newContest.isPreparingOnly && !newContest.examDate) {
+        toast.error('Informe a data da prova ou marque como "preparação"');
+        return;
+      }
+      setModalStep(2);
+    } else if (modalStep === 2) {
+      setModalStep(3);
     }
-    if (!newContest.isPreparingOnly && !newContest.examDate) {
-      toast.error('Informe a data da prova ou marque como "preparação"');
-      return;
-    }
-    setModalStep(2);
   };
 
   const handlePrevStep = () => {
-    setModalStep(1);
+    if (modalStep === 2) {
+      setModalStep(1);
+    } else if (modalStep === 3) {
+      setModalStep(2);
+    }
   };
 
   // Filter simulados based on search and difficulty
@@ -631,14 +664,14 @@ export default function Concursos() {
         </TabsContent>
       </Tabs>
 
-      {/* Create/Edit Contest Modal - Two Steps */}
+      {/* Create/Edit Contest Modal - Three Steps */}
       <Dialog open={isCreateModalOpen} onOpenChange={handleCloseModal}>
         <DialogContent className="sm:max-w-4xl h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>
               {editingContest ? 'Editar Concurso' : 'Novo Concurso'}
               <span className="ml-2 text-sm font-normal text-muted-foreground">
-                — Etapa {modalStep} de 2
+                — Etapa {modalStep} de 3
               </span>
             </DialogTitle>
           </DialogHeader>
@@ -648,7 +681,7 @@ export default function Concursos() {
             <div
               className={cn(
                 'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
-                modalStep === 1
+                modalStep >= 1
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
               )}
@@ -659,24 +692,43 @@ export default function Concursos() {
               <div
                 className={cn(
                   'h-full rounded transition-all',
-                  modalStep === 2 ? 'bg-primary w-full' : 'bg-primary w-0'
+                  modalStep >= 2 ? 'bg-primary w-full' : 'bg-primary w-0'
                 )}
               />
             </div>
             <div
               className={cn(
                 'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
-                modalStep === 2
+                modalStep >= 2
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
               )}
             >
               2
             </div>
+            <div className="flex-1 h-1 bg-muted rounded">
+              <div
+                className={cn(
+                  'h-full rounded transition-all',
+                  modalStep >= 3 ? 'bg-primary w-full' : 'bg-primary w-0'
+                )}
+              />
+            </div>
+            <div
+              className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
+                modalStep >= 3
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              3
+            </div>
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground mb-4">
-            <span>Dados e Conteúdo</span>
-            <span>Critérios de Avaliação</span>
+          <div className="grid grid-cols-3 text-xs text-muted-foreground mb-4">
+            <span className="text-center">Dados Gerais</span>
+            <span className="text-center">Critérios</span>
+            <span className="text-center">Simulado</span>
           </div>
 
           <ScrollArea className="flex-1 min-h-0">
@@ -845,7 +897,7 @@ export default function Concursos() {
                 </div>
 
               </div>
-            ) : (
+            ) : modalStep === 2 ? (
               <div className="space-y-6 pb-4 px-3">
                 <EvaluationCriteriaEditor
                   criteria={newContest.evaluationCriteria}
@@ -856,6 +908,13 @@ export default function Concursos() {
                 <ContestMateriasEditor
                   materias={newContest.materias}
                   onChange={(materias) => setNewContest({ ...newContest, materias })}
+                />
+              </div>
+            ) : (
+              <div className="space-y-6 pb-4 px-3">
+                <SimuladoQuestionsEditor
+                  questions={newContest.simuladoQuestions}
+                  onChange={(simuladoQuestions) => setNewContest({ ...newContest, simuladoQuestions })}
                 />
               </div>
             )}
@@ -872,6 +931,17 @@ export default function Concursos() {
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               </>
+            ) : modalStep === 2 ? (
+              <>
+                <Button variant="outline" onClick={handlePrevStep}>
+                  <ChevronLeft className="w-4 h-4 mr-2" />
+                  Voltar
+                </Button>
+                <Button onClick={handleNextStep}>
+                  Próximo
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              </>
             ) : (
               <>
                 <Button variant="outline" onClick={handlePrevStep}>
@@ -880,6 +950,11 @@ export default function Concursos() {
                 </Button>
                 <Button onClick={handleCreateContest}>
                   {editingContest ? 'Salvar' : 'Criar Concurso'}
+                  {newContest.simuladoQuestions.length > 0 && (
+                    <span className="ml-2 text-xs opacity-80">
+                      ({newContest.simuladoQuestions.length} questões)
+                    </span>
+                  )}
                 </Button>
               </>
             )}
