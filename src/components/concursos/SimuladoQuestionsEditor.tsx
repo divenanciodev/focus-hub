@@ -51,7 +51,8 @@ function getQuestionsByCriteria(questions: SimuladoQuestion[]): Map<string, { na
 export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteria = [] }: SimuladoQuestionsEditorProps) {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [showBulkGabarito, setShowBulkGabarito] = useState(false);
-  const [bulkGabaritoInput, setBulkGabaritoInput] = useState('');
+  const [gabaritoCount, setGabaritoCount] = useState('');
+  const [gabaritoAnswers, setGabaritoAnswers] = useState<string[]>([]);
 
   // Gera lista de opções de conteúdo a partir dos critérios de avaliação
   const criteriaOptions: CriteriaOption[] = evaluationCriteria.flatMap((criteria) =>
@@ -169,74 +170,81 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
     return String.fromCharCode(65 + index); // A, B, C, D, E...
   };
 
-  // Parse gabarito input and apply to questions
-  const applyBulkGabarito = () => {
-    if (!bulkGabaritoInput.trim()) {
-      toast.error('Digite o gabarito');
-      return;
-    }
-
-    // Parse formats like: "1-A, 2-B, 3-C" or "A B C D E" or "ABCDE" or "1.A 2.B 3.C"
-    const input = bulkGabaritoInput.toUpperCase().trim();
-    
-    // Try to extract answers
-    let answers: string[] = [];
-    
-    // Format: "1-A, 2-B, 3-C" or "1.A 2.B 3.C" or "1)A 2)B"
-    const numberedPattern = /(\d+)\s*[-.)]\s*([A-E])/gi;
-    const numberedMatches = [...input.matchAll(numberedPattern)];
-    
-    if (numberedMatches.length > 0) {
-      // Sort by question number and extract answers
-      const sorted = numberedMatches.sort((a, b) => parseInt(a[1]) - parseInt(b[1]));
-      answers = sorted.map(m => m[2]);
+  // Initialize gabarito fields when count changes
+  const handleGabaritoCountChange = (value: string) => {
+    setGabaritoCount(value);
+    const count = parseInt(value) || 0;
+    if (count > 0 && count <= 200) {
+      setGabaritoAnswers(Array(count).fill(''));
     } else {
-      // Format: "A B C D E" (space separated) or "ABCDE" (continuous)
-      const cleanInput = input.replace(/[^A-E]/g, '');
-      answers = cleanInput.split('');
+      setGabaritoAnswers([]);
     }
+  };
 
-    if (answers.length === 0) {
-      toast.error('Formato inválido. Use: "A B C D E" ou "1-A, 2-B, 3-C" ou "ABCDE"');
+  // Update individual answer
+  const updateGabaritoAnswer = (index: number, value: string) => {
+    const upper = value.toUpperCase();
+    // Only allow A-E
+    if (upper === '' || /^[A-E]$/.test(upper)) {
+      const newAnswers = [...gabaritoAnswers];
+      newAnswers[index] = upper;
+      setGabaritoAnswers(newAnswers);
+    }
+  };
+
+  // Apply gabarito to questions
+  const applyBulkGabarito = () => {
+    if (gabaritoAnswers.length === 0) {
+      toast.error('Defina a quantidade de questões primeiro');
       return;
     }
 
-    if (answers.length > questions.length) {
-      toast.warning(`Gabarito tem ${answers.length} respostas, mas há apenas ${questions.length} questões. Extras serão ignoradas.`);
+    const filledAnswers = gabaritoAnswers.filter(a => a !== '');
+    if (filledAnswers.length === 0) {
+      toast.error('Preencha pelo menos uma alternativa');
+      return;
     }
 
-    if (answers.length < questions.length) {
-      toast.warning(`Gabarito tem ${answers.length} respostas, mas há ${questions.length} questões. Questões restantes não serão alteradas.`);
+    // Create or update questions based on gabarito
+    const updatedQuestions = [...questions];
+    
+    // If we have more gabarito answers than questions, create new questions
+    for (let i = questions.length; i < gabaritoAnswers.length; i++) {
+      updatedQuestions.push({
+        id: generateId(),
+        statement: '',
+        type: 'multiple-choice',
+        options: ['', '', '', '', ''],
+        correctAnswer: 0,
+        supportTexts: [],
+      });
     }
 
-    // Apply answers to questions
-    const updatedQuestions = questions.map((q, index) => {
-      if (index < answers.length) {
-        const answerLetter = answers[index];
-        const answerIndex = answerLetter.charCodeAt(0) - 65; // A=0, B=1, C=2, etc.
-        
-        // Validate answer index is within options range
-        if (q.options && answerIndex >= 0 && answerIndex < q.options.length) {
-          return { ...q, correctAnswer: answerIndex };
-        }
+    // Apply answers
+    gabaritoAnswers.forEach((answer, index) => {
+      if (answer && index < updatedQuestions.length) {
+        const answerIndex = answer.charCodeAt(0) - 65; // A=0, B=1, etc.
+        updatedQuestions[index] = { ...updatedQuestions[index], correctAnswer: answerIndex };
       }
-      return q;
     });
 
     onChange(updatedQuestions);
-    setBulkGabaritoInput('');
     setShowBulkGabarito(false);
-    toast.success(`Gabarito aplicado a ${Math.min(answers.length, questions.length)} questões!`);
+    setGabaritoCount('');
+    setGabaritoAnswers([]);
+    toast.success(`Gabarito aplicado! ${updatedQuestions.length} questões.`);
   };
 
-  // Generate current gabarito string
-  const getCurrentGabarito = () => {
-    return questions.map((q, i) => {
-      const letter = q.options && typeof q.correctAnswer === 'number' 
-        ? getOptionLabel(q.correctAnswer) 
-        : '?';
-      return `${i + 1}-${letter}`;
-    }).join(', ');
+  // Load existing gabarito from questions
+  const loadExistingGabarito = () => {
+    if (questions.length > 0) {
+      setGabaritoCount(questions.length.toString());
+      setGabaritoAnswers(
+        questions.map(q => 
+          typeof q.correctAnswer === 'number' ? getOptionLabel(q.correctAnswer) : ''
+        )
+      );
+    }
   };
 
   return (
@@ -254,59 +262,155 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
       </div>
 
       {/* Bulk Gabarito Section */}
-      {questions.length > 0 && (
-        <div className="border border-primary/30 rounded-lg p-3 bg-primary/5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ListChecks className="w-4 h-4 text-primary" />
-              <Label className="text-sm font-semibold text-primary">Gabarito Rápido</Label>
-            </div>
+      <div className="border border-primary/30 rounded-lg p-3 bg-primary/5 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ListChecks className="w-4 h-4 text-primary" />
+            <Label className="text-sm font-semibold text-primary">Gabarito Rápido</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            {questions.length > 0 && !showBulkGabarito && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => {
+                  loadExistingGabarito();
+                  setShowBulkGabarito(true);
+                }}
+              >
+                Editar Gabarito
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
               className="h-7 text-xs"
-              onClick={() => setShowBulkGabarito(!showBulkGabarito)}
+              onClick={() => {
+                setShowBulkGabarito(!showBulkGabarito);
+                if (!showBulkGabarito && gabaritoAnswers.length === 0) {
+                  setGabaritoCount('');
+                }
+              }}
             >
-              {showBulkGabarito ? 'Ocultar' : 'Preencher Gabarito'}
+              {showBulkGabarito ? 'Ocultar' : 'Novo Gabarito'}
             </Button>
           </div>
-
-          {showBulkGabarito && (
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Digite o gabarito para todas as questões. Formatos aceitos:
-              </p>
-              <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
-                <li>Separado por vírgula: <code className="bg-muted px-1 rounded">1-A, 2-B, 3-C, 4-D</code></li>
-                <li>Contínuo: <code className="bg-muted px-1 rounded">ABCDE</code></li>
-                <li>Espaçado: <code className="bg-muted px-1 rounded">A B C D E</code></li>
-                <li>Com ponto: <code className="bg-muted px-1 rounded">1.A 2.B 3.C</code></li>
-              </ul>
-              <Textarea
-                value={bulkGabaritoInput}
-                onChange={(e) => setBulkGabaritoInput(e.target.value)}
-                placeholder="Ex: 1-A, 2-B, 3-C, 4-D, 5-E ou ABCDE"
-                className="resize-none min-h-[60px] text-sm font-mono"
-              />
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">
-                  <span className="font-medium">Gabarito atual:</span>{' '}
-                  <span className="font-mono">{getCurrentGabarito()}</span>
-                </div>
-                <Button
-                  size="sm"
-                  className="h-8"
-                  onClick={applyBulkGabarito}
-                  disabled={!bulkGabaritoInput.trim()}
-                >
-                  <Check className="w-3 h-3 mr-1" />
-                  Aplicar Gabarito
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
-      )}
+
+        {showBulkGabarito && (
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Digite a quantidade de questões e preencha a alternativa correta para cada uma (A-E).
+            </p>
+
+            {/* Question Count Input */}
+            <div className="flex items-center gap-3">
+              <Label className="text-sm whitespace-nowrap">Quantidade de questões:</Label>
+              <Input
+                type="number"
+                value={gabaritoCount}
+                onChange={(e) => handleGabaritoCountChange(e.target.value)}
+                placeholder="Ex: 30"
+                className="w-24 h-8 text-sm text-center"
+                min={1}
+                max={200}
+              />
+              {questions.length > 0 && gabaritoAnswers.length === 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={loadExistingGabarito}
+                >
+                  Carregar das questões ({questions.length})
+                </Button>
+              )}
+            </div>
+
+            {/* Gabarito Grid */}
+            {gabaritoAnswers.length > 0 && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-10 gap-2 text-xs font-medium text-muted-foreground border-b border-border pb-2">
+                  <div className="col-span-1 text-center">Nº</div>
+                  <div className="col-span-1 text-center">Resp.</div>
+                  <div className="col-span-1 text-center">Nº</div>
+                  <div className="col-span-1 text-center">Resp.</div>
+                  <div className="col-span-1 text-center">Nº</div>
+                  <div className="col-span-1 text-center">Resp.</div>
+                  <div className="col-span-1 text-center">Nº</div>
+                  <div className="col-span-1 text-center">Resp.</div>
+                  <div className="col-span-1 text-center">Nº</div>
+                  <div className="col-span-1 text-center">Resp.</div>
+                </div>
+
+                <div className="grid grid-cols-10 gap-2">
+                  {gabaritoAnswers.map((answer, index) => (
+                    <div key={index} className="contents">
+                      <div className="flex items-center justify-center text-xs font-medium text-muted-foreground">
+                        {index + 1}
+                      </div>
+                      <Input
+                        value={answer}
+                        onChange={(e) => updateGabaritoAnswer(index, e.target.value)}
+                        className={cn(
+                          "h-7 text-center text-sm font-medium uppercase",
+                          answer ? "border-success bg-success/10 text-success" : ""
+                        )}
+                        maxLength={1}
+                        placeholder="-"
+                        onKeyDown={(e) => {
+                          // Move to next input on valid letter
+                          if (/^[a-eA-E]$/.test(e.key) && index < gabaritoAnswers.length - 1) {
+                            setTimeout(() => {
+                              const nextInput = document.querySelector(
+                                `[data-gabarito-index="${index + 1}"]`
+                              ) as HTMLInputElement;
+                              nextInput?.focus();
+                            }, 10);
+                          }
+                        }}
+                        data-gabarito-index={index}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Summary */}
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium">Preenchidas:</span>{' '}
+                    {gabaritoAnswers.filter(a => a !== '').length} de {gabaritoAnswers.length}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => {
+                        setShowBulkGabarito(false);
+                        setGabaritoCount('');
+                        setGabaritoAnswers([]);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-8"
+                      onClick={applyBulkGabarito}
+                      disabled={gabaritoAnswers.filter(a => a !== '').length === 0}
+                    >
+                      <Check className="w-3 h-3 mr-1" />
+                      Salvar Gabarito
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Estatísticas por Matéria */}
       {questionsByCriteria.size > 0 && (
@@ -349,9 +453,9 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
                     {question.criteriaName}
                   </span>
                 )}
-                {question.options && question.options[(question.correctAnswer as number)]?.trim() && (
+                {question.options && typeof question.correctAnswer === 'number' && (
                   <span className="text-xs px-2 py-0.5 bg-success/10 text-success rounded shrink-0">
-                    Gabarito: {getOptionLabel(question.correctAnswer as number)}
+                    Gabarito: {getOptionLabel(question.correctAnswer)}
                   </span>
                 )}
                 {isExpanded ? (
