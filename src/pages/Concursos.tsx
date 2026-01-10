@@ -4,13 +4,14 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useContests, Contest, ContestMateria } from '@/hooks/useContests';
+import { useContests, Contest, ContestMateria, EvaluationCriteria } from '@/hooks/useContests';
 import { useSimulados } from '@/hooks/useSimulados';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ContestMateriasEditor } from '@/components/concursos/ContestMateriasEditor';
+import { EvaluationCriteriaEditor } from '@/components/concursos/EvaluationCriteriaEditor';
 import {
   Plus,
   Calendar,
@@ -26,6 +27,8 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   Dialog,
@@ -85,6 +88,7 @@ interface NewContestForm {
   inscricoesPeriodo: string;
   taxaInscricao: string;
   materias: ContestMateria[];
+  evaluationCriteria: EvaluationCriteria[];
 }
 
 const INITIAL_FORM: NewContestForm = {
@@ -105,6 +109,7 @@ const INITIAL_FORM: NewContestForm = {
   inscricoesPeriodo: '',
   taxaInscricao: '',
   materias: [],
+  evaluationCriteria: [],
 };
 
 export default function Concursos() {
@@ -116,6 +121,7 @@ export default function Concursos() {
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [modalStep, setModalStep] = useState<1 | 2>(1);
 
   // Form state
   const [newContest, setNewContest] = useState<NewContestForm>(INITIAL_FORM);
@@ -162,6 +168,7 @@ export default function Concursos() {
       inscricoesPeriodo: newContest.inscricoesPeriodo || undefined,
       taxaInscricao: newContest.taxaInscricao || undefined,
       materias: newContest.materias,
+      evaluationCriteria: newContest.evaluationCriteria,
     };
 
     if (editingContest) {
@@ -173,6 +180,7 @@ export default function Concursos() {
     setNewContest(INITIAL_FORM);
     setEditingContest(null);
     setIsCreateModalOpen(false);
+    setModalStep(1);
   };
 
   const handleEditContest = (contest: Contest) => {
@@ -195,8 +203,10 @@ export default function Concursos() {
       inscricoesPeriodo: contest.inscricoesPeriodo || '',
       taxaInscricao: contest.taxaInscricao || '',
       materias: contest.materias || [],
+      evaluationCriteria: contest.evaluationCriteria || [],
     });
     setIsCreateModalOpen(true);
+    setModalStep(1);
   };
 
   const handleDeleteContest = async (contestId: string) => {
@@ -207,6 +217,23 @@ export default function Concursos() {
     setIsCreateModalOpen(false);
     setEditingContest(null);
     setNewContest(INITIAL_FORM);
+    setModalStep(1);
+  };
+
+  const handleNextStep = () => {
+    if (!newContest.name || !newContest.position) {
+      toast.error('Preencha nome e cargo antes de continuar');
+      return;
+    }
+    if (!newContest.isPreparingOnly && !newContest.examDate) {
+      toast.error('Informe a data da prova ou marque como "preparação"');
+      return;
+    }
+    setModalStep(2);
+  };
+
+  const handlePrevStep = () => {
+    setModalStep(1);
   };
 
   // Filter simulados based on search and difficulty
@@ -462,6 +489,23 @@ export default function Concursos() {
                             </div>
                           </div>
                         )}
+
+                        {/* Evaluation Criteria display */}
+                        {contest.evaluationCriteria && contest.evaluationCriteria.length > 0 && (
+                          <div className="pt-2 border-t border-border">
+                            <span className="font-medium text-foreground">Critérios de Avaliação:</span>
+                            <div className="mt-2 space-y-2">
+                              {contest.evaluationCriteria.map((crit, idx) => (
+                                <div key={idx} className="pl-2 border-l-2 border-warning/30">
+                                  <span className="font-medium text-foreground">{crit.level}</span>
+                                  <span className="text-muted-foreground ml-2">
+                                    ({crit.totalQuestions} questões • {crit.totalPoints.toFixed(1)} pts)
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -586,192 +630,261 @@ export default function Concursos() {
         </TabsContent>
       </Tabs>
 
-      {/* Create/Edit Contest Modal */}
+      {/* Create/Edit Contest Modal - Two Steps */}
       <Dialog open={isCreateModalOpen} onOpenChange={handleCloseModal}>
         <DialogContent className="sm:max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>{editingContest ? 'Editar Concurso' : 'Novo Concurso'}</DialogTitle>
+            <DialogTitle>
+              {editingContest ? 'Editar Concurso' : 'Novo Concurso'}
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                — Etapa {modalStep} de 2
+              </span>
+            </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="max-h-[70vh] px-1">
-            <div className="space-y-4 pb-4 px-3">
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome do concurso *</Label>
-                  <Input
-                    value={newContest.name}
-                    onChange={(e) => setNewContest({ ...newContest, name: e.target.value })}
-                    placeholder="Ex: Concurso TRT-SP"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cargo *</Label>
-                  <Input
-                    value={newContest.position}
-                    onChange={(e) => setNewContest({ ...newContest, position: e.target.value })}
-                    placeholder="Ex: Analista Judiciário"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Instituição</Label>
-                  <Input
-                    value={newContest.institution}
-                    onChange={(e) => setNewContest({ ...newContest, institution: e.target.value })}
-                    placeholder="Ex: TRT"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Situação atual</Label>
-                  <Input
-                    value={newContest.situacao}
-                    onChange={(e) => setNewContest({ ...newContest, situacao: e.target.value })}
-                    placeholder="Ex: Edital publicado"
-                  />
-                </div>
-              </div>
-
-              {/* Date options */}
-              <div className="space-y-3 p-3 border border-border rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Apenas preparação para área</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Marque se não tem data específica de prova
-                    </p>
-                  </div>
-                  <Switch
-                    checked={newContest.isPreparingOnly}
-                    onCheckedChange={(checked) =>
-                      setNewContest({ ...newContest, isPreparingOnly: checked, examDate: checked ? '' : newContest.examDate })
-                    }
-                  />
-                </div>
-                {!newContest.isPreparingOnly && (
-                  <div className="space-y-2">
-                    <Label>Data da prova</Label>
-                    <Input
-                      type="date"
-                      value={newContest.examDate}
-                      onChange={(e) => setNewContest({ ...newContest, examDate: e.target.value })}
-                    />
-                  </div>
+          {/* Step Indicator */}
+          <div className="flex items-center gap-2 mb-2">
+            <div
+              className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
+                modalStep === 1
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              1
+            </div>
+            <div className="flex-1 h-1 bg-muted rounded">
+              <div
+                className={cn(
+                  'h-full rounded transition-all',
+                  modalStep === 2 ? 'bg-primary w-full' : 'bg-primary w-0'
                 )}
-              </div>
-
-              {/* Links */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Link da Banca Organizadora</Label>
-                  <Input
-                    value={newContest.bancaUrl}
-                    onChange={(e) => setNewContest({ ...newContest, bancaUrl: e.target.value })}
-                    placeholder="https://..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Link do Edital (PDF)</Label>
-                  <Input
-                    value={newContest.editalUrl}
-                    onChange={(e) => setNewContest({ ...newContest, editalUrl: e.target.value })}
-                    placeholder="https://..."
-                  />
-                </div>
-              </div>
-
-              {/* Additional Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Cargos</Label>
-                  <Input
-                    value={newContest.cargos}
-                    onChange={(e) => setNewContest({ ...newContest, cargos: e.target.value })}
-                    placeholder="Ex: Diversos"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Escolaridade</Label>
-                  <Input
-                    value={newContest.escolaridade}
-                    onChange={(e) => setNewContest({ ...newContest, escolaridade: e.target.value })}
-                    placeholder="Ex: Nível médio e superior"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Carreiras</Label>
-                  <Input
-                    value={newContest.carreiras}
-                    onChange={(e) => setNewContest({ ...newContest, carreiras: e.target.value })}
-                    placeholder="Ex: Administrativa, fiscal, TI"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Lotação</Label>
-                  <Input
-                    value={newContest.lotacao}
-                    onChange={(e) => setNewContest({ ...newContest, lotacao: e.target.value })}
-                    placeholder="Ex: Maranhão"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Número de vagas</Label>
-                  <Input
-                    value={newContest.vagas}
-                    onChange={(e) => setNewContest({ ...newContest, vagas: e.target.value })}
-                    placeholder="Ex: 45 + 21 CR"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Remuneração</Label>
-                  <Input
-                    value={newContest.remuneracao}
-                    onChange={(e) => setNewContest({ ...newContest, remuneracao: formatCurrency(e.target.value) })}
-                    placeholder="R$ 0,00"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Período de inscrições</Label>
-                  <Input
-                    value={newContest.inscricoesPeriodo}
-                    onChange={(e) =>
-                      setNewContest({ ...newContest, inscricoesPeriodo: e.target.value })
-                    }
-                    placeholder="Ex: 05/12/2025 a 05/01/2026"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Taxa de inscrição</Label>
-                  <Input
-                    value={newContest.taxaInscricao}
-                    onChange={(e) => setNewContest({ ...newContest, taxaInscricao: formatCurrency(e.target.value) })}
-                    placeholder="R$ 0,00"
-                  />
-                </div>
-              </div>
-
-              {/* Materias Editor */}
-              <ContestMateriasEditor
-                materias={newContest.materias}
-                onChange={(materias) => setNewContest({ ...newContest, materias })}
               />
             </div>
+            <div
+              className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
+                modalStep === 2
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              2
+            </div>
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground mb-4">
+            <span>Dados e Conteúdo</span>
+            <span>Critérios de Avaliação</span>
+          </div>
+
+          <ScrollArea className="max-h-[60vh] px-1">
+            {modalStep === 1 ? (
+              <div className="space-y-4 pb-4 px-3">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nome do concurso *</Label>
+                    <Input
+                      value={newContest.name}
+                      onChange={(e) => setNewContest({ ...newContest, name: e.target.value })}
+                      placeholder="Ex: Concurso TRT-SP"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cargo *</Label>
+                    <Input
+                      value={newContest.position}
+                      onChange={(e) => setNewContest({ ...newContest, position: e.target.value })}
+                      placeholder="Ex: Analista Judiciário"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Instituição</Label>
+                    <Input
+                      value={newContest.institution}
+                      onChange={(e) => setNewContest({ ...newContest, institution: e.target.value })}
+                      placeholder="Ex: TRT"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Situação atual</Label>
+                    <Input
+                      value={newContest.situacao}
+                      onChange={(e) => setNewContest({ ...newContest, situacao: e.target.value })}
+                      placeholder="Ex: Edital publicado"
+                    />
+                  </div>
+                </div>
+
+                {/* Date options */}
+                <div className="space-y-3 p-3 border border-border rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Apenas preparação para área</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Marque se não tem data específica de prova
+                      </p>
+                    </div>
+                    <Switch
+                      checked={newContest.isPreparingOnly}
+                      onCheckedChange={(checked) =>
+                        setNewContest({ ...newContest, isPreparingOnly: checked, examDate: checked ? '' : newContest.examDate })
+                      }
+                    />
+                  </div>
+                  {!newContest.isPreparingOnly && (
+                    <div className="space-y-2">
+                      <Label>Data da prova</Label>
+                      <Input
+                        type="date"
+                        value={newContest.examDate}
+                        onChange={(e) => setNewContest({ ...newContest, examDate: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Links */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Link da Banca Organizadora</Label>
+                    <Input
+                      value={newContest.bancaUrl}
+                      onChange={(e) => setNewContest({ ...newContest, bancaUrl: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Link do Edital (PDF)</Label>
+                    <Input
+                      value={newContest.editalUrl}
+                      onChange={(e) => setNewContest({ ...newContest, editalUrl: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+
+                {/* Additional Info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Cargos</Label>
+                    <Input
+                      value={newContest.cargos}
+                      onChange={(e) => setNewContest({ ...newContest, cargos: e.target.value })}
+                      placeholder="Ex: Diversos"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Escolaridade</Label>
+                    <Input
+                      value={newContest.escolaridade}
+                      onChange={(e) => setNewContest({ ...newContest, escolaridade: e.target.value })}
+                      placeholder="Ex: Nível médio e superior"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Carreiras</Label>
+                    <Input
+                      value={newContest.carreiras}
+                      onChange={(e) => setNewContest({ ...newContest, carreiras: e.target.value })}
+                      placeholder="Ex: Administrativa, fiscal, TI"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Lotação</Label>
+                    <Input
+                      value={newContest.lotacao}
+                      onChange={(e) => setNewContest({ ...newContest, lotacao: e.target.value })}
+                      placeholder="Ex: Maranhão"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Número de vagas</Label>
+                    <Input
+                      value={newContest.vagas}
+                      onChange={(e) => setNewContest({ ...newContest, vagas: e.target.value })}
+                      placeholder="Ex: 45 + 21 CR"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Remuneração</Label>
+                    <Input
+                      value={newContest.remuneracao}
+                      onChange={(e) => setNewContest({ ...newContest, remuneracao: formatCurrency(e.target.value) })}
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Período de inscrições</Label>
+                    <Input
+                      value={newContest.inscricoesPeriodo}
+                      onChange={(e) =>
+                        setNewContest({ ...newContest, inscricoesPeriodo: e.target.value })
+                      }
+                      placeholder="Ex: 05/12/2025 a 05/01/2026"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Taxa de inscrição</Label>
+                    <Input
+                      value={newContest.taxaInscricao}
+                      onChange={(e) => setNewContest({ ...newContest, taxaInscricao: formatCurrency(e.target.value) })}
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
+                </div>
+
+                {/* Materias Editor */}
+                <ContestMateriasEditor
+                  materias={newContest.materias}
+                  onChange={(materias) => setNewContest({ ...newContest, materias })}
+                />
+              </div>
+            ) : (
+              <div className="space-y-4 pb-4 px-3">
+                <EvaluationCriteriaEditor
+                  criteria={newContest.evaluationCriteria}
+                  onChange={(evaluationCriteria) => setNewContest({ ...newContest, evaluationCriteria })}
+                />
+              </div>
+            )}
           </ScrollArea>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseModal}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateContest}>{editingContest ? 'Salvar' : 'Criar'}</Button>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {modalStep === 1 ? (
+              <>
+                <Button variant="outline" onClick={handleCloseModal}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleNextStep}>
+                  Próximo
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={handlePrevStep}>
+                  <ChevronLeft className="w-4 h-4 mr-2" />
+                  Voltar
+                </Button>
+                <Button onClick={handleCreateContest}>
+                  {editingContest ? 'Salvar' : 'Criar Concurso'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

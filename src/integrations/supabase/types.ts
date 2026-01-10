@@ -22,6 +22,7 @@ export type Database = {
           created_at: string | null
           edital_url: string | null
           escolaridade: string | null
+          evaluation_criteria: Json | null
           exam_date: string | null
           id: string
           inscricoes_periodo: string | null
@@ -46,6 +47,7 @@ export type Database = {
           created_at?: string | null
           edital_url?: string | null
           escolaridade?: string | null
+          evaluation_criteria?: Json | null
           exam_date?: string | null
           id?: string
           inscricoes_periodo?: string | null
@@ -70,6 +72,7 @@ export type Database = {
           created_at?: string | null
           edital_url?: string | null
           escolaridade?: string | null
+          evaluation_criteria?: Json | null
           exam_date?: string | null
           id?: string
           inscricoes_periodo?: string | null
