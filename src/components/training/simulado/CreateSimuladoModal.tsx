@@ -116,7 +116,7 @@ export function CreateSimuladoModal({
     
     const newQuestion: SimuladoQuestion = {
       id: Date.now().toString(),
-      text: questionText.trim(),
+      statement: questionText.trim(),
       type: questionType,
       options: questionType === 'multiple-choice' 
         ? options.filter(o => o.trim())
@@ -692,7 +692,7 @@ export function CreateSimuladoModal({
                     className="flex items-start gap-2 bg-secondary/50 rounded-lg p-3"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium break-words">{index + 1}. {q.text}</p>
+                      <p className="text-sm font-medium break-words">{index + 1}. {q.statement}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {q.type === 'multiple-choice' ? 'Múltipla escolha' : 'V/F'} • {q.options?.length} alternativas
                       </p>

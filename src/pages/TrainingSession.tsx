@@ -169,7 +169,7 @@ export default function TrainingSession() {
       </div>
 
       <div className="bg-card border border-border rounded-xl p-6 mb-6">
-        <p className="text-foreground font-medium mb-6">{question.text}</p>
+        <p className="text-foreground font-medium mb-6">{question.statement}</p>
 
         <div className="space-y-3">
           {question.options.map((option, i) => (

@@ -4,9 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, Trash2, ChevronDown, ChevronUp, Check, GripVertical, BookOpen } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Check, GripVertical, BookOpen, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SimuladoQuestion } from '@/types/training';
+import { SimuladoQuestion, QuestionSupportText } from '@/types/training';
 import { EvaluationCriteria } from '@/hooks/useContests';
 import {
   Select,
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 interface CriteriaOption {
   id: string;
@@ -30,9 +31,24 @@ interface SimuladoQuestionsEditorProps {
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
+// Agrupa questões por critério para exibir estatísticas
+function getQuestionsByCriteria(questions: SimuladoQuestion[]): Map<string, { name: string; count: number }> {
+  const map = new Map<string, { name: string; count: number }>();
+  for (const q of questions) {
+    if (q.criteriaName) {
+      const existing = map.get(q.criteriaName);
+      if (existing) {
+        existing.count++;
+      } else {
+        map.set(q.criteriaName, { name: q.criteriaName, count: 1 });
+      }
+    }
+  }
+  return map;
+}
+
 export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteria = [] }: SimuladoQuestionsEditorProps) {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
-  const [pasteAlternatives, setPasteAlternatives] = useState<{ [key: string]: string }>({});
 
   // Gera lista de opções de conteúdo a partir dos critérios de avaliação
   const criteriaOptions: CriteriaOption[] = evaluationCriteria.flatMap((criteria) =>
@@ -42,6 +58,9 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
       level: criteria.level,
     }))
   );
+
+  // Estatísticas de questões por matéria
+  const questionsByCriteria = getQuestionsByCriteria(questions);
 
   const toggleExpanded = (id: string) => {
     setExpandedQuestions((prev) => {
@@ -58,10 +77,11 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
   const addQuestion = () => {
     const newQuestion: SimuladoQuestion = {
       id: generateId(),
-      text: '',
+      statement: '',
       type: 'multiple-choice',
       options: ['', '', '', '', ''],
       correctAnswer: 0,
+      supportTexts: [],
     };
     onChange([...questions, newQuestion]);
     setExpandedQuestions((prev) => new Set([...prev, newQuestion.id]));
@@ -109,25 +129,37 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
     updateQuestion(questionId, { options: newOptions, correctAnswer: newCorrectAnswer });
   };
 
-  const handlePasteAlternatives = (questionId: string) => {
-    const text = pasteAlternatives[questionId];
-    if (!text?.trim()) return;
+  // Funções para textos de suporte
+  const addSupportText = (questionId: string) => {
+    const question = questions.find((q) => q.id === questionId);
+    if (!question) return;
 
-    const lines = text.trim().split('\n').filter((line) => line.trim());
-    const parsedOptions: string[] = [];
+    const newText: QuestionSupportText = {
+      id: generateId(),
+      content: '',
+    };
+    updateQuestion(questionId, {
+      supportTexts: [...(question.supportTexts || []), newText],
+    });
+  };
 
-    for (const line of lines) {
-      // Remove common prefixes like "a)", "A.", "1.", "1)", etc.
-      const cleanedLine = line.replace(/^[a-eA-E1-5][\.\)\-\s]+/, '').trim();
-      if (cleanedLine) {
-        parsedOptions.push(cleanedLine);
-      }
-    }
+  const updateSupportText = (questionId: string, textId: string, updates: Partial<QuestionSupportText>) => {
+    const question = questions.find((q) => q.id === questionId);
+    if (!question || !question.supportTexts) return;
 
-    if (parsedOptions.length >= 2) {
-      updateQuestion(questionId, { options: parsedOptions, correctAnswer: 0 });
-      setPasteAlternatives((prev) => ({ ...prev, [questionId]: '' }));
-    }
+    const newTexts = question.supportTexts.map((t) =>
+      t.id === textId ? { ...t, ...updates } : t
+    );
+    updateQuestion(questionId, { supportTexts: newTexts });
+  };
+
+  const removeSupportText = (questionId: string, textId: string) => {
+    const question = questions.find((q) => q.id === questionId);
+    if (!question || !question.supportTexts) return;
+
+    updateQuestion(questionId, {
+      supportTexts: question.supportTexts.filter((t) => t.id !== textId),
+    });
   };
 
   const getOptionLabel = (index: number) => {
@@ -140,13 +172,27 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
         <div>
           <Label className="text-base font-semibold">Questões do Simulado</Label>
           <p className="text-sm text-muted-foreground mt-1">
-            Adicione questões de múltipla escolha e defina o gabarito.
+            Adicione questões estruturadas com textos de apoio e alternativas.
           </p>
         </div>
         <span className="text-sm text-muted-foreground">
           {questions.length} {questions.length === 1 ? 'questão' : 'questões'}
         </span>
       </div>
+
+      {/* Estatísticas por Matéria */}
+      {questionsByCriteria.size > 0 && (
+        <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+          <Label className="text-xs font-medium text-muted-foreground">Distribuição por matéria</Label>
+          <div className="flex flex-wrap gap-2">
+            {Array.from(questionsByCriteria.entries()).map(([name, data]) => (
+              <Badge key={name} variant="secondary" className="text-xs">
+                {data.name}: {data.count} {data.count === 1 ? 'questão' : 'questões'}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Questions List */}
       <div className="space-y-3">
@@ -168,7 +214,7 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
                   Q{qIndex + 1}
                 </span>
                 <span className="text-sm text-muted-foreground flex-1 truncate">
-                  {question.text || '(Sem enunciado)'}
+                  {question.title || question.statement || '(Sem enunciado)'}
                 </span>
                 {question.criteriaName && (
                   <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded shrink-0 max-w-[120px] truncate" title={question.criteriaName}>
@@ -201,23 +247,12 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
               {/* Question Content */}
               {isExpanded && (
                 <div className="p-3 space-y-4">
-                  {/* Question Text */}
-                  <div className="space-y-2">
-                    <Label className="text-xs">Enunciado da questão</Label>
-                    <Textarea
-                      value={question.text}
-                      onChange={(e) => updateQuestion(question.id, { text: e.target.value })}
-                      placeholder="Digite ou cole o enunciado da questão aqui..."
-                      className="resize-none min-h-[100px] text-sm"
-                    />
-                  </div>
-
-                  {/* Criteria/Content Selector */}
+                  {/* 1. Conteúdo Associado (PRIMEIRO) */}
                   {criteriaOptions.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
                       <div className="flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-muted-foreground" />
-                        <Label className="text-xs">Conteúdo associado</Label>
+                        <BookOpen className="w-4 h-4 text-primary" />
+                        <Label className="text-xs font-semibold text-primary">Conteúdo Associado</Label>
                       </div>
                       <Select
                         value={question.criteriaId || ''}
@@ -230,10 +265,9 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
                         }}
                       >
                         <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Selecione o conteúdo relacionado..." />
+                          <SelectValue placeholder="Selecione a matéria/conteúdo..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {/* Group by level */}
                           {evaluationCriteria.map((criteria) => (
                             <div key={criteria.level}>
                               <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50">
@@ -248,42 +282,98 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
                           ))}
                         </SelectContent>
                       </Select>
-                      {question.criteriaName && (
-                        <p className="text-xs text-muted-foreground">
-                          Selecionado: <span className="font-medium text-foreground">{question.criteriaName}</span>
-                        </p>
-                      )}
                     </div>
                   )}
 
-                  {/* Paste Alternatives */}
-                  <div className="space-y-2 p-3 bg-muted/30 rounded-lg">
-                    <Label className="text-xs">Colar alternativas</Label>
-                    <Textarea
-                      value={pasteAlternatives[question.id] || ''}
-                      onChange={(e) =>
-                        setPasteAlternatives((prev) => ({
-                          ...prev,
-                          [question.id]: e.target.value,
-                        }))
-                      }
-                      placeholder={`Cole as alternativas (uma por linha):\na) Primeira alternativa\nb) Segunda alternativa\nc) Terceira alternativa...`}
-                      className="resize-none h-20 text-xs"
+                  {/* 2. Título da Questão (opcional) */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Título da questão (opcional)</Label>
+                    <Input
+                      value={question.title || ''}
+                      onChange={(e) => updateQuestion(question.id, { title: e.target.value })}
+                      placeholder="Ex: Questão sobre Princípios Constitucionais"
+                      className="h-9 text-sm"
                     />
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handlePasteAlternatives(question.id)}
-                      disabled={!pasteAlternatives[question.id]?.trim()}
-                    >
-                      Importar alternativas
-                    </Button>
                   </div>
 
-                  {/* Options */}
+                  {/* 3. Textos de Suporte */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-muted-foreground" />
+                        <Label className="text-xs font-medium">Textos de Apoio</Label>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => addSupportText(question.id)}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Adicionar texto
+                      </Button>
+                    </div>
+
+                    {question.supportTexts && question.supportTexts.length > 0 ? (
+                      <div className="space-y-3">
+                        {question.supportTexts.map((text, textIndex) => (
+                          <div key={text.id} className="p-3 bg-muted/30 rounded-lg space-y-2 relative">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                Texto {textIndex + 1}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                onClick={() => removeSupportText(question.id, text.id)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            <Input
+                              value={text.title || ''}
+                              onChange={(e) => updateSupportText(question.id, text.id, { title: e.target.value })}
+                              placeholder="Título do texto (opcional)"
+                              className="h-8 text-sm"
+                            />
+                            <Textarea
+                              value={text.content}
+                              onChange={(e) => updateSupportText(question.id, text.id, { content: e.target.value })}
+                              placeholder="Cole ou digite o texto de apoio aqui..."
+                              className="resize-none min-h-[80px] text-sm"
+                            />
+                            <Input
+                              value={text.reference || ''}
+                              onChange={(e) => updateSupportText(question.id, text.id, { reference: e.target.value })}
+                              placeholder="Referência/Fonte (ex: Autor, Livro, Ano)"
+                              className="h-8 text-xs text-muted-foreground"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        Nenhum texto de apoio adicionado. Clique acima para adicionar.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 4. Enunciado (Comando da Questão) */}
+                  <div className="space-y-2 p-3 bg-accent/30 rounded-lg border border-accent/50">
+                    <Label className="text-xs font-semibold">Enunciado / Comando da Questão</Label>
+                    <Textarea
+                      value={question.statement}
+                      onChange={(e) => updateQuestion(question.id, { statement: e.target.value })}
+                      placeholder="Digite o comando da questão. Ex: 'Com base no texto acima, assinale a alternativa correta:'"
+                      className="resize-none min-h-[60px] text-sm"
+                    />
+                  </div>
+
+                  {/* 5. Alternativas e Gabarito */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs">Alternativas e Gabarito</Label>
+                      <Label className="text-xs font-medium">Alternativas e Gabarito</Label>
                       <span className="text-xs text-muted-foreground">
                         Clique na alternativa correta para definir o gabarito
                       </span>
