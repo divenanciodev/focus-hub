@@ -33,6 +33,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Users,
 } from 'lucide-react';
 import {
   Dialog,
@@ -463,6 +464,11 @@ export default function Concursos() {
                 const progressPercent = simulado.status === 'completed' ? 100 : 0;
                 const isExpanded = expandedCards.has(simulado.id);
                 
+                // Find associated contest by name pattern
+                const associatedContest = contests.find(
+                  (c) => simulado.name === `Simulado - ${c.name}`
+                );
+                
                 return (
                   <div
                     key={simulado.id}
@@ -487,6 +493,44 @@ export default function Concursos() {
                         {simulado.status === 'completed' ? 'Concluído' : 'Pendente'}
                       </span>
                     </div>
+
+                    {/* Contest Info - Institution */}
+                    {associatedContest && (
+                      <div className="space-y-1.5 text-sm text-muted-foreground mb-3">
+                        {associatedContest.institution && (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{associatedContest.institution}</span>
+                          </div>
+                        )}
+                        {associatedContest.bancaUrl && (
+                          <div className="flex items-center gap-2">
+                            <ExternalLink className="w-4 h-4 shrink-0" />
+                            <a
+                              href={associatedContest.bancaUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline truncate"
+                            >
+                              Banca Organizadora
+                            </a>
+                          </div>
+                        )}
+                        {associatedContest.editalUrl && (
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 shrink-0" />
+                            <a
+                              href={associatedContest.editalUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline truncate"
+                            >
+                              Ver Edital
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Info badges */}
                     <div className="flex flex-wrap gap-2 mb-3 text-sm text-muted-foreground">
@@ -578,6 +622,69 @@ export default function Concursos() {
                             <span>Última pontuação:</span>
                             <span className="text-foreground font-medium">{simulado.score}%</span>
                           </div>
+                        )}
+                        
+                        {/* Contest Details */}
+                        {associatedContest && (
+                          <>
+                            <div className="border-t border-border my-2 pt-2">
+                              <span className="font-medium text-foreground">Dados do Concurso:</span>
+                            </div>
+                            {associatedContest.inscricoesPeriodo && (
+                              <div className="flex justify-between">
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  Inscrições:
+                                </span>
+                                <span className="text-foreground">{associatedContest.inscricoesPeriodo}</span>
+                              </div>
+                            )}
+                            {associatedContest.vagas && (
+                              <div className="flex justify-between">
+                                <span className="flex items-center gap-1">
+                                  <Users className="w-3 h-3" />
+                                  Vagas:
+                                </span>
+                                <span className="text-foreground">{associatedContest.vagas}</span>
+                              </div>
+                            )}
+                            {associatedContest.remuneracao && (
+                              <div className="flex justify-between">
+                                <span>Remuneração:</span>
+                                <span className="text-foreground font-medium">{associatedContest.remuneracao}</span>
+                              </div>
+                            )}
+                            {associatedContest.taxaInscricao && (
+                              <div className="flex justify-between">
+                                <span>Taxa de inscrição:</span>
+                                <span className="text-foreground">{associatedContest.taxaInscricao}</span>
+                              </div>
+                            )}
+                            {associatedContest.escolaridade && (
+                              <div className="flex justify-between">
+                                <span>Escolaridade:</span>
+                                <span className="text-foreground">{associatedContest.escolaridade}</span>
+                              </div>
+                            )}
+                            {associatedContest.cargos && (
+                              <div className="flex justify-between">
+                                <span>Cargos:</span>
+                                <span className="text-foreground">{associatedContest.cargos}</span>
+                              </div>
+                            )}
+                            {associatedContest.lotacao && (
+                              <div className="flex justify-between">
+                                <span>Lotação:</span>
+                                <span className="text-foreground">{associatedContest.lotacao}</span>
+                              </div>
+                            )}
+                            {associatedContest.situacao && (
+                              <div className="flex justify-between">
+                                <span>Situação:</span>
+                                <span className="text-foreground">{associatedContest.situacao}</span>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
