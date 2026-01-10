@@ -3,8 +3,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
-import { mockBankCourses, mockUserCourses } from '@/data/mockData';
-import { Course, CurriculumItem } from '@/types';
+import { useCourses, Course, CurriculumItem } from '@/hooks/useCourses';
 import {
   Plus,
   ExternalLink,
@@ -31,10 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 export default function Cursinhos() {
-  const [userCourses, setUserCourses] = useState<Course[]>([...mockUserCourses, ...mockBankCourses].map(c => ({
-    ...c,
-    curriculum: c.curriculum || []
-  })));
+  const { courses, loading, addCourse, updateCourse, deleteCourse, toggleCurriculumItem } = useCourses();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -54,10 +50,9 @@ export default function Cursinhos() {
   const [newCurriculumItem, setNewCurriculumItem] = useState('');
   const [editCurriculumItem, setEditCurriculumItem] = useState('');
 
-  const handleCreateCourse = () => {
+  const handleCreateCourse = async () => {
     if (newCourse.name && newCourse.theme && newCourse.workload && newCourse.deadline) {
-      const course: Course = {
-        id: Date.now().toString(),
+      await addCourse({
         name: newCourse.name,
         theme: newCourse.theme,
         workload: parseInt(newCourse.workload),
@@ -66,17 +61,14 @@ export default function Cursinhos() {
         imageUrl: newCourse.imageUrl || undefined,
         links: [],
         curriculum: newCourse.curriculum,
-      };
-      setUserCourses([course, ...userCourses]);
+      });
       setNewCourse({ name: '', theme: '', workload: '', deadline: '', imageUrl: '', curriculum: [] });
       setIsCreateModalOpen(false);
-      toast.success('Cursinho criado com sucesso!');
     }
   };
 
-  const handleDeleteCourse = (id: string) => {
-    setUserCourses(userCourses.filter(c => c.id !== id));
-    toast.success('Cursinho excluído!');
+  const handleDeleteCourse = async (id: string) => {
+    await deleteCourse(id);
   };
 
   const handleEditCourse = (course: Course) => {
@@ -84,12 +76,11 @@ export default function Cursinhos() {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingCourse) {
-      setUserCourses(userCourses.map(c => c.id === editingCourse.id ? editingCourse : c));
+      await updateCourse(editingCourse.id, editingCourse);
       setIsEditModalOpen(false);
       setEditingCourse(null);
-      toast.success('Cursinho atualizado!');
     }
   };
 
@@ -129,18 +120,8 @@ export default function Cursinhos() {
     }
   };
 
-  const handleToggleCurriculumItem = (courseId: string, itemId: string) => {
-    setUserCourses(userCourses.map(course => {
-      if (course.id === courseId) {
-        const updatedCurriculum = course.curriculum.map(item =>
-          item.id === itemId ? { ...item, completed: !item.completed } : item
-        );
-        const completedCount = updatedCurriculum.filter(item => item.completed).length;
-        const progress = updatedCurriculum.length > 0 ? Math.round((completedCount / updatedCurriculum.length) * 100) : 0;
-        return { ...course, curriculum: updatedCurriculum, progress };
-      }
-      return course;
-    }));
+  const handleToggleCurriculumItem = async (courseId: string, itemId: string) => {
+    await toggleCurriculumItem(courseId, itemId);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) => {
@@ -189,7 +170,7 @@ export default function Cursinhos() {
             </Button>
           </div>
 
-          {userCourses.length === 0 ? (
+          {courses.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">Nenhum cursinho criado ainda.</p>
               <Button onClick={() => setIsCreateModalOpen(true)}>
@@ -199,7 +180,7 @@ export default function Cursinhos() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {userCourses.map((course) => (
+              {courses.map((course) => (
                 <div
                   key={course.id}
                   className="bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col h-[280px]"
@@ -261,14 +242,14 @@ export default function Cursinhos() {
 
         {/* Cursinhos do Banco - Biblioteca de Visualização */}
         <TabsContent value="banco" className="mt-0">
-          {userCourses.length === 0 ? (
+          {courses.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">Nenhum cursinho na biblioteca ainda.</p>
               <p className="text-sm text-muted-foreground mt-2">Crie cursinhos em "Meus Cursinhos" para visualizá-los aqui.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {userCourses.map((course) => (
+              {courses.map((course) => (
                 <div
                   key={course.id}
                   className="bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
@@ -672,16 +653,16 @@ export default function Cursinhos() {
                 <h4 className="font-medium text-foreground mb-3">Links do curso</h4>
                 {selectedCourse.links.length > 0 ? (
                   <div className="space-y-2">
-                    {selectedCourse.links.map((link) => (
+                    {selectedCourse.links.map((link, idx) => (
                       <a
-                        key={link.id}
+                        key={idx}
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 p-2 rounded bg-secondary hover:bg-secondary/80 text-sm"
                       >
                         <ExternalLink className="w-4 h-4" />
-                        {link.title}
+                        {link.name}
                       </a>
                     ))}
                   </div>

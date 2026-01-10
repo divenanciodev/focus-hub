@@ -12,6 +12,8 @@ import { CreateSimuladoModal } from '@/components/training/simulado/CreateSimula
 import { SimuladoSession } from '@/components/training/simulado/SimuladoSession';
 import { ContentLibrary } from '@/components/training/ContentLibrary';
 import { Simulado, TrainingType, TrainingMetrics, SavedMindMap, SavedSummary, SavedHandwriting, SavedAudioExplanation } from '@/types/training';
+import { useFlashcardGroups } from '@/hooks/useFlashcardGroups';
+import { useSimulados } from '@/hooks/useSimulados';
 import { 
   Layers, 
   FileQuestion, 
@@ -80,236 +82,21 @@ const learningMethods = [
   },
 ];
 
-// Exemplos de Flashcards
-const exampleFlashcardGroups: FlashcardGroup[] = [
-  {
-    id: 'example-1',
-    name: 'Direito Constitucional - Princípios Fundamentais',
-    cards: [
-      {
-        id: 'card-1',
-        name: 'Fundamentos da República',
-        type: 'flip',
-        question: 'Quais são os 5 fundamentos da República Federativa do Brasil (Art. 1º)?',
-        answer: 'I - Soberania\nII - Cidadania\nIII - Dignidade da pessoa humana\nIV - Valores sociais do trabalho e da livre iniciativa\nV - Pluralismo político',
-        frontColor: '#3b82f6',
-        backColor: '#1e40af',
-        createdAt: new Date('2025-01-05'),
-      },
-      {
-        id: 'card-2',
-        name: 'Objetivos Fundamentais',
-        type: 'multiple-choice',
-        question: 'Qual NÃO é um objetivo fundamental da República (Art. 3º)?',
-        answer: 'Garantir a segurança nacional',
-        frontColor: '#8b5cf6',
-        backColor: '#6d28d9',
-        options: [
-          { id: 'a', text: 'Construir uma sociedade livre', isCorrect: false },
-          { id: 'b', text: 'Garantir o desenvolvimento nacional', isCorrect: false },
-          { id: 'c', text: 'Garantir a segurança nacional', isCorrect: true },
-          { id: 'd', text: 'Erradicar a pobreza', isCorrect: false },
-        ],
-        createdAt: new Date('2025-01-05'),
-      },
-      {
-        id: 'card-3',
-        name: 'Poderes da União',
-        type: 'flip',
-        question: 'Quais são os poderes da União, independentes e harmônicos entre si?',
-        answer: 'Legislativo, Executivo e Judiciário (Art. 2º da CF/88)',
-        frontColor: '#10b981',
-        backColor: '#047857',
-        createdAt: new Date('2025-01-05'),
-      },
-    ],
-    createdAt: new Date('2025-01-05'),
-  },
-  {
-    id: 'example-2',
-    name: 'Português - Regência Verbal',
-    cards: [
-      {
-        id: 'card-4',
-        name: 'Verbo Assistir',
-        type: 'flip',
-        question: 'Qual a regência do verbo ASSISTIR no sentido de "ver"?',
-        answer: 'Verbo Transitivo Indireto (VTI)\nExige preposição "a"\nEx: Assisti ao filme.',
-        frontColor: '#f59e0b',
-        backColor: '#d97706',
-        createdAt: new Date('2025-01-04'),
-      },
-      {
-        id: 'card-5',
-        name: 'Verbo Visar',
-        type: 'multiple-choice',
-        question: 'Em qual sentido o verbo VISAR é transitivo direto?',
-        answer: 'Mirar, apontar / Pôr visto',
-        frontColor: '#ec4899',
-        backColor: '#be185d',
-        options: [
-          { id: 'a', text: 'Ter como objetivo', isCorrect: false },
-          { id: 'b', text: 'Mirar, apontar', isCorrect: true },
-          { id: 'c', text: 'Desejar, pretender', isCorrect: false },
-          { id: 'd', text: 'Todas as alternativas', isCorrect: false },
-        ],
-        createdAt: new Date('2025-01-04'),
-      },
-    ],
-    createdAt: new Date('2025-01-04'),
-    lastStudied: new Date('2025-01-06'),
-  },
-  {
-    id: 'example-3',
-    name: 'Raciocínio Lógico - Proposições',
-    cards: [
-      {
-        id: 'card-6',
-        name: 'Definição de Proposição',
-        type: 'flip',
-        question: 'O que é uma proposição lógica?',
-        answer: 'É toda sentença declarativa que pode ser classificada como verdadeira (V) ou falsa (F), mas nunca ambas ao mesmo tempo.',
-        frontColor: '#06b6d4',
-        backColor: '#0891b2',
-        createdAt: new Date('2025-01-03'),
-      },
-      {
-        id: 'card-7',
-        name: 'Identificação de Proposição',
-        type: 'multiple-choice',
-        question: 'Qual alternativa NÃO é uma proposição?',
-        answer: 'Que horas são?',
-        frontColor: '#84cc16',
-        backColor: '#65a30d',
-        options: [
-          { id: 'a', text: 'O céu é azul', isCorrect: false },
-          { id: 'b', text: '2 + 2 = 5', isCorrect: false },
-          { id: 'c', text: 'Que horas são?', isCorrect: true },
-          { id: 'd', text: 'Brasília é a capital do Brasil', isCorrect: false },
-        ],
-        createdAt: new Date('2025-01-03'),
-      },
-    ],
-    createdAt: new Date('2025-01-03'),
-  },
-];
-
-// Exemplos de Simulados
-const exampleSimulados: Simulado[] = [
-  {
-    id: 'simulado-1',
-    name: 'Simulado INSS 2025 - Direito Previdenciário',
-    discipline: 'Direito Previdenciário',
-    subject: 'Benefícios por incapacidade',
-    questions: [
-      {
-        id: 'q1',
-        type: 'multiple-choice',
-        text: 'De acordo com a Lei 8.213/91, o auxílio por incapacidade temporária será devido ao segurado que ficar incapacitado para o seu trabalho por mais de quantos dias consecutivos?',
-        options: ['7 dias', '15 dias', '30 dias', '60 dias'],
-        correctAnswer: 1,
-      },
-      {
-        id: 'q2',
-        type: 'multiple-choice',
-        text: 'Qual é o período de carência para concessão do auxílio por incapacidade temporária?',
-        options: ['6 contribuições mensais', '12 contribuições mensais', '24 contribuições mensais', 'Não há carência'],
-        correctAnswer: 1,
-      },
-      {
-        id: 'q3',
-        type: 'multiple-choice',
-        text: 'O benefício de aposentadoria por incapacidade permanente corresponde a qual percentual do salário de benefício?',
-        options: ['60% + 2% por ano acima de 20 anos', '100%', '70%', '91%'],
-        correctAnswer: 0,
-      },
-    ],
-    timeMinutes: 30,
-    difficulty: 'medium',
-    status: 'pending',
-    createdAt: new Date('2025-01-05'),
-  },
-  {
-    id: 'simulado-2',
-    name: 'Língua Portuguesa - Interpretação de Texto',
-    discipline: 'Língua Portuguesa',
-    subject: 'Compreensão textual',
-    questions: [
-      {
-        id: 'q4',
-        type: 'multiple-choice',
-        text: 'A coesão textual é um mecanismo linguístico que garante a conexão entre as partes do texto. Qual elemento abaixo é um exemplo de coesão referencial?',
-        options: ['Portanto', 'Ele', 'Mas', 'Porque'],
-        correctAnswer: 1,
-      },
-      {
-        id: 'q5',
-        type: 'multiple-choice',
-        text: 'Assinale a alternativa que apresenta uma figura de linguagem denominada "metonímia":',
-        options: ['O amor é fogo que arde sem se ver', 'Li Machado de Assis nas férias', 'A vida é uma peça de teatro', 'O sol sorriu para nós'],
-        correctAnswer: 1,
-      },
-    ],
-    timeMinutes: 20,
-    difficulty: 'easy',
-    status: 'pending',
-    createdAt: new Date('2025-01-04'),
-  },
-  {
-    id: 'simulado-3',
-    name: 'Informática - Segurança da Informação',
-    discipline: 'Informática',
-    subject: 'Conceitos de segurança',
-    questions: [
-      {
-        id: 'q6',
-        type: 'multiple-choice',
-        text: 'Qual tipo de malware se disfarça de software legítimo para enganar o usuário?',
-        options: ['Worm', 'Trojan (Cavalo de Troia)', 'Ransomware', 'Spyware'],
-        correctAnswer: 1,
-      },
-      {
-        id: 'q7',
-        type: 'multiple-choice',
-        text: 'O princípio da segurança da informação que garante que a informação seja acessível apenas por pessoas autorizadas é:',
-        options: ['Integridade', 'Disponibilidade', 'Confidencialidade', 'Autenticidade'],
-        correctAnswer: 2,
-      },
-      {
-        id: 'q8',
-        type: 'multiple-choice',
-        text: 'O backup incremental armazena:',
-        options: ['Todos os arquivos do sistema', 'Apenas os arquivos alterados desde o último backup completo', 'Apenas os arquivos alterados desde o último backup (qualquer tipo)', 'Apenas os arquivos do sistema operacional'],
-        correctAnswer: 2,
-      },
-      {
-        id: 'q9',
-        type: 'multiple-choice',
-        text: 'Qual protocolo é utilizado para garantir segurança na navegação web?',
-        options: ['HTTP', 'FTP', 'HTTPS', 'SMTP'],
-        correctAnswer: 2,
-      },
-    ],
-    timeMinutes: 45,
-    difficulty: 'medium',
-    status: 'completed',
-    score: 75,
-    createdAt: new Date('2025-01-02'),
-  },
-];
 
 export default function Treinos() {
+  // Hooks de banco de dados
+  const { groups: flashcardGroups, loading: loadingFlashcards, addGroup: addFlashcardGroup, updateGroup: updateFlashcardGroup, deleteGroup: deleteFlashcardGroup, markAsStudied } = useFlashcardGroups();
+  const { simulados, loading: loadingSimulados, addSimulado, updateSimulado, deleteSimulado, completeSimulado } = useSimulados();
+  
   const [mainTab, setMainTab] = useState<'criar' | 'biblioteca'>('biblioteca');
   const [selectedMethod, setSelectedMethod] = useState<TrainingType | null>(null);
   
-  // Flashcards state - new simplified system
-  const [flashcardGroups, setFlashcardGroups] = useState<FlashcardGroup[]>(exampleFlashcardGroups);
+  // Flashcards state
   const [isCreatingFlashcards, setIsCreatingFlashcards] = useState(false);
   const [editingFlashcardGroup, setEditingFlashcardGroup] = useState<FlashcardGroup | undefined>();
   const [studyingFlashcardGroup, setStudyingFlashcardGroup] = useState<FlashcardGroup | null>(null);
   
   // Simulados state
-  const [simulados, setSimulados] = useState<Simulado[]>(exampleSimulados);
   const [isCreateSimuladoOpen, setIsCreateSimuladoOpen] = useState(false);
   const [editingSimulado, setEditingSimulado] = useState<Simulado | undefined>();
   const [activeSimulado, setActiveSimulado] = useState<Simulado | null>(null);
@@ -362,12 +149,17 @@ export default function Treinos() {
     setSelectedMethod(method.id);
   };
 
-  // Flashcard handlers - new simplified system
-  const handleSaveFlashcardGroup = (group: FlashcardGroup) => {
+  // Flashcard handlers - integrated with database
+  const handleSaveFlashcardGroup = async (group: FlashcardGroup) => {
     if (editingFlashcardGroup) {
-      setFlashcardGroups(flashcardGroups.map(g => g.id === group.id ? group : g));
+      await updateFlashcardGroup(group.id, group);
     } else {
-      setFlashcardGroups([group, ...flashcardGroups]);
+      await addFlashcardGroup({
+        name: group.name,
+        cards: group.cards,
+        createdAt: group.createdAt,
+        lastStudied: group.lastStudied,
+      });
       setMetrics(m => ({
         ...m,
         totalTrainings: m.totalTrainings + 1,
@@ -380,16 +172,13 @@ export default function Treinos() {
     setMainTab('biblioteca');
   };
 
-  const handleDeleteFlashcardGroup = (groupId: string) => {
-    setFlashcardGroups(flashcardGroups.filter(g => g.id !== groupId));
-    toast.success('Grupo excluído');
+  const handleDeleteFlashcardGroup = async (groupId: string) => {
+    await deleteFlashcardGroup(groupId);
   };
 
-  const handleFlashcardStudyComplete = () => {
+  const handleFlashcardStudyComplete = async () => {
     if (studyingFlashcardGroup) {
-      setFlashcardGroups(flashcardGroups.map(g => 
-        g.id === studyingFlashcardGroup.id ? { ...g, lastStudied: new Date() } : g
-      ));
+      await markAsStudied(studyingFlashcardGroup.id);
     }
     setStudyingFlashcardGroup(null);
     setMetrics(m => ({
@@ -399,42 +188,42 @@ export default function Treinos() {
     }));
   };
 
-  // Simulado handlers
-  const handleCreateSimulado = (simulado: Simulado) => {
+  // Simulado handlers - integrated with database
+  const handleCreateSimulado = async (simulado: Simulado) => {
     if (editingSimulado) {
-      // Editing existing simulado
-      setSimulados(simulados.map(s => s.id === simulado.id ? simulado : s));
+      await updateSimulado(simulado.id, simulado);
       setEditingSimulado(undefined);
-      toast.success('Simulado atualizado!');
     } else {
-      // Creating new simulado
-      setSimulados([simulado, ...simulados]);
+      await addSimulado({
+        name: simulado.name,
+        discipline: simulado.discipline,
+        subject: simulado.subject,
+        questions: simulado.questions,
+        timeMinutes: simulado.timeMinutes,
+        difficulty: simulado.difficulty,
+        status: simulado.status,
+        score: simulado.score,
+      });
       setMetrics(m => ({
         ...m,
         totalTrainings: m.totalTrainings + 1,
         byType: { ...m.byType, simulado: m.byType.simulado + 1 },
       }));
-      toast.success('Simulado criado! Disponível para treino na aba "Minha Biblioteca".');
     }
   };
 
-  const handleDeleteSimulado = (simuladoId: string) => {
-    setSimulados(simulados.filter(s => s.id !== simuladoId));
-    toast.success('Simulado excluído');
+  const handleDeleteSimulado = async (simuladoId: string) => {
+    await deleteSimulado(simuladoId);
   };
 
-  const handleSimuladoComplete = (results: { score: number }) => {
+  const handleSimuladoComplete = async (results: { score: number }) => {
     setMetrics(m => ({
       ...m,
       totalStudyTimeMinutes: m.totalStudyTimeMinutes + 30,
       completedToday: m.completedToday + 1,
     }));
     if (activeSimulado) {
-      setSimulados(simulados.map(s => 
-        s.id === activeSimulado.id 
-          ? { ...s, status: 'completed' as const, score: results.score }
-          : s
-      ));
+      await completeSimulado(activeSimulado.id, results.score);
     }
   };
 
