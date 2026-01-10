@@ -357,10 +357,10 @@ export default function Cursinhos() {
               {courses.map((course) => (
                 <div
                   key={course.id}
-                  className="bg-card border border-border rounded-xl overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
+                  className="bg-card border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
                 >
                   {course.imageUrl ? (
-                    <div className="aspect-video bg-muted">
+                    <div className="h-28 bg-muted">
                       <img
                         src={course.imageUrl}
                         alt={course.name}
@@ -368,46 +368,44 @@ export default function Cursinhos() {
                       />
                     </div>
                   ) : (
-                    <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                      <Image className="w-12 h-12 text-primary/40" />
+                    <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <Image className="w-8 h-8 text-primary/40" />
                     </div>
                   )}
-                  <div className="p-5 flex flex-col flex-1 min-h-[280px]">
-                    <h3 className="font-semibold text-foreground mb-1">{course.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-1">{course.theme}</p>
-                    {course.platform && (
-                      <p className="text-xs text-muted-foreground mb-3">{course.platform}</p>
-                    )}
+                  <div className="p-3 flex flex-col flex-1">
+                    <h3 className="font-medium text-sm text-foreground mb-0.5 line-clamp-2">{course.name}</h3>
+                    <p className="text-xs text-muted-foreground mb-2">{course.theme}</p>
 
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
                       <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
+                        <Clock className="w-3 h-3" />
                         <span>{course.workload}h</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-3 h-3" />
                         <span>{formatDate(course.deadline)}</span>
                       </div>
                     </div>
 
-                    <ProgressBar value={course.progress} showLabel className="mb-4" />
+                    <ProgressBar value={course.progress} showLabel className="mb-2" />
 
                     {/* Grade Curricular */}
                     {course.curriculum.length > 0 ? (
-                      <div className="mb-4 max-h-40 overflow-y-auto flex-1">
-                        <h4 className="text-sm font-medium text-foreground mb-2">Grade Curricular</h4>
-                        <div className="space-y-2">
+                      <div className="mb-2 max-h-24 overflow-y-auto flex-1">
+                        <h4 className="text-xs font-medium text-foreground mb-1">Grade Curricular</h4>
+                        <div className="space-y-1">
                           {course.curriculum.map((item) => (
                             <div
                               key={item.id}
-                              className="flex items-center gap-2 p-2 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
+                              className="flex items-center gap-1.5 p-1.5 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
                               onClick={() => handleToggleCurriculumItem(course.id, item.id)}
                             >
                               <Checkbox
                                 checked={item.completed}
                                 onCheckedChange={() => handleToggleCurriculumItem(course.id, item.id)}
+                                className="h-3.5 w-3.5"
                               />
-                              <span className={`text-sm ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                              <span className={`text-xs ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                                 {item.title}
                               </span>
                             </div>
@@ -415,21 +413,21 @@ export default function Cursinhos() {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground mb-4 flex-1">Nenhuma grade curricular definida.</p>
+                      <p className="text-xs text-muted-foreground mb-2 flex-1">Sem grade curricular.</p>
                     )}
 
-                    <div className="flex gap-2 pt-4 border-t border-border mt-auto">
+                    <div className="flex gap-2 pt-2 border-t border-border mt-auto">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 h-7 text-xs"
                         onClick={() => setSelectedCourse(course)}
                       >
                         Ver detalhes
                       </Button>
                       {course.platform && (
-                        <Button size="sm" className="flex-1">
-                          <ExternalLink className="w-4 h-4 mr-1" />
+                        <Button size="sm" className="flex-1 h-7 text-xs">
+                          <ExternalLink className="w-3 h-3 mr-1" />
                           Acessar
                         </Button>
                       )}
