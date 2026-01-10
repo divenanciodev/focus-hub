@@ -863,7 +863,7 @@ export default function Concursos() {
             )}
           </ScrollArea>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-4 mt-2 border-t border-border">
             {modalStep === 1 ? (
               <>
                 <Button variant="outline" onClick={handleCloseModal}>
