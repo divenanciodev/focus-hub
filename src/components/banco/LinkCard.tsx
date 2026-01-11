@@ -18,9 +18,6 @@ export function LinkCard({ link, onEdit, onDelete }: LinkCardProps) {
     }
   };
 
-  const handleOpenLink = () => {
-    window.location.href = link.url;
-  };
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 hover:border-foreground/20 hover:shadow-md transition-all duration-200 group">
@@ -68,15 +65,15 @@ export function LinkCard({ link, onEdit, onDelete }: LinkCardProps) {
       </div>
 
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1 mr-2"
-          onClick={handleOpenLink}
+        <a
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 mr-2 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
         >
-          <ExternalLink className="w-4 h-4 mr-2" />
+          <ExternalLink className="w-4 h-4" />
           Abrir
-        </Button>
+        </a>
         <div className="flex gap-1">
           <Button
             variant="ghost"
