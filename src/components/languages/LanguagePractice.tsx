@@ -102,7 +102,7 @@ export function LanguagePractice({
     }
   };
 
-  // Get structures with vocabulary for fill mode
+  // Get structures with vocabulary for fill mode - now uses [wordType] format
   const getStructuresForFill = (sectionId: string) => {
     const result: { structure: Structure; words: VocabularyWord[] }[] = [];
     
@@ -111,7 +111,8 @@ export function LanguagePractice({
     sectionsToProcess.forEach((section) => {
       (structures[section.id] || []).forEach((struct) => {
         const structVocab = vocabulary[struct.id] || [];
-        if (struct.pattern && structVocab.length > 0) {
+        // Check if pattern has placeholders in [wordType] format
+        if (struct.pattern && /\[\w+\]/.test(struct.pattern) && structVocab.length > 0) {
           result.push({ structure: struct, words: structVocab });
         }
       });
@@ -233,11 +234,12 @@ export function LanguagePractice({
     setFillState(null);
   };
 
-  // Parse pattern to show with placeholder
+  // Parse pattern to show with placeholder - now uses [wordType] format
   const renderPatternWithPlaceholder = (pattern: string, wordType: string) => {
-    const parts = pattern.split(/(\+\w+)/g);
+    const parts = pattern.split(/(\[\w+\])/g);
     return parts.map((part, idx) => {
-      if (part.toLowerCase() === `+${wordType.toLowerCase()}`) {
+      const match = part.match(/\[(\w+)\]/);
+      if (match && match[1].toLowerCase() === wordType.toLowerCase()) {
         return (
           <span key={idx} className="inline-block min-w-[100px] mx-1">
             <Input
@@ -256,10 +258,10 @@ export function LanguagePractice({
           </span>
         );
       }
-      if (part.startsWith('+')) {
+      if (match) {
         return (
           <span key={idx} className="text-muted-foreground">
-            [{part.substring(1)}]
+            [{match[1]}]
           </span>
         );
       }
