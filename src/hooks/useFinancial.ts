@@ -331,6 +331,27 @@ export function useFinancial() {
     }
   };
 
+  const updateAllocation = async (id: string, data: Partial<EntryAllocation>) => {
+    try {
+      const updateData: Record<string, unknown> = {};
+      if (data.destinationType !== undefined) updateData.destination_type = data.destinationType;
+      if (data.destinationId !== undefined) updateData.destination_id = data.destinationId || null;
+      if (data.destinationName !== undefined) updateData.destination_name = data.destinationName;
+      if (data.amount !== undefined) updateData.amount = data.amount;
+
+      const { error } = await supabase.from('entry_allocations').update(updateData).eq('id', id);
+      if (error) throw error;
+
+      setAllocations((prev) => prev.map((a) => (a.id === id ? { ...a, ...data } : a)));
+      toast.success('Destino atualizado!');
+      return true;
+    } catch (error) {
+      console.error('Error updating allocation:', error);
+      toast.error('Erro ao atualizar destino');
+      return false;
+    }
+  };
+
   const deleteAllocation = async (id: string) => {
     try {
       const { error } = await supabase.from('entry_allocations').delete().eq('id', id);
@@ -354,7 +375,16 @@ export function useFinancial() {
   const totalExpenses = entries.filter((e) => e.type === 'expense').reduce((acc, e) => acc + e.amount, 0);
   const totalFixedExpenses = fixedExpenses.reduce((acc, e) => acc + e.amount, 0);
   const totalSaved = piggyBanks.reduce((acc, p) => acc + p.currentAmount, 0);
-  const balance = totalIncome - totalExpenses - totalFixedExpenses;
+  
+  // Allocation-based calculations
+  const allocatedExpenses = allocations
+    .filter((a) => a.destinationType === 'expense' || a.destinationType === 'fixed_expense')
+    .reduce((acc, a) => acc + a.amount, 0);
+  const allocatedSaved = allocations
+    .filter((a) => a.destinationType === 'piggy_bank')
+    .reduce((acc, a) => acc + a.amount, 0);
+  
+  const balance = totalIncome - totalExpenses - totalFixedExpenses - allocatedExpenses;
 
   return {
     entries,
@@ -366,6 +396,8 @@ export function useFinancial() {
     totalExpenses,
     totalFixedExpenses,
     totalSaved,
+    allocatedExpenses,
+    allocatedSaved,
     balance,
     addEntry,
     deleteEntry,
@@ -376,6 +408,7 @@ export function useFinancial() {
     updateFixedExpense,
     deleteFixedExpense,
     addAllocation,
+    updateAllocation,
     deleteAllocation,
     refetch: fetchAll,
   };

@@ -29,6 +29,8 @@ import {
   ArrowUpFromLine,
   Loader2,
   Split,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   Dialog,
@@ -58,6 +60,8 @@ export default function Financeiro() {
     fixedExpenses,
     allocations,
     loading,
+    allocatedExpenses,
+    allocatedSaved,
     addEntry,
     deleteEntry,
     addPiggyBank,
@@ -67,6 +71,7 @@ export default function Financeiro() {
     updateFixedExpense,
     deleteFixedExpense,
     addAllocation,
+    updateAllocation,
     deleteAllocation,
   } = useFinancial();
 
@@ -78,6 +83,9 @@ export default function Financeiro() {
   // Allocation modal state
   const [selectedEntryForAllocation, setSelectedEntryForAllocation] = useState<FinancialEntry | null>(null);
   const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
+  
+  // Expanded entries state for showing/hiding allocations
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
 
   // State for receivables (local for now)
   const [receivables, setReceivables] = useState<Receivable[]>([]);
@@ -131,15 +139,15 @@ export default function Financeiro() {
     installments: '',
   });
 
-  // Calculations
+  // Calculations - include allocated expenses in total
   const totalIncome = entries.filter((e) => e.type === 'income').reduce((acc, e) => acc + e.amount, 0);
-  const totalExpenses = entries.filter((e) => e.type === 'expense').reduce((acc, e) => acc + e.amount, 0);
+  const totalExpenses = entries.filter((e) => e.type === 'expense').reduce((acc, e) => acc + e.amount, 0) + allocatedExpenses;
   const totalFixedExpenses = fixedExpenses.reduce((acc, e) => acc + e.amount, 0);
   const totalReceivables = receivables.reduce((acc, r) => {
     const remaining = r.totalAmount - (r.totalAmount / r.installments) * r.paidInstallments;
     return acc + remaining;
   }, 0);
-  const totalSaved = piggyBanks.reduce((acc, p) => acc + p.currentAmount, 0);
+  const totalSaved = piggyBanks.reduce((acc, p) => acc + p.currentAmount, 0) + allocatedSaved;
   const balance = totalIncome - totalExpenses - totalFixedExpenses;
 
   const formatCurrency = (value: number) => {
@@ -362,6 +370,18 @@ export default function Financeiro() {
     }
   };
 
+  const toggleEntryExpanded = (entryId: string) => {
+    setExpandedEntries((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId);
+      } else {
+        newSet.add(entryId);
+      }
+      return newSet;
+    });
+  };
+
   const today = new Date().getDate();
 
   if (loading) {
@@ -432,6 +452,18 @@ export default function Financeiro() {
                 const totalAllocated = entryAllocations.reduce((acc, a) => acc + a.amount, 0);
                 const hasAllocations = entryAllocations.length > 0;
                 const isFullyAllocated = totalAllocated >= entry.amount;
+                const isExpanded = expandedEntries.has(entry.id);
+                
+                // Separate expense allocations (shown as outflow)
+                const expenseAllocations = entryAllocations.filter(
+                  (a) => a.destinationType === 'expense' || a.destinationType === 'fixed_expense'
+                );
+                const savedAllocations = entryAllocations.filter(
+                  (a) => a.destinationType === 'piggy_bank'
+                );
+                const otherAllocations = entryAllocations.filter(
+                  (a) => a.destinationType === 'other'
+                );
 
                 return (
                   <div key={entry.id} className="p-4">
@@ -473,6 +505,20 @@ export default function Financeiro() {
                             )} />
                           </Button>
                         )}
+                        {entry.type === 'income' && hasAllocations && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleEntryExpanded(entry.id)}
+                            title={isExpanded ? 'Minimizar' : 'Expandir'}
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -483,21 +529,88 @@ export default function Financeiro() {
                       </div>
                     </div>
 
-                    {/* Show allocations summary for income entries */}
-                    {entry.type === 'income' && hasAllocations && (
-                      <div className="mt-3 pl-13 ml-13">
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {entryAllocations.map((alloc) => (
-                            <Badge key={alloc.id} variant="secondary" className="text-xs">
-                              {alloc.destinationName}: {formatCurrency(alloc.amount)}
-                            </Badge>
-                          ))}
+                    {/* Collapsed summary - show allocation counts */}
+                    {entry.type === 'income' && hasAllocations && !isExpanded && (
+                      <div className="mt-2 ml-13 pl-13">
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          {expenseAllocations.length > 0 && (
+                            <span className="flex items-center gap-1">
+                              <TrendingDown className="w-3 h-3 text-destructive" />
+                              Despesas: {formatCurrency(expenseAllocations.reduce((acc, a) => acc + a.amount, 0))}
+                            </span>
+                          )}
+                          {savedAllocations.length > 0 && (
+                            <span className="flex items-center gap-1">
+                              <PiggyBankIcon className="w-3 h-3 text-success" />
+                              Guardado: {formatCurrency(savedAllocations.reduce((acc, a) => acc + a.amount, 0))}
+                            </span>
+                          )}
                           {!isFullyAllocated && (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                            <span className="text-warning">
                               Restante: {formatCurrency(entry.amount - totalAllocated)}
-                            </Badge>
+                            </span>
                           )}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Expanded view - show all allocations with types */}
+                    {entry.type === 'income' && hasAllocations && isExpanded && (
+                      <div className="mt-3 ml-13 pl-13 space-y-2">
+                        {/* Expense allocations - shown as outflow */}
+                        {expenseAllocations.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-destructive flex items-center gap-1">
+                              <TrendingDown className="w-3 h-3" />
+                              Despesas
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {expenseAllocations.map((alloc) => (
+                                <Badge key={alloc.id} variant="destructive" className="text-xs">
+                                  {alloc.destinationName}: -{formatCurrency(alloc.amount)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Saved allocations */}
+                        {savedAllocations.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-success flex items-center gap-1">
+                              <PiggyBankIcon className="w-3 h-3" />
+                              Guardado
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {savedAllocations.map((alloc) => (
+                                <Badge key={alloc.id} variant="secondary" className="text-xs bg-success/20 text-success">
+                                  {alloc.destinationName}: {formatCurrency(alloc.amount)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Other allocations */}
+                        {otherAllocations.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Outros</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {otherAllocations.map((alloc) => (
+                                <Badge key={alloc.id} variant="secondary" className="text-xs">
+                                  {alloc.destinationName}: {formatCurrency(alloc.amount)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Remaining */}
+                        {!isFullyAllocated && (
+                          <Badge variant="outline" className="text-xs text-warning border-warning">
+                            Restante: {formatCurrency(entry.amount - totalAllocated)}
+                          </Badge>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1309,6 +1422,9 @@ export default function Financeiro() {
         fixedExpenses={fixedExpenses}
         onAddAllocation={async (data) => {
           await addAllocation(data);
+        }}
+        onUpdateAllocation={async (id, data) => {
+          return await updateAllocation(id, data);
         }}
         onDeleteAllocation={async (id) => {
           await deleteAllocation(id);
