@@ -7,6 +7,7 @@ interface StatCardProps {
   value: string | number;
   subtitle?: string;
   icon?: LucideIcon;
+  iconBgClassName?: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   onClick?: () => void;
@@ -19,6 +20,7 @@ export function StatCard({
   value,
   subtitle,
   icon: Icon,
+  iconBgClassName,
   trend,
   trendValue,
   onClick,
@@ -36,7 +38,7 @@ export function StatCard({
       )}
     >
       {Icon && (
-        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-secondary mb-3">
+        <div className={cn("flex items-center justify-center w-10 h-10 rounded-lg bg-secondary mb-3", iconBgClassName)}>
           <Icon className="w-5 h-5 text-foreground" />
         </div>
       )}
