@@ -55,9 +55,9 @@ interface EntryAllocationModalProps {
 }
 
 const destinationTypes = [
-  { value: 'expense', label: 'Despesa', icon: Receipt },
-  { value: 'piggy_bank', label: 'Cofrinho', icon: PiggyBank },
+  { value: 'expense', label: 'Despesa Variável', icon: Receipt },
   { value: 'fixed_expense', label: 'Despesa Fixa', icon: ShoppingCart },
+  { value: 'piggy_bank', label: 'Cofrinho', icon: PiggyBank },
   { value: 'health', label: 'Saúde', icon: Heart },
   { value: 'other', label: 'Outro', icon: Tag },
 ] as const;
