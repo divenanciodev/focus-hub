@@ -19,7 +19,7 @@ export function LinkCard({ link, onEdit, onDelete }: LinkCardProps) {
   };
 
   const handleOpenLink = () => {
-    window.open(link.url, '_blank', 'noopener,noreferrer');
+    window.location.href = link.url;
   };
 
   return (
