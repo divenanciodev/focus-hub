@@ -1,6 +1,7 @@
-import { ExternalLink, Trash2, Edit2, Globe } from 'lucide-react';
+import { Copy, Trash2, Edit2, Globe } from 'lucide-react';
 import { BankLink } from '@/types/linkBank';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface LinkCardProps {
   link: BankLink;
@@ -15,6 +16,15 @@ export function LinkCard({ link, onEdit, onDelete }: LinkCardProps) {
       return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
     } catch {
       return null;
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(link.url);
+      toast.success('Link copiado para a área de transferência!');
+    } catch {
+      toast.error('Erro ao copiar o link');
     }
   };
 
@@ -65,15 +75,15 @@ export function LinkCard({ link, onEdit, onDelete }: LinkCardProps) {
       </div>
 
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-        <a
-          href={link.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 mr-2 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 mr-2"
+          onClick={handleCopyLink}
         >
-          <ExternalLink className="w-4 h-4" />
-          Abrir
-        </a>
+          <Copy className="w-4 h-4 mr-2" />
+          Copiar Link
+        </Button>
         <div className="flex gap-1">
           <Button
             variant="ghost"
