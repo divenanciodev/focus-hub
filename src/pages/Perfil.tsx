@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { useAuth } from '@/hooks/useAuth';
+import { useUsers, UserWithRole } from '@/hooks/useUsers';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -12,6 +14,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import {
   User,
   Mail,
@@ -28,12 +46,22 @@ import {
   LogOut,
   Camera,
   Loader2,
+  Key,
+  Users,
+  Trash2,
+  Crown,
+  UserCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export default function Perfil() {
+  const navigate = useNavigate();
   const { settings, loading, updateSettings } = useUserSettings();
+  const { user, profile, isAdmin, signOut, updatePassword, updateProfile, loading: authLoading } = useAuth();
+  const { users, loading: usersLoading, updateUserRole, deleteUser } = useUsers();
   const { theme, setTheme } = useTheme();
   
   // Settings state
@@ -45,10 +73,29 @@ export default function Perfil() {
   const [language, setLanguage] = useState('pt-BR');
   
   // Profile edit state
-  const [name, setName] = useState('Usuário');
-  const [email, setEmail] = useState('usuario@email.com');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
 
-  // Sync state with settings from database
+  // Password change modal
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Data management modal
+  const [dataModalOpen, setDataModalOpen] = useState(false);
+
+  // Delete account modal
+  const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
+
+  // Sync state with profile and settings
+  useEffect(() => {
+    if (profile) {
+      setName(profile.full_name || '');
+      setEmail(profile.email);
+    }
+  }, [profile]);
+
   useEffect(() => {
     if (settings) {
       setNotifications(settings.notificationsEnabled);
@@ -63,7 +110,7 @@ export default function Perfil() {
     }
   }, [settings, setTheme]);
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',
@@ -71,8 +118,13 @@ export default function Perfil() {
     });
   };
 
-  const handleSaveProfile = () => {
-    toast.success('Perfil atualizado com sucesso!');
+  const handleSaveProfile = async () => {
+    const { error } = await updateProfile({ full_name: name });
+    if (error) {
+      toast.error('Erro ao atualizar perfil');
+    } else {
+      toast.success('Perfil atualizado com sucesso!');
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -93,7 +145,36 @@ export default function Perfil() {
     await updateSettings({ theme: newTheme });
   };
 
-  if (loading) {
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmNewPassword) {
+      toast.error('As senhas não coincidem');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('A senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+
+    setPasswordLoading(true);
+    const { error } = await updatePassword(newPassword);
+    setPasswordLoading(false);
+
+    if (error) {
+      toast.error('Erro ao alterar senha');
+    } else {
+      toast.success('Senha alterada com sucesso!');
+      setPasswordModalOpen(false);
+      setNewPassword('');
+      setConfirmNewPassword('');
+    }
+  };
+
+  if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -116,24 +197,36 @@ export default function Perfil() {
             <div className="flex flex-col items-center text-center">
               <div className="relative mb-4">
                 <div className="flex items-center justify-center w-24 h-24 rounded-full bg-primary text-primary-foreground text-3xl font-bold">
-                  {name.charAt(0)}
+                  {name?.charAt(0) || email?.charAt(0) || 'U'}
                 </div>
                 <button className="absolute bottom-0 right-0 p-2 bg-secondary rounded-full border border-border hover:bg-secondary/80 transition-colors">
                   <Camera className="w-4 h-4" />
                 </button>
               </div>
-              <h2 className="text-xl font-bold text-foreground mb-1">{name}</h2>
-              <p className="text-sm text-muted-foreground mb-3">{email}</p>
-              <span className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground text-xs font-medium px-3 py-1 rounded-full">
-                <Calendar className="w-3 h-3" />
-                Membro desde {formatDate(new Date())}
-              </span>
+              <h2 className="text-xl font-bold text-foreground mb-1">{name || 'Usuário'}</h2>
+              <p className="text-sm text-muted-foreground mb-2">{email}</p>
+              {isAdmin && (
+                <Badge className="mb-3 bg-amber-500/20 text-amber-500 border-amber-500/30">
+                  <Crown className="w-3 h-3 mr-1" />
+                  Administrador
+                </Badge>
+              )}
+              {profile?.created_at && (
+                <span className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground text-xs font-medium px-3 py-1 rounded-full">
+                  <Calendar className="w-3 h-3" />
+                  Membro desde {formatDate(profile.created_at)}
+                </span>
+              )}
             </div>
           </div>
 
           {/* Quick Actions */}
           <div className="bg-card border border-border rounded-xl p-4">
-            <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start text-destructive hover:text-destructive"
+              onClick={handleSignOut}
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sair da conta
             </Button>
@@ -166,8 +259,8 @@ export default function Perfil() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
               </div>
@@ -339,17 +432,118 @@ export default function Perfil() {
             </div>
             
             <div className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setPasswordModalOpen(true)}
+              >
+                <Key className="w-4 h-4 mr-2" />
                 Alterar senha
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setDataModalOpen(true)}
+              >
+                <User className="w-4 h-4 mr-2" />
                 Gerenciar dados
               </Button>
-              <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start text-destructive hover:text-destructive"
+                onClick={() => setDeleteAccountModalOpen(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
                 Excluir conta
               </Button>
             </div>
           </div>
+
+          {/* User Management (Admin Only) */}
+          {isAdmin && (
+            <div className="bg-card border border-border rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <Users className="w-5 h-5 text-foreground" />
+                <h3 className="font-semibold text-foreground">Gerenciar Usuários</h3>
+                <Badge className="ml-2 bg-amber-500/20 text-amber-500 border-amber-500/30">Admin</Badge>
+              </div>
+
+              {usersLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : users.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Nenhum usuário encontrado</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Usuário</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Papel</TableHead>
+                        <TableHead>Membro desde</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((u) => (
+                        <TableRow key={u.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
+                                {u.full_name?.charAt(0) || u.email.charAt(0).toUpperCase()}
+                              </div>
+                              {u.full_name || 'Sem nome'}
+                            </div>
+                          </TableCell>
+                          <TableCell>{u.email}</TableCell>
+                          <TableCell>
+                            <Select
+                              value={u.role}
+                              onValueChange={(value) => updateUserRole(u.id, value as 'admin' | 'user')}
+                              disabled={u.id === user?.id}
+                            >
+                              <SelectTrigger className="w-28">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">
+                                  <div className="flex items-center gap-2">
+                                    <Crown className="w-3 h-3" />
+                                    Admin
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="user">
+                                  <div className="flex items-center gap-2">
+                                    <UserCheck className="w-3 h-3" />
+                                    Usuário
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>{formatDate(u.created_at)}</TableCell>
+                          <TableCell className="text-right">
+                            {u.id !== user?.id && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => deleteUser(u.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Save All Settings */}
           <Button onClick={handleSaveSettings} size="lg" className="w-full">
@@ -358,6 +552,122 @@ export default function Perfil() {
           </Button>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Senha</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Nova senha</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-new-password">Confirmar nova senha</Label>
+              <Input
+                id="confirm-new-password"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleChangePassword} disabled={passwordLoading}>
+              {passwordLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Alterando...
+                </>
+              ) : (
+                'Alterar senha'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Data Management Modal */}
+      <Dialog open={dataModalOpen} onOpenChange={setDataModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gerenciar Dados</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-muted-foreground">
+              Aqui você pode gerenciar seus dados pessoais armazenados na plataforma.
+            </p>
+            <div className="space-y-2">
+              <h4 className="font-medium">Dados armazenados:</h4>
+              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                <li>Perfil (nome, email)</li>
+                <li>Disciplinas e progresso de estudos</li>
+                <li>Objetivos e metas</li>
+                <li>Links salvos</li>
+                <li>Registros financeiros</li>
+                <li>Hábitos e cronogramas</li>
+              </ul>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Para solicitar a exportação ou exclusão de seus dados, entre em contato com o suporte.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setDataModalOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Account Modal */}
+      <Dialog open={deleteAccountModalOpen} onOpenChange={setDeleteAccountModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Excluir Conta
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-muted-foreground">
+              Esta ação é <strong>irreversível</strong>. Todos os seus dados serão permanentemente excluídos.
+            </p>
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+              <p className="text-sm text-destructive">
+                Ao excluir sua conta, você perderá:
+              </p>
+              <ul className="list-disc list-inside text-sm text-destructive mt-2 space-y-1">
+                <li>Todas as disciplinas e progresso</li>
+                <li>Objetivos e metas</li>
+                <li>Links e pastas</li>
+                <li>Registros financeiros</li>
+                <li>Configurações personalizadas</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteAccountModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive">
+              Confirmar exclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
