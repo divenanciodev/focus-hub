@@ -318,6 +318,7 @@ export function EntryAllocationModal({
 
                         {(editDestinationType === 'expense' ||
                           editDestinationType === 'other' ||
+                          editDestinationType === 'health' ||
                           (editDestinationType === 'piggy_bank' && piggyBanks.length === 0) ||
                           (editDestinationType === 'fixed_expense' && fixedExpenses.length === 0)) && (
                           <div className="space-y-1">
@@ -472,6 +473,7 @@ export function EntryAllocationModal({
 
               {(destinationType === 'expense' ||
                 destinationType === 'other' ||
+                destinationType === 'health' ||
                 (destinationType === 'piggy_bank' && piggyBanks.length === 0) ||
                 (destinationType === 'fixed_expense' && fixedExpenses.length === 0)) && (
                 <div className="space-y-2">
