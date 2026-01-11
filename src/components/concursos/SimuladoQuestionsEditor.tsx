@@ -50,9 +50,11 @@ function getQuestionsByCriteria(questions: SimuladoQuestion[]): Map<string, { na
 
 export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteria = [] }: SimuladoQuestionsEditorProps) {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['Sem categoria']));
   const [showBulkGabarito, setShowBulkGabarito] = useState(false);
   const [gabaritoCount, setGabaritoCount] = useState('');
   const [gabaritoAnswers, setGabaritoAnswers] = useState<string[]>([]);
+  const [selectedGabaritoCategory, setSelectedGabaritoCategory] = useState<string>('');
 
   // Gera lista de opções de conteúdo a partir dos critérios de avaliação
   const criteriaOptions: CriteriaOption[] = evaluationCriteria.flatMap((criteria) =>
@@ -66,6 +68,35 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
   // Estatísticas de questões por matéria
   const questionsByCriteria = getQuestionsByCriteria(questions);
 
+  // Agrupa questões por categoria para exibição organizada
+  const groupedQuestions = questions.reduce((acc, question, originalIndex) => {
+    const category = question.criteriaName || 'Sem categoria';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push({ question, originalIndex });
+    return acc;
+  }, {} as Record<string, { question: SimuladoQuestion; originalIndex: number }[]>);
+
+  // Ordem das categorias: primeiro as que têm critérios definidos, depois "Sem categoria"
+  const categoryOrder = [
+    ...criteriaOptions.map(c => c.name).filter(name => groupedQuestions[name]),
+    ...Object.keys(groupedQuestions).filter(k => k !== 'Sem categoria' && !criteriaOptions.some(c => c.name === k)),
+    ...(groupedQuestions['Sem categoria'] ? ['Sem categoria'] : [])
+  ];
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
+
   const toggleExpanded = (id: string) => {
     setExpandedQuestions((prev) => {
       const next = new Set(prev);
@@ -78,7 +109,10 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
     });
   };
 
-  const addQuestion = () => {
+  const addQuestion = (category?: string) => {
+    // Find the criteria info if a category is provided
+    const criteriaInfo = category ? criteriaOptions.find(c => c.name === category) : undefined;
+    
     const newQuestion: SimuladoQuestion = {
       id: generateId(),
       statement: '',
@@ -86,9 +120,16 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
       options: ['', '', '', '', ''],
       correctAnswer: 0,
       supportTexts: [],
+      criteriaId: criteriaInfo?.id,
+      criteriaName: criteriaInfo?.name,
     };
     onChange([...questions, newQuestion]);
     setExpandedQuestions((prev) => new Set([...prev, newQuestion.id]));
+    
+    // Expand the category if adding to a specific one
+    if (category) {
+      setExpandedCategories((prev) => new Set([...prev, category]));
+    }
   };
 
   const removeQuestion = (id: string) => {
@@ -192,7 +233,7 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
     }
   };
 
-  // Apply gabarito to questions
+  // Apply gabarito to questions (with optional category filter)
   const applyBulkGabarito = () => {
     if (gabaritoAnswers.length === 0) {
       toast.error('Defina a quantidade de questões primeiro');
@@ -205,34 +246,75 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
       return;
     }
 
+    // Get criteria info for the selected category
+    const criteriaInfo = selectedGabaritoCategory 
+      ? criteriaOptions.find(c => c.name === selectedGabaritoCategory) 
+      : undefined;
+
     // Create or update questions based on gabarito
     const updatedQuestions = [...questions];
     
-    // If we have more gabarito answers than questions, create new questions
-    for (let i = questions.length; i < gabaritoAnswers.length; i++) {
-      updatedQuestions.push({
-        id: generateId(),
-        statement: '',
-        type: 'multiple-choice',
-        options: ['', '', '', '', ''],
-        correctAnswer: 0,
-        supportTexts: [],
+    if (selectedGabaritoCategory) {
+      // Filter questions in this category
+      const categoryQuestions = questions.filter(q => q.criteriaName === selectedGabaritoCategory);
+      const categoryStartIndex = categoryQuestions.length;
+      
+      // Create new questions for this category
+      for (let i = categoryStartIndex; i < gabaritoAnswers.length; i++) {
+        updatedQuestions.push({
+          id: generateId(),
+          statement: '',
+          type: 'multiple-choice',
+          options: ['', '', '', '', ''],
+          correctAnswer: 0,
+          supportTexts: [],
+          criteriaId: criteriaInfo?.id,
+          criteriaName: criteriaInfo?.name,
+        });
+      }
+      
+      // Apply answers only to questions in this category
+      let categoryIndex = 0;
+      for (let i = 0; i < updatedQuestions.length && categoryIndex < gabaritoAnswers.length; i++) {
+        if (updatedQuestions[i].criteriaName === selectedGabaritoCategory) {
+          const answer = gabaritoAnswers[categoryIndex];
+          if (answer) {
+            const answerIndex = answer.charCodeAt(0) - 65;
+            updatedQuestions[i] = { ...updatedQuestions[i], correctAnswer: answerIndex };
+          }
+          categoryIndex++;
+        }
+      }
+    } else {
+      // No category selected - apply to all questions (original behavior)
+      for (let i = questions.length; i < gabaritoAnswers.length; i++) {
+        updatedQuestions.push({
+          id: generateId(),
+          statement: '',
+          type: 'multiple-choice',
+          options: ['', '', '', '', ''],
+          correctAnswer: 0,
+          supportTexts: [],
+        });
+      }
+
+      // Apply answers
+      gabaritoAnswers.forEach((answer, index) => {
+        if (answer && index < updatedQuestions.length) {
+          const answerIndex = answer.charCodeAt(0) - 65;
+          updatedQuestions[index] = { ...updatedQuestions[index], correctAnswer: answerIndex };
+        }
       });
     }
-
-    // Apply answers
-    gabaritoAnswers.forEach((answer, index) => {
-      if (answer && index < updatedQuestions.length) {
-        const answerIndex = answer.charCodeAt(0) - 65; // A=0, B=1, etc.
-        updatedQuestions[index] = { ...updatedQuestions[index], correctAnswer: answerIndex };
-      }
-    });
 
     onChange(updatedQuestions);
     setShowBulkGabarito(false);
     setGabaritoCount('');
     setGabaritoAnswers([]);
-    toast.success(`Gabarito aplicado! ${updatedQuestions.length} questões.`);
+    setSelectedGabaritoCategory('');
+    
+    const categoryText = selectedGabaritoCategory ? ` para "${selectedGabaritoCategory}"` : '';
+    toast.success(`Gabarito aplicado${categoryText}! ${gabaritoAnswers.length} questões.`);
   };
 
   // Load existing gabarito from questions
@@ -301,8 +383,36 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
         {showBulkGabarito && (
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground">
-              Digite a quantidade de questões e preencha a alternativa correta para cada uma (A-E).
+              Selecione uma matéria (opcional), defina a quantidade e preencha as alternativas (A-E).
             </p>
+
+            {/* Category Selector */}
+            {criteriaOptions.length > 0 && (
+              <div className="flex items-center gap-3">
+                <Label className="text-sm whitespace-nowrap">Matéria:</Label>
+                <Select
+                  value={selectedGabaritoCategory}
+                  onValueChange={setSelectedGabaritoCategory}
+                >
+                  <SelectTrigger className="w-48 h-8 text-sm">
+                    <SelectValue placeholder="Todas as matérias" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas as matérias</SelectItem>
+                    {criteriaOptions.map((criteria) => (
+                      <SelectItem key={criteria.id} value={criteria.name}>
+                        {criteria.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedGabaritoCategory && (
+                  <Badge variant="secondary" className="text-xs">
+                    {groupedQuestions[selectedGabaritoCategory]?.length || 0} questões existentes
+                  </Badge>
+                )}
+              </div>
+            )}
 
             {/* Question Count Input */}
             <div className="flex items-center gap-3">
@@ -316,7 +426,7 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
                 min={1}
                 max={200}
               />
-              {questions.length > 0 && gabaritoAnswers.length === 0 && (
+              {questions.length > 0 && gabaritoAnswers.length === 0 && !selectedGabaritoCategory && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -324,6 +434,24 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
                   onClick={loadExistingGabarito}
                 >
                   Carregar das questões ({questions.length})
+                </Button>
+              )}
+              {selectedGabaritoCategory && groupedQuestions[selectedGabaritoCategory]?.length > 0 && gabaritoAnswers.length === 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => {
+                    const categoryQs = groupedQuestions[selectedGabaritoCategory] || [];
+                    setGabaritoCount(categoryQs.length.toString());
+                    setGabaritoAnswers(
+                      categoryQs.map(({ question }) => 
+                        typeof question.correctAnswer === 'number' ? getOptionLabel(question.correctAnswer) : ''
+                      )
+                    );
+                  }}
+                >
+                  Carregar de {selectedGabaritoCategory} ({groupedQuestions[selectedGabaritoCategory]?.length})
                 </Button>
               )}
             </div>
@@ -426,272 +554,331 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
         </div>
       )}
 
-      {/* Questions List */}
-      <div className="space-y-3">
-        {questions.map((question, qIndex) => {
-          const isExpanded = expandedQuestions.has(question.id);
-
-          return (
-            <div
-              key={question.id}
-              className="border border-border rounded-lg overflow-hidden"
-            >
-              {/* Question Header */}
-              <div
-                className="flex items-center gap-2 p-3 bg-muted/50 cursor-pointer"
-                onClick={() => toggleExpanded(question.id)}
-              >
-                <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="font-medium text-sm w-8 shrink-0">
-                  Q{qIndex + 1}
-                </span>
-                <span className="text-sm text-muted-foreground flex-1 truncate">
-                  {question.title || question.statement || '(Sem enunciado)'}
-                </span>
-                {question.criteriaName && (
-                  <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded shrink-0 max-w-[120px] truncate" title={question.criteriaName}>
-                    {question.criteriaName}
-                  </span>
-                )}
-                {question.options && typeof question.correctAnswer === 'number' && (
-                  <span className="text-xs px-2 py-0.5 bg-success/10 text-success rounded shrink-0">
-                    Gabarito: {getOptionLabel(question.correctAnswer)}
-                  </span>
-                )}
-                {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeQuestion(question.id);
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* Question Content */}
-              {isExpanded && (
-                <div className="p-3 space-y-4">
-                  {/* 1. Conteúdo Associado (PRIMEIRO) */}
-                  {criteriaOptions.length > 0 && (
-                    <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-primary" />
-                        <Label className="text-xs font-semibold text-primary">Conteúdo Associado</Label>
-                      </div>
-                      <Select
-                        value={question.criteriaId || ''}
-                        onValueChange={(value) => {
-                          const selectedCriteria = criteriaOptions.find((c) => c.id === value);
-                          updateQuestion(question.id, {
-                            criteriaId: value || undefined,
-                            criteriaName: selectedCriteria?.name || undefined,
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="h-9 text-sm">
-                          <SelectValue placeholder="Selecione a matéria/conteúdo..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {evaluationCriteria.map((criteria) => (
-                            <div key={criteria.level}>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50">
-                                {criteria.level}
-                              </div>
-                              {criteria.items.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.content}
-                                </SelectItem>
-                              ))}
-                            </div>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+      {/* Questions List - Organized by Category */}
+      <div className="space-y-4">
+        {categoryOrder.length > 0 ? (
+          categoryOrder.map((category) => {
+            const categoryQuestions = groupedQuestions[category] || [];
+            const isCategoryExpanded = expandedCategories.has(category);
+            
+            return (
+              <div key={category} className="border border-border rounded-lg overflow-hidden">
+                {/* Category Header */}
+                <div
+                  className={cn(
+                    "flex items-center justify-between p-3 cursor-pointer transition-colors",
+                    category === 'Sem categoria' 
+                      ? "bg-muted/30 hover:bg-muted/50" 
+                      : "bg-primary/5 hover:bg-primary/10"
                   )}
-
-                  {/* 2. Título da Questão (opcional) */}
-                  <div className="space-y-2">
-                    <Label className="text-xs">Título da questão (opcional)</Label>
-                    <Input
-                      value={question.title || ''}
-                      onChange={(e) => updateQuestion(question.id, { title: e.target.value })}
-                      placeholder="Ex: Questão sobre Princípios Constitucionais"
-                      className="h-9 text-sm"
-                    />
+                  onClick={() => toggleCategory(category)}
+                >
+                  <div className="flex items-center gap-3">
+                    {isCategoryExpanded ? (
+                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <BookOpen className={cn(
+                      "w-4 h-4",
+                      category === 'Sem categoria' ? "text-muted-foreground" : "text-primary"
+                    )} />
+                    <span className={cn(
+                      "font-medium text-sm",
+                      category === 'Sem categoria' ? "text-muted-foreground" : "text-foreground"
+                    )}>
+                      {category}
+                    </span>
+                    <Badge variant="secondary" className="text-xs">
+                      {categoryQuestions.length} {categoryQuestions.length === 1 ? 'questão' : 'questões'}
+                    </Badge>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addQuestion(category === 'Sem categoria' ? undefined : category);
+                    }}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Adicionar
+                  </Button>
+                </div>
 
-                  {/* 3. Textos de Suporte */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <Label className="text-xs font-medium">Textos de Apoio</Label>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        onClick={() => addSupportText(question.id)}
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Adicionar texto
-                      </Button>
-                    </div>
+                {/* Category Questions */}
+                {isCategoryExpanded && (
+                  <div className="p-3 space-y-3 bg-background">
+                    {categoryQuestions.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4 italic">
+                        Nenhuma questão nesta matéria. Clique em "Adicionar" acima.
+                      </p>
+                    ) : (
+                      categoryQuestions.map(({ question, originalIndex }) => {
+                        const isExpanded = expandedQuestions.has(question.id);
 
-                    {question.supportTexts && question.supportTexts.length > 0 ? (
-                      <div className="space-y-3">
-                        {question.supportTexts.map((text, textIndex) => (
-                          <div key={text.id} className="p-3 bg-muted/30 rounded-lg space-y-2 relative">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                Texto {textIndex + 1}
+                        return (
+                          <div
+                            key={question.id}
+                            className="border border-border rounded-lg overflow-hidden"
+                          >
+                            {/* Question Header */}
+                            <div
+                              className="flex items-center gap-2 p-3 bg-muted/50 cursor-pointer"
+                              onClick={() => toggleExpanded(question.id)}
+                            >
+                              <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <span className="font-medium text-sm w-8 shrink-0">
+                                Q{originalIndex + 1}
                               </span>
+                              <span className="text-sm text-muted-foreground flex-1 truncate">
+                                {question.title || question.statement || '(Sem enunciado)'}
+                              </span>
+                              {question.options && typeof question.correctAnswer === 'number' && (
+                                <span className="text-xs px-2 py-0.5 bg-success/10 text-success rounded shrink-0">
+                                  Gabarito: {getOptionLabel(question.correctAnswer)}
+                                </span>
+                              )}
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                                onClick={() => removeSupportText(question.id, text.id)}
+                                className="h-7 w-7 p-0 text-destructive hover:text-destructive shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeQuestion(question.id);
+                                }}
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
-                            <Input
-                              value={text.title || ''}
-                              onChange={(e) => updateSupportText(question.id, text.id, { title: e.target.value })}
-                              placeholder="Título do texto (opcional)"
-                              className="h-8 text-sm"
-                            />
-                            <Textarea
-                              value={text.content}
-                              onChange={(e) => updateSupportText(question.id, text.id, { content: e.target.value })}
-                              placeholder="Cole ou digite o texto de apoio aqui..."
-                              className="resize-none min-h-[80px] text-sm"
-                            />
-                            <Input
-                              value={text.reference || ''}
-                              onChange={(e) => updateSupportText(question.id, text.id, { reference: e.target.value })}
-                              placeholder="Referência/Fonte (ex: Autor, Livro, Ano)"
-                              className="h-8 text-xs text-muted-foreground"
-                            />
+
+                            {/* Question Content */}
+                            {isExpanded && (
+                              <div className="p-3 space-y-4">
+                                {/* 1. Conteúdo Associado (PRIMEIRO) */}
+                                {criteriaOptions.length > 0 && (
+                                  <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                                    <div className="flex items-center gap-2">
+                                      <BookOpen className="w-4 h-4 text-primary" />
+                                      <Label className="text-xs font-semibold text-primary">Conteúdo Associado</Label>
+                                    </div>
+                                    <Select
+                                      value={question.criteriaId || ''}
+                                      onValueChange={(value) => {
+                                        const selectedCriteria = criteriaOptions.find((c) => c.id === value);
+                                        updateQuestion(question.id, {
+                                          criteriaId: value || undefined,
+                                          criteriaName: selectedCriteria?.name || undefined,
+                                        });
+                                      }}
+                                    >
+                                      <SelectTrigger className="h-9 text-sm">
+                                        <SelectValue placeholder="Selecione a matéria/conteúdo..." />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {evaluationCriteria.map((criteria) => (
+                                          <div key={criteria.level}>
+                                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50">
+                                              {criteria.level}
+                                            </div>
+                                            {criteria.items.map((item) => (
+                                              <SelectItem key={item.id} value={item.id}>
+                                                {item.content}
+                                              </SelectItem>
+                                            ))}
+                                          </div>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                )}
+
+                                {/* 2. Título da Questão (opcional) */}
+                                <div className="space-y-2">
+                                  <Label className="text-xs">Título da questão (opcional)</Label>
+                                  <Input
+                                    value={question.title || ''}
+                                    onChange={(e) => updateQuestion(question.id, { title: e.target.value })}
+                                    placeholder="Ex: Questão sobre Princípios Constitucionais"
+                                    className="h-9 text-sm"
+                                  />
+                                </div>
+
+                                {/* 3. Textos de Suporte */}
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="w-4 h-4 text-muted-foreground" />
+                                      <Label className="text-xs font-medium">Textos de Apoio</Label>
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      onClick={() => addSupportText(question.id)}
+                                    >
+                                      <Plus className="w-3 h-3 mr-1" />
+                                      Adicionar texto
+                                    </Button>
+                                  </div>
+
+                                  {question.supportTexts && question.supportTexts.length > 0 ? (
+                                    <div className="space-y-3">
+                                      {question.supportTexts.map((text, textIndex) => (
+                                        <div key={text.id} className="p-3 bg-muted/30 rounded-lg space-y-2 relative">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs font-medium text-muted-foreground">
+                                              Texto {textIndex + 1}
+                                            </span>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                              onClick={() => removeSupportText(question.id, text.id)}
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                          </div>
+                                          <Input
+                                            value={text.title || ''}
+                                            onChange={(e) => updateSupportText(question.id, text.id, { title: e.target.value })}
+                                            placeholder="Título do texto (opcional)"
+                                            className="h-8 text-sm"
+                                          />
+                                          <Textarea
+                                            value={text.content}
+                                            onChange={(e) => updateSupportText(question.id, text.id, { content: e.target.value })}
+                                            placeholder="Cole ou digite o texto de apoio aqui..."
+                                            className="resize-none min-h-[80px] text-sm"
+                                          />
+                                          <Input
+                                            value={text.reference || ''}
+                                            onChange={(e) => updateSupportText(question.id, text.id, { reference: e.target.value })}
+                                            placeholder="Referência/Fonte (ex: Autor, Livro, Ano)"
+                                            className="h-8 text-xs text-muted-foreground"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground italic">
+                                      Nenhum texto de apoio adicionado. Clique acima para adicionar.
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* 4. Enunciado (Comando da Questão) */}
+                                <div className="space-y-2 p-3 bg-accent/30 rounded-lg border border-accent/50">
+                                  <Label className="text-xs font-semibold">Enunciado / Comando da Questão</Label>
+                                  <Textarea
+                                    value={question.statement}
+                                    onChange={(e) => updateQuestion(question.id, { statement: e.target.value })}
+                                    placeholder="Digite o comando da questão. Ex: 'Com base no texto acima, assinale a alternativa correta:'"
+                                    className="resize-none min-h-[60px] text-sm"
+                                  />
+                                </div>
+
+                                {/* 5. Alternativas e Gabarito */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-medium">Alternativas e Gabarito</Label>
+                                    <span className="text-xs text-muted-foreground">
+                                      Clique na alternativa correta para definir o gabarito
+                                    </span>
+                                  </div>
+
+                                  <RadioGroup
+                                    value={String(question.correctAnswer)}
+                                    onValueChange={(value) =>
+                                      updateQuestion(question.id, { correctAnswer: parseInt(value) })
+                                    }
+                                    className="space-y-2"
+                                  >
+                                    {question.options?.map((option, optIndex) => (
+                                      <div
+                                        key={optIndex}
+                                        className={cn(
+                                          'flex items-center gap-2 p-2 rounded-md border transition-colors',
+                                          question.correctAnswer === optIndex
+                                            ? 'border-success bg-success/5'
+                                            : 'border-border hover:border-muted-foreground/50'
+                                        )}
+                                      >
+                                        <RadioGroupItem
+                                          value={String(optIndex)}
+                                          id={`${question.id}-${optIndex}`}
+                                          className="shrink-0"
+                                        />
+                                        <label
+                                          htmlFor={`${question.id}-${optIndex}`}
+                                          className="w-6 text-sm font-medium shrink-0 cursor-pointer"
+                                        >
+                                          {getOptionLabel(optIndex)}
+                                        </label>
+                                        <Input
+                                          value={option}
+                                          onChange={(e) => updateOption(question.id, optIndex, e.target.value)}
+                                          placeholder={`Alternativa ${getOptionLabel(optIndex)}`}
+                                          className="flex-1 h-8 text-sm"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                        {question.correctAnswer === optIndex && (
+                                          <Check className="w-4 h-4 text-success shrink-0" />
+                                        )}
+                                        {question.options && question.options.length > 2 && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                                            onClick={() => removeOption(question.id, optIndex)}
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </RadioGroup>
+
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => addOption(question.id)}
+                                  >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Adicionar alternativa
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">
-                        Nenhum texto de apoio adicionado. Clique acima para adicionar.
-                      </p>
+                        );
+                      })
                     )}
                   </div>
-
-                  {/* 4. Enunciado (Comando da Questão) */}
-                  <div className="space-y-2 p-3 bg-accent/30 rounded-lg border border-accent/50">
-                    <Label className="text-xs font-semibold">Enunciado / Comando da Questão</Label>
-                    <Textarea
-                      value={question.statement}
-                      onChange={(e) => updateQuestion(question.id, { statement: e.target.value })}
-                      placeholder="Digite o comando da questão. Ex: 'Com base no texto acima, assinale a alternativa correta:'"
-                      className="resize-none min-h-[60px] text-sm"
-                    />
-                  </div>
-
-                  {/* 5. Alternativas e Gabarito */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-medium">Alternativas e Gabarito</Label>
-                      <span className="text-xs text-muted-foreground">
-                        Clique na alternativa correta para definir o gabarito
-                      </span>
-                    </div>
-
-                    <RadioGroup
-                      value={String(question.correctAnswer)}
-                      onValueChange={(value) =>
-                        updateQuestion(question.id, { correctAnswer: parseInt(value) })
-                      }
-                      className="space-y-2"
-                    >
-                      {question.options?.map((option, optIndex) => (
-                        <div
-                          key={optIndex}
-                          className={cn(
-                            'flex items-center gap-2 p-2 rounded-md border transition-colors',
-                            question.correctAnswer === optIndex
-                              ? 'border-success bg-success/5'
-                              : 'border-border hover:border-muted-foreground/50'
-                          )}
-                        >
-                          <RadioGroupItem
-                            value={String(optIndex)}
-                            id={`${question.id}-${optIndex}`}
-                            className="shrink-0"
-                          />
-                          <label
-                            htmlFor={`${question.id}-${optIndex}`}
-                            className="w-6 text-sm font-medium shrink-0 cursor-pointer"
-                          >
-                            {getOptionLabel(optIndex)}
-                          </label>
-                          <Input
-                            value={option}
-                            onChange={(e) => updateOption(question.id, optIndex, e.target.value)}
-                            placeholder={`Alternativa ${getOptionLabel(optIndex)}`}
-                            className="flex-1 h-8 text-sm"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          {question.correctAnswer === optIndex && (
-                            <Check className="w-4 h-4 text-success shrink-0" />
-                          )}
-                          {question.options && question.options.length > 2 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                              onClick={() => removeOption(question.id, optIndex)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </RadioGroup>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => addOption(question.id)}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar alternativa
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-lg">
+            <p className="text-sm">Nenhuma questão adicionada</p>
+            <p className="text-xs mt-1">Clique no botão abaixo para adicionar questões ao simulado</p>
+          </div>
+        )}
       </div>
 
-      {/* Add Question Button */}
-      <Button variant="outline" className="w-full" onClick={addQuestion}>
+      {/* Add Question Button (for uncategorized) */}
+      <Button variant="outline" className="w-full" onClick={() => addQuestion()}>
         <Plus className="w-4 h-4 mr-2" />
-        Adicionar questão
+        Adicionar questão sem categoria
       </Button>
-
-      {questions.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-lg">
-          <p className="text-sm">Nenhuma questão adicionada</p>
-          <p className="text-xs mt-1">Clique no botão acima para adicionar questões ao simulado</p>
-        </div>
-      )}
     </div>
   );
 }
