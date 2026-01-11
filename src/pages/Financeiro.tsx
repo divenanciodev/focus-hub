@@ -430,8 +430,8 @@ export default function Financeiro() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard title="Renda total" value={formatCurrency(totalIncome)} icon={TrendingUp} iconBgClassName="bg-success/20" />
         <StatCard title="Despesas totais" value={formatCurrency(totalExpenses + totalFixedExpenses)} icon={TrendingDown} iconBgClassName="bg-destructive/20" />
-        <StatCard title="A receber" value={formatCurrency(totalReceivables)} icon={Users} />
-        <StatCard title="Guardado" value={formatCurrency(totalSaved)} icon={PiggyBankIcon} />
+        <StatCard title="A receber" value={formatCurrency(totalReceivables)} icon={Users} iconBgClassName="bg-warning/20" />
+        <StatCard title="Guardado" value={formatCurrency(totalSaved)} icon={PiggyBankIcon} iconBgClassName="bg-warning/20" />
       </div>
 
       <Tabs defaultValue="entradas" className="w-full">
