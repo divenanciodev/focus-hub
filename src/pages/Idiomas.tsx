@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -7,20 +6,22 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Languages, Trash2, Edit2, ChevronRight } from 'lucide-react';
+import { Plus, Languages, Trash2, Edit2 } from 'lucide-react';
 import { useLanguages } from '@/hooks/useLanguages';
 import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
+import { LanguagePanel } from '@/components/languages/LanguagePanel';
+import type { Language } from '@/types/languages';
 
 const EMOJI_OPTIONS = ['🇺🇸', '🇬🇧', '🇪🇸', '🇫🇷', '🇩🇪', '🇮🇹', '🇯🇵', '🇨🇳', '🇰🇷', '🇧🇷', '🇵🇹', '🌐'];
 
 export default function Idiomas() {
-  const navigate = useNavigate();
-  const { languages, loading, addLanguage, updateLanguage, deleteLanguage } = useLanguages();
+  const { languages, loading, addLanguage, updateLanguage, deleteLanguage, refetch } = useLanguages();
   
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  const [selectedLanguageId, setSelectedLanguageId] = useState<string | null>(null);
+  const [openLanguage, setOpenLanguage] = useState<Language | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -51,9 +52,9 @@ export default function Idiomas() {
   };
 
   const handleEdit = async () => {
-    if (!selectedLanguage || !formData.name.trim()) return;
+    if (!selectedLanguageId || !formData.name.trim()) return;
     
-    await updateLanguage(selectedLanguage, {
+    await updateLanguage(selectedLanguageId, {
       name: formData.name,
       icon: formData.icon,
       category: formData.category || undefined,
@@ -62,11 +63,12 @@ export default function Idiomas() {
     
     resetForm();
     setEditModalOpen(false);
-    setSelectedLanguage(null);
+    setSelectedLanguageId(null);
   };
 
-  const openEditModal = (lang: typeof languages[0]) => {
-    setSelectedLanguage(lang.id);
+  const openEditModal = (lang: Language, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedLanguageId(lang.id);
     setFormData({
       name: lang.name,
       icon: lang.icon,
@@ -76,14 +78,23 @@ export default function Idiomas() {
     setEditModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (confirm('Tem certeza que deseja excluir este idioma e todo seu conteúdo?')) {
       await deleteLanguage(id);
     }
   };
 
-  const handleOpenLanguage = (id: string) => {
-    navigate(`/idiomas/${id}`);
+  const handleOpenLanguage = (lang: Language) => {
+    setOpenLanguage(lang);
+  };
+
+  const handleClosePanel = () => {
+    setOpenLanguage(null);
+  };
+
+  const handlePanelUpdate = () => {
+    refetch();
   };
 
   if (loading) {
@@ -188,8 +199,8 @@ export default function Idiomas() {
           {languages.map((lang) => (
             <Card
               key={lang.id}
-              className="group cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => handleOpenLanguage(lang.id)}
+              className="group cursor-pointer hover:shadow-md transition-shadow hover:border-primary/50"
+              onClick={() => handleOpenLanguage(lang)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
@@ -207,10 +218,7 @@ export default function Idiomas() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(lang);
-                      }}
+                      onClick={(e) => openEditModal(lang, e)}
                     >
                       <Edit2 className="w-4 h-4" />
                     </Button>
@@ -218,14 +226,10 @@ export default function Idiomas() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(lang.id);
-                      }}
+                      onClick={(e) => handleDelete(lang.id, e)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
                   </div>
                 </div>
                 {lang.objective && (
@@ -294,6 +298,15 @@ export default function Idiomas() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Language Panel */}
+      {openLanguage && (
+        <LanguagePanel
+          language={openLanguage}
+          onClose={handleClosePanel}
+          onUpdate={handlePanelUpdate}
+        />
+      )}
     </MainLayout>
   );
 }
