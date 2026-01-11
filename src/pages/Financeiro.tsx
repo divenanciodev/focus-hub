@@ -1490,7 +1490,7 @@ export default function Financeiro() {
 
       {/* Edit Entry Modal */}
       <Dialog open={isEditEntryModalOpen} onOpenChange={setIsEditEntryModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               Editar {editingEntry?.type === 'income' ? 'Entrada' : 'Saída'}
@@ -1516,6 +1516,60 @@ export default function Financeiro() {
                 step="0.01"
               />
             </div>
+            
+            {/* Show allocations for income entries */}
+            {editingEntry?.type === 'income' && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <Label>Destinos alocados</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditEntryModalOpen(false);
+                      setSelectedEntryForAllocation(editingEntry);
+                      setIsAllocationModalOpen(true);
+                    }}
+                  >
+                    <Split className="w-4 h-4 mr-2" />
+                    Gerenciar alocações
+                  </Button>
+                </div>
+                {(() => {
+                  const entryAllocations = allocations.filter(a => a.entryId === editingEntry.id);
+                  if (entryAllocations.length === 0) {
+                    return (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhum destino alocado ainda.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {entryAllocations.map((allocation) => (
+                        <div
+                          key={allocation.id}
+                          className="flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              'w-2 h-2 rounded-full',
+                              allocation.destinationType === 'piggy_bank' ? 'bg-success' :
+                              allocation.destinationType === 'expense' || allocation.destinationType === 'fixed_expense' ? 'bg-destructive' :
+                              'bg-primary'
+                            )} />
+                            <span className="text-foreground">{allocation.destinationName}</span>
+                          </div>
+                          <span className="font-medium text-foreground">
+                            {formatCurrency(allocation.amount)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button 
