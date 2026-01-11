@@ -459,7 +459,7 @@ export default function Concursos() {
               onAction={() => navigate('/treinos')}
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredSimulados.map((simulado) => {
                 const progressPercent = simulado.status === 'completed' ? 100 : 0;
                 const isExpanded = expandedCards.has(simulado.id);
@@ -468,6 +468,55 @@ export default function Concursos() {
                 const associatedContest = contests.find(
                   (c) => simulado.name === `Simulado - ${c.name}`
                 );
+                
+                // Agrupa questões por critérios e calcula a nota ponderada
+                const questionsByCriteria: Record<string, { 
+                  name: string; 
+                  total: number; 
+                  correct: number;
+                  weight: number;
+                  maxPoints: number;
+                }> = {};
+                
+                simulado.questions.forEach((q) => {
+                  const key = q.criteriaName || 'Sem categoria';
+                  if (!questionsByCriteria[key]) {
+                    // Busca peso e pontos nos critérios do concurso associado
+                    let weight = 1;
+                    let maxPoints = 1;
+                    if (associatedContest?.evaluationCriteria) {
+                      for (const criteria of associatedContest.evaluationCriteria) {
+                        const item = criteria.items?.find((i) => i.content === key);
+                        if (item) {
+                          weight = item.weight || 1;
+                          maxPoints = item.totalPoints || item.questions || 1;
+                          break;
+                        }
+                      }
+                    }
+                    questionsByCriteria[key] = { name: key, total: 0, correct: 0, weight, maxPoints };
+                  }
+                  questionsByCriteria[key].total++;
+                  if (q.isCorrect) {
+                    questionsByCriteria[key].correct++;
+                  }
+                });
+                
+                // Calcula nota ponderada com base nos pesos dos critérios
+                let totalWeightedScore = 0;
+                let totalMaxScore = 0;
+                Object.values(questionsByCriteria).forEach((cat) => {
+                  if (cat.total > 0) {
+                    // Proporção de acertos * pontos máximos da categoria
+                    const categoryScore = (cat.correct / cat.total) * cat.maxPoints;
+                    totalWeightedScore += categoryScore;
+                    totalMaxScore += cat.maxPoints;
+                  }
+                });
+                
+                const weightedScorePercent = totalMaxScore > 0 
+                  ? Math.round((totalWeightedScore / totalMaxScore) * 100) 
+                  : (simulado.score || 0);
                 
                 return (
                   <div
@@ -560,12 +609,40 @@ export default function Concursos() {
                             ? 'Médio'
                             : 'Difícil'}
                       </span>
-                      {simulado.status === 'completed' && simulado.score !== undefined && (
+                      {simulado.status === 'completed' && (
                         <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
-                          Nota: {simulado.score}%
+                          Nota Ponderada: {weightedScorePercent}%
                         </span>
                       )}
                     </div>
+
+                    {/* Conteúdo por Matéria - sempre visível se houver dados */}
+                    {Object.keys(questionsByCriteria).length > 0 && Object.keys(questionsByCriteria).some(k => k !== 'Sem categoria') && (
+                      <div className="mb-3 p-2 bg-muted/30 rounded-lg">
+                        <p className="text-xs font-medium text-foreground mb-2">Conteúdos cobrados:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(questionsByCriteria)
+                            .filter(([key]) => key !== 'Sem categoria')
+                            .map(([key, data]) => (
+                              <span
+                                key={key}
+                                className={cn(
+                                  "text-xs px-2 py-0.5 rounded-full",
+                                  simulado.status === 'completed'
+                                    ? data.correct === data.total
+                                      ? 'bg-success/10 text-success'
+                                      : data.correct / data.total >= 0.5
+                                        ? 'bg-warning/10 text-warning'
+                                        : 'bg-destructive/10 text-destructive'
+                                    : 'bg-primary/10 text-primary'
+                                )}
+                              >
+                                {key} ({data.correct}/{data.total})
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Progress Bar */}
                     <div className="mb-3">
@@ -617,11 +694,47 @@ export default function Concursos() {
                           <span>Tempo limite:</span>
                           <span className="text-foreground">{simulado.timeMinutes} minutos</span>
                         </div>
-                        {simulado.status === 'completed' && simulado.score !== undefined && (
-                          <div className="flex justify-between">
-                            <span>Última pontuação:</span>
-                            <span className="text-foreground font-medium">{simulado.score}%</span>
-                          </div>
+                        {simulado.status === 'completed' && (
+                          <>
+                            <div className="flex justify-between">
+                              <span>Pontuação simples:</span>
+                              <span className="text-foreground">{simulado.score || 0}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="font-medium">Nota ponderada:</span>
+                              <span className="text-foreground font-bold text-success">{weightedScorePercent}%</span>
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* Detalhamento por Matéria */}
+                        {Object.keys(questionsByCriteria).length > 0 && (
+                          <>
+                            <div className="border-t border-border my-2 pt-2">
+                              <span className="font-medium text-foreground">Desempenho por Matéria:</span>
+                            </div>
+                            {Object.entries(questionsByCriteria).map(([key, data]) => {
+                              const percent = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
+                              return (
+                                <div key={key} className="space-y-1">
+                                  <div className="flex justify-between items-center">
+                                    <span className="truncate max-w-[60%]">{key}</span>
+                                    <span className={cn(
+                                      "font-medium",
+                                      simulado.status === 'completed'
+                                        ? percent >= 70 ? 'text-success' : percent >= 50 ? 'text-warning' : 'text-destructive'
+                                        : 'text-foreground'
+                                    )}>
+                                      {data.correct}/{data.total} ({percent}%)
+                                    </span>
+                                  </div>
+                                  {simulado.status === 'completed' && (
+                                    <Progress value={percent} className="h-1" />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </>
                         )}
                         
                         {/* Contest Details */}
