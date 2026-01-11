@@ -391,14 +391,14 @@ export function SimuladoQuestionsEditor({ questions, onChange, evaluationCriteri
               <div className="flex items-center gap-3">
                 <Label className="text-sm whitespace-nowrap">Matéria:</Label>
                 <Select
-                  value={selectedGabaritoCategory}
-                  onValueChange={setSelectedGabaritoCategory}
+                  value={selectedGabaritoCategory || '__all__'}
+                  onValueChange={(val) => setSelectedGabaritoCategory(val === '__all__' ? '' : val)}
                 >
                   <SelectTrigger className="w-48 h-8 text-sm">
                     <SelectValue placeholder="Todas as matérias" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as matérias</SelectItem>
+                    <SelectItem value="__all__">Todas as matérias</SelectItem>
                     {criteriaOptions.map((criteria) => (
                       <SelectItem key={criteria.id} value={criteria.name}>
                         {criteria.name}
