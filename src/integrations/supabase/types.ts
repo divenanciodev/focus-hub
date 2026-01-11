@@ -487,6 +487,47 @@ export type Database = {
           },
         ]
       }
+      language_practice_sessions: {
+        Row: {
+          completed_at: string | null
+          correct_answers: number | null
+          created_at: string | null
+          id: string
+          practice_type: string
+          structure_id: string
+          total_answers: number | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          correct_answers?: number | null
+          created_at?: string | null
+          id?: string
+          practice_type: string
+          structure_id: string
+          total_answers?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          correct_answers?: number | null
+          created_at?: string | null
+          id?: string
+          practice_type?: string
+          structure_id?: string
+          total_answers?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "language_practice_sessions_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "language_structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       language_sections: {
         Row: {
           created_at: string | null
@@ -534,6 +575,8 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          pattern: string | null
+          pattern_translation: string | null
           progress: string | null
           section_id: string
           sort_order: number | null
@@ -545,6 +588,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
+          pattern?: string | null
+          pattern_translation?: string | null
           progress?: string | null
           section_id: string
           sort_order?: number | null
@@ -556,6 +601,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+          pattern?: string | null
+          pattern_translation?: string | null
           progress?: string | null
           section_id?: string
           sort_order?: number | null
@@ -568,6 +615,50 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "language_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      language_vocabulary: {
+        Row: {
+          created_at: string | null
+          id: string
+          sort_order: number | null
+          structure_id: string
+          translation: string | null
+          updated_at: string | null
+          user_id: string | null
+          word: string
+          word_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          sort_order?: number | null
+          structure_id: string
+          translation?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          word: string
+          word_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          sort_order?: number | null
+          structure_id?: string
+          translation?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          word?: string
+          word_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "language_vocabulary_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "language_structures"
             referencedColumns: ["id"]
           },
         ]
