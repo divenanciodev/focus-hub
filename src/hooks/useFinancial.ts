@@ -31,7 +31,7 @@ export interface FixedExpense {
 export interface EntryAllocation {
   id: string;
   entryId: string;
-  destinationType: 'expense' | 'piggy_bank' | 'fixed_expense' | 'other';
+  destinationType: 'expense' | 'piggy_bank' | 'fixed_expense' | 'health' | 'other';
   destinationId?: string;
   destinationName: string;
   amount: number;
@@ -401,7 +401,7 @@ export function useFinancial() {
   
   // Allocation-based calculations
   const allocatedExpenses = allocations
-    .filter((a) => a.destinationType === 'expense' || a.destinationType === 'fixed_expense')
+    .filter((a) => a.destinationType === 'expense' || a.destinationType === 'fixed_expense' || a.destinationType === 'health')
     .reduce((acc, a) => acc + a.amount, 0);
   const allocatedSaved = allocations
     .filter((a) => a.destinationType === 'piggy_bank')
