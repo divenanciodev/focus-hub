@@ -80,6 +80,8 @@ export function EntryAllocationModal({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState('');
   const [editName, setEditName] = useState('');
+  const [editDestinationType, setEditDestinationType] = useState<EntryAllocation['destinationType']>('expense');
+  const [editDestinationId, setEditDestinationId] = useState<string>('');
 
   const entryAllocations = allocations.filter((a) => a.entryId === entry?.id);
   const totalAllocated = entryAllocations.reduce((acc, a) => acc + a.amount, 0);
@@ -128,12 +130,16 @@ export function EntryAllocationModal({
     setEditingId(allocation.id);
     setEditAmount(allocation.amount.toString());
     setEditName(allocation.destinationName);
+    setEditDestinationType(allocation.destinationType);
+    setEditDestinationId(allocation.destinationId || '');
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditAmount('');
     setEditName('');
+    setEditDestinationType('expense');
+    setEditDestinationId('');
   };
 
   const handleSaveEdit = async (allocation: EntryAllocation) => {
@@ -145,15 +151,36 @@ export function EntryAllocationModal({
 
     if (newAmount <= 0 || newAmount > maxAllowed) return;
 
+    // Determine final name based on destination type
+    let finalName = editName;
+    if (editDestinationType === 'piggy_bank' && editDestinationId) {
+      const piggy = piggyBanks.find((p) => p.id === editDestinationId);
+      finalName = piggy?.name || editName;
+    } else if (editDestinationType === 'fixed_expense' && editDestinationId) {
+      const expense = fixedExpenses.find((e) => e.id === editDestinationId);
+      finalName = expense?.name || editName;
+    }
+
     await onUpdateAllocation(allocation.id, {
       amount: newAmount,
-      destinationName: editName || allocation.destinationName,
+      destinationName: finalName || allocation.destinationName,
+      destinationType: editDestinationType,
+      destinationId: editDestinationId || undefined,
     });
 
     setEditingId(null);
     setEditAmount('');
     setEditName('');
+    setEditDestinationType('expense');
+    setEditDestinationId('');
   };
+
+  // Reset edit destination id when type changes
+  useEffect(() => {
+    if (editingId) {
+      setEditDestinationId('');
+    }
+  }, [editDestinationType]);
 
   const getDestinationIcon = (type: EntryAllocation['destinationType']) => {
     const config = destinationTypes.find((d) => d.value === type);
@@ -213,39 +240,112 @@ export function EntryAllocationModal({
                     className="flex items-center justify-between p-3 bg-card border border-border rounded-lg"
                   >
                     {editingId === allocation.id ? (
-                      // Edit mode
-                      <div className="flex-1 flex items-center gap-2">
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="flex-1 h-8 text-sm"
-                          placeholder="Nome"
-                        />
-                        <Input
-                          type="number"
-                          value={editAmount}
-                          onChange={(e) => setEditAmount(e.target.value)}
-                          className="w-24 h-8 text-sm"
-                          placeholder="Valor"
-                          min="0"
-                          step="0.01"
-                        />
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => handleSaveEdit(allocation)}
-                        >
-                          <Check className="w-4 h-4 text-success" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={handleCancelEdit}
-                        >
-                          <X className="w-4 h-4 text-muted-foreground" />
-                        </Button>
+                      // Edit mode - expanded layout
+                      <div className="flex-1 space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Tipo</Label>
+                            <Select
+                              value={editDestinationType}
+                              onValueChange={(v) => setEditDestinationType(v as EntryAllocation['destinationType'])}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {destinationTypes.map((type) => (
+                                  <SelectItem key={type.value} value={type.value}>
+                                    <div className="flex items-center gap-2">
+                                      <type.icon className="w-4 h-4" />
+                                      {type.label}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Valor (R$)</Label>
+                            <Input
+                              type="number"
+                              value={editAmount}
+                              onChange={(e) => setEditAmount(e.target.value)}
+                              className="h-8 text-sm"
+                              placeholder="0,00"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+
+                        {editDestinationType === 'piggy_bank' && piggyBanks.length > 0 && (
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Cofrinho</Label>
+                            <Select value={editDestinationId} onValueChange={setEditDestinationId}>
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Selecione um cofrinho..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {piggyBanks.map((piggy) => (
+                                  <SelectItem key={piggy.id} value={piggy.id}>
+                                    {piggy.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {editDestinationType === 'fixed_expense' && fixedExpenses.length > 0 && (
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Despesa fixa</Label>
+                            <Select value={editDestinationId} onValueChange={setEditDestinationId}>
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Selecione uma despesa fixa..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {fixedExpenses.map((expense) => (
+                                  <SelectItem key={expense.id} value={expense.id}>
+                                    {expense.name} - {formatCurrency(expense.amount)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {(editDestinationType === 'expense' ||
+                          editDestinationType === 'other' ||
+                          (editDestinationType === 'piggy_bank' && piggyBanks.length === 0) ||
+                          (editDestinationType === 'fixed_expense' && fixedExpenses.length === 0)) && (
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Descrição</Label>
+                            <Input
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="h-8 text-sm"
+                              placeholder="Ex: Aluguel, Mercado, Investimento..."
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleCancelEdit}
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Cancelar
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveEdit(allocation)}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Salvar
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       // View mode
