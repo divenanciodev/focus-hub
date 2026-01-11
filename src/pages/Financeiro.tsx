@@ -483,7 +483,7 @@ export default function Financeiro() {
                 
                 // Separate expense allocations (shown as outflow)
                 const expenseAllocations = entryAllocations.filter(
-                  (a) => a.destinationType === 'expense' || a.destinationType === 'fixed_expense'
+                  (a) => a.destinationType === 'expense' || a.destinationType === 'fixed_expense' || a.destinationType === 'health'
                 );
                 const savedAllocations = entryAllocations.filter(
                   (a) => a.destinationType === 'piggy_bank'

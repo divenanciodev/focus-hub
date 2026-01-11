@@ -28,6 +28,7 @@ import {
   Edit,
   Check,
   X,
+  Heart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FinancialEntry, PiggyBank as PiggyBankType, FixedExpense } from '@/hooks/useFinancial';
@@ -35,7 +36,7 @@ import { FinancialEntry, PiggyBank as PiggyBankType, FixedExpense } from '@/hook
 export interface EntryAllocation {
   id: string;
   entryId: string;
-  destinationType: 'expense' | 'piggy_bank' | 'fixed_expense' | 'other';
+  destinationType: 'expense' | 'piggy_bank' | 'fixed_expense' | 'health' | 'other';
   destinationId?: string;
   destinationName: string;
   amount: number;
@@ -57,6 +58,7 @@ const destinationTypes = [
   { value: 'expense', label: 'Despesa', icon: Receipt },
   { value: 'piggy_bank', label: 'Cofrinho', icon: PiggyBank },
   { value: 'fixed_expense', label: 'Despesa Fixa', icon: ShoppingCart },
+  { value: 'health', label: 'Saúde', icon: Heart },
   { value: 'other', label: 'Outro', icon: Tag },
 ] as const;
 
