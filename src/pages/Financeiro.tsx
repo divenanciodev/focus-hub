@@ -79,7 +79,7 @@ export default function Financeiro() {
   // Modal states
   const [isAddEntryModalOpen, setIsAddEntryModalOpen] = useState(false);
   const [entryType, setEntryType] = useState<'income' | 'expense'>('income');
-  const [newEntry, setNewEntry] = useState({ description: '', amount: '' });
+  const [newEntry, setNewEntry] = useState({ description: '', amount: '', expenseCategory: '' });
   
   // Edit entry state
   const [editingEntry, setEditingEntry] = useState<FinancialEntry | null>(null);
@@ -147,14 +147,14 @@ export default function Financeiro() {
 
   // Calculations - include allocated expenses in total
   const totalIncome = entries.filter((e) => e.type === 'income').reduce((acc, e) => acc + e.amount, 0);
-  const totalExpenses = entries.filter((e) => e.type === 'expense').reduce((acc, e) => acc + e.amount, 0) + allocatedExpenses;
+  const totalVariableExpenses = entries.filter((e) => e.type === 'expense').reduce((acc, e) => acc + e.amount, 0) + allocatedExpenses;
   const totalFixedExpenses = fixedExpenses.reduce((acc, e) => acc + e.amount, 0);
   const totalReceivables = receivables.reduce((acc, r) => {
     const remaining = r.totalAmount - (r.totalAmount / r.installments) * r.paidInstallments;
     return acc + remaining;
   }, 0);
   const totalSaved = piggyBanks.reduce((acc, p) => acc + p.currentAmount, 0) + allocatedSaved;
-  const balance = totalIncome - totalExpenses - totalFixedExpenses;
+  const balance = totalIncome - totalVariableExpenses - totalFixedExpenses;
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -174,10 +174,10 @@ export default function Financeiro() {
         type: entryType,
         description: newEntry.description,
         amount: parseFloat(newEntry.amount),
-        category: entryType === 'income' ? 'Entrada' : 'Saída',
+        category: entryType === 'income' ? 'Entrada' : (newEntry.expenseCategory || 'Outros'),
         date: new Date(),
       });
-      setNewEntry({ description: '', amount: '' });
+      setNewEntry({ description: '', amount: '', expenseCategory: '' });
       setIsAddEntryModalOpen(false);
     }
   };
@@ -427,9 +427,10 @@ export default function Financeiro() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <StatCard title="Renda total" value={formatCurrency(totalIncome)} icon={TrendingUp} iconBgClassName="bg-success/20" />
-        <StatCard title="Despesas totais" value={formatCurrency(totalExpenses + totalFixedExpenses)} icon={TrendingDown} iconBgClassName="bg-destructive/20" />
+        <StatCard title="Despesas fixas" value={formatCurrency(totalFixedExpenses)} icon={TrendingDown} iconBgClassName="bg-destructive/20" />
+        <StatCard title="Despesas variáveis" value={formatCurrency(totalVariableExpenses)} icon={Wallet} iconBgClassName="bg-destructive/20" />
         <StatCard title="A receber" value={formatCurrency(totalReceivables)} icon={Users} iconBgClassName="bg-orange-500/20" />
         <StatCard title="Guardado" value={formatCurrency(totalSaved)} icon={PiggyBankIcon} iconBgClassName="bg-warning/20" />
       </div>
@@ -440,6 +441,7 @@ export default function Financeiro() {
           <TabsTrigger value="receber">A Receber</TabsTrigger>
           <TabsTrigger value="cofrinhos">Cofrinhos</TabsTrigger>
           <TabsTrigger value="fixas">Despesas Fixas</TabsTrigger>
+          <TabsTrigger value="variaveis">Despesas Variáveis</TabsTrigger>
           <TabsTrigger value="compras">Compras</TabsTrigger>
           <TabsTrigger value="consorcio">Consórcio</TabsTrigger>
         </TabsList>
@@ -922,6 +924,76 @@ export default function Financeiro() {
           )}
         </TabsContent>
 
+        {/* Despesas Variáveis */}
+        <TabsContent value="variaveis" className="mt-0">
+          <div className="flex justify-end mb-4">
+            <Button
+              onClick={() => {
+                setEntryType('expense');
+                setIsAddEntryModalOpen(true);
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nova despesa variável
+            </Button>
+          </div>
+
+          {entries.filter((e) => e.type === 'expense').length === 0 ? (
+            <div className="bg-card border border-border rounded-xl p-8 text-center">
+              <p className="text-muted-foreground">Nenhuma despesa variável registrada.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {entries
+                .filter((e) => e.type === 'expense')
+                .map((expense) => (
+                  <Card key={expense.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-destructive/20 flex-shrink-0">
+                            <TrendingDown className="w-5 h-5 text-destructive" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{expense.description}</p>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Badge variant="secondary" className="text-xs">
+                                {expense.category || 'Sem categoria'}
+                              </Badge>
+                              <span>•</span>
+                              <span>{formatDate(expense.date)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-destructive">
+                            -{formatCurrency(expense.amount)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEditEntry(expense)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleDeleteEntry(expense.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          )}
+        </TabsContent>
+
         {/* Compras */}
         <TabsContent value="compras" className="mt-0">
           <div className="flex justify-end mb-4">
@@ -1099,6 +1171,31 @@ export default function Financeiro() {
                 step="0.01"
               />
             </div>
+            {entryType === 'expense' && (
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Select
+                  value={newEntry.expenseCategory}
+                  onValueChange={(value) => setNewEntry({ ...newEntry, expenseCategory: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Alimentação">Alimentação</SelectItem>
+                    <SelectItem value="Transporte">Transporte</SelectItem>
+                    <SelectItem value="Lazer">Lazer</SelectItem>
+                    <SelectItem value="Saúde">Saúde</SelectItem>
+                    <SelectItem value="Educação">Educação</SelectItem>
+                    <SelectItem value="Vestuário">Vestuário</SelectItem>
+                    <SelectItem value="Moradia">Moradia</SelectItem>
+                    <SelectItem value="Serviços">Serviços</SelectItem>
+                    <SelectItem value="Assinaturas">Assinaturas</SelectItem>
+                    <SelectItem value="Outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddEntryModalOpen(false)}>
