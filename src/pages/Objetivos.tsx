@@ -15,6 +15,7 @@ import {
   DollarSign,
   AlertCircle,
   Loader2,
+  Edit,
 } from 'lucide-react';
 import {
   Dialog,
@@ -39,12 +40,23 @@ import { cn } from '@/lib/utils';
 export default function Objetivos() {
   const { objectives, loading, addObjective, updateObjective, deleteObjective } = useObjectives();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [expandedObjective, setExpandedObjective] = useState<string | null>(null);
+  const [editingObjective, setEditingObjective] = useState<Objective | null>(null);
 
   const [newObjective, setNewObjective] = useState({
     title: '',
     description: '',
     steps: [''],
+    requiresMoney: false,
+    estimatedCost: '',
+    priority: 'medium' as 'low' | 'medium' | 'high',
+  });
+
+  const [editObjective, setEditObjective] = useState({
+    title: '',
+    description: '',
+    steps: [] as { id: string; title: string; completed: boolean }[],
     requiresMoney: false,
     estimatedCost: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
@@ -94,6 +106,58 @@ export default function Objetivos() {
 
   const handleDeleteObjective = async (objectiveId: string) => {
     await deleteObjective(objectiveId);
+  };
+
+  const handleStartEdit = (objective: Objective) => {
+    setEditingObjective(objective);
+    setEditObjective({
+      title: objective.title,
+      description: objective.description || '',
+      steps: objective.steps,
+      requiresMoney: objective.requiresMoney || false,
+      estimatedCost: objective.estimatedCost?.toString() || '',
+      priority: objective.priority,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingObjective && editObjective.title) {
+      const allCompleted = editObjective.steps.length > 0 && editObjective.steps.every((s) => s.completed);
+      const someCompleted = editObjective.steps.some((s) => s.completed);
+      
+      await updateObjective(editingObjective.id, {
+        title: editObjective.title,
+        description: editObjective.description,
+        priority: editObjective.priority,
+        requiresMoney: editObjective.requiresMoney,
+        estimatedCost: editObjective.requiresMoney ? parseFloat(editObjective.estimatedCost.replace(',', '.')) || 0 : undefined,
+        steps: editObjective.steps,
+        status: allCompleted ? 'completed' : someCompleted ? 'in_progress' : 'pending',
+      });
+      setIsEditModalOpen(false);
+      setEditingObjective(null);
+    }
+  };
+
+  const addEditStepField = () => {
+    setEditObjective({
+      ...editObjective,
+      steps: [...editObjective.steps, { id: `${Date.now()}`, title: '', completed: false }],
+    });
+  };
+
+  const removeEditStepField = (index: number) => {
+    if (editObjective.steps.length > 1) {
+      const newSteps = editObjective.steps.filter((_, i) => i !== index);
+      setEditObjective({ ...editObjective, steps: newSteps });
+    }
+  };
+
+  const updateEditStepField = (index: number, value: string) => {
+    const newSteps = [...editObjective.steps];
+    newSteps[index] = { ...newSteps[index], title: value };
+    setEditObjective({ ...editObjective, steps: newSteps });
   };
 
   const addStepField = () => {
@@ -325,7 +389,13 @@ export default function Objetivos() {
                 )}
 
                 {/* Actions */}
-                <div className="border-t border-border p-3 flex justify-end">
+                <div className="border-t border-border p-3 flex justify-end gap-1">
+                  <button
+                    onClick={() => handleStartEdit(objective)}
+                    className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-secondary"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleDeleteObjective(objective.id)}
                     className="text-muted-foreground hover:text-destructive transition-colors p-2 rounded-lg hover:bg-destructive/10"
@@ -450,6 +520,121 @@ export default function Objetivos() {
             </Button>
             <Button onClick={handleCreateObjective} disabled={!newObjective.title}>
               Criar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Objective Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Pendência</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>O que você precisa fazer?</Label>
+              <Input
+                value={editObjective.title}
+                onChange={(e) => setEditObjective({ ...editObjective, title: e.target.value })}
+                placeholder="Ex: Cortar o cabelo, Comprar remédio..."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Detalhes (opcional)</Label>
+              <Textarea
+                value={editObjective.description}
+                onChange={(e) => setEditObjective({ ...editObjective, description: e.target.value })}
+                placeholder="Onde, quando, observações..."
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Prioridade</Label>
+              <Select
+                value={editObjective.priority}
+                onValueChange={(value: 'low' | 'medium' | 'high') =>
+                  setEditObjective({ ...editObjective, priority: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="medium">Média</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-success" />
+                <Label className="cursor-pointer">Precisa de dinheiro?</Label>
+              </div>
+              <Switch
+                checked={editObjective.requiresMoney}
+                onCheckedChange={(checked) =>
+                  setEditObjective({ ...editObjective, requiresMoney: checked })
+                }
+              />
+            </div>
+
+            {editObjective.requiresMoney && (
+              <div className="space-y-2">
+                <Label>Quanto vai custar? (R$)</Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={editObjective.estimatedCost}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.,]/g, '');
+                    setEditObjective({ ...editObjective, estimatedCost: value });
+                  }}
+                  placeholder="0,00"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Etapas para concluir</Label>
+              <div className="space-y-2">
+                {editObjective.steps.map((step, index) => (
+                  <div key={step.id} className="flex gap-2">
+                    <Input
+                      value={step.title}
+                      onChange={(e) => updateEditStepField(index, e.target.value)}
+                      placeholder={`Etapa ${index + 1}`}
+                    />
+                    {editObjective.steps.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeEditStepField(index)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addEditStepField}>
+                <Plus className="w-4 h-4 mr-1" />
+                Adicionar etapa
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={!editObjective.title}>
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
