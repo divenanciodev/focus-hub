@@ -132,6 +132,8 @@ export default function Concursos() {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [modalStep, setModalStep] = useState<1 | 2 | 3>(1);
+  const [selectedSimuladoContest, setSelectedSimuladoContest] = useState<Contest | null>(null);
+  const [isContentModalOpen, setIsContentModalOpen] = useState(false);
 
   // Form state
   const [newContest, setNewContest] = useState<NewContestForm>(INITIAL_FORM);
@@ -521,7 +523,23 @@ export default function Concursos() {
                 return (
                   <div
                     key={simulado.id}
-                    className="bg-card border border-border rounded-xl p-4 hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
+                    className="bg-card border border-border rounded-xl p-4 hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col cursor-pointer"
+                    onClick={(e) => {
+                      // Don't open modal if clicking on a button or link
+                      const target = e.target as HTMLElement;
+                      if (
+                        target.closest('button') ||
+                        target.closest('a') ||
+                        target.tagName === 'BUTTON' ||
+                        target.tagName === 'A'
+                      ) {
+                        return;
+                      }
+                      if (associatedContest) {
+                        setSelectedSimuladoContest(associatedContest);
+                        setIsContentModalOpen(true);
+                      }
+                    }}
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between mb-3">
@@ -1144,6 +1162,146 @@ export default function Concursos() {
                   )}
                 </Button>
               </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Content Modal - Shows Materias and Subtopics */}
+      <Dialog open={isContentModalOpen} onOpenChange={setIsContentModalOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Conteúdo Programático
+            </DialogTitle>
+            {selectedSimuladoContest && (
+              <p className="text-sm text-muted-foreground">
+                {selectedSimuladoContest.name} — {selectedSimuladoContest.position}
+              </p>
+            )}
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 pr-4 -mr-4">
+            {selectedSimuladoContest ? (
+              <div className="space-y-6 pb-4">
+                {/* Evaluation Criteria / Matérias from Critérios de Avaliação */}
+                {selectedSimuladoContest.evaluationCriteria && selectedSimuladoContest.evaluationCriteria.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-foreground flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      Critérios de Avaliação
+                    </h4>
+                    {selectedSimuladoContest.evaluationCriteria.map((criteria, idx) => (
+                      <div key={idx} className="border border-border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">{criteria.level}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {criteria.totalQuestions} questões • {criteria.totalPoints} pontos
+                          </span>
+                        </div>
+                        {criteria.description && (
+                          <p className="text-sm text-muted-foreground">{criteria.description}</p>
+                        )}
+                        {criteria.items && criteria.items.length > 0 && (
+                          <div className="space-y-1.5 mt-2">
+                            {criteria.items.map((item) => (
+                              <div
+                                key={item.id}
+                                className="flex items-center justify-between py-1.5 px-2 bg-muted/40 rounded text-sm"
+                              >
+                                <span className="font-medium text-foreground">{item.content}</span>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                  <span>{item.questions} questões</span>
+                                  <span>Peso: {item.weight}</span>
+                                  <span>{item.totalPoints} pts</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Materias - Conteúdo Programático */}
+                {selectedSimuladoContest.materias && selectedSimuladoContest.materias.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="font-semibold text-foreground flex items-center gap-2">
+                      <FileQuestion className="w-4 h-4 text-primary" />
+                      Matérias e Tópicos
+                    </h4>
+                    {selectedSimuladoContest.materias.map((materia, mIdx) => (
+                      <div key={mIdx} className="border border-border rounded-lg p-3 space-y-2">
+                        <h5 className="font-medium text-foreground">{materia.name}</h5>
+                        {materia.topics && materia.topics.length > 0 ? (
+                          <div className="space-y-2">
+                            {materia.topics.map((topic, tIdx) => (
+                              <div key={tIdx} className="ml-2">
+                                <div className="font-medium text-sm text-foreground flex items-center gap-2">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                  {topic.name}
+                                </div>
+                                {topic.subtopics && topic.subtopics.length > 0 && (
+                                  <div className="ml-4 mt-1 space-y-0.5">
+                                    {topic.subtopics.map((subtopic, sIdx) => (
+                                      <div
+                                        key={sIdx}
+                                        className="text-sm text-muted-foreground flex items-center gap-2"
+                                      >
+                                        <div className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                                        {subtopic}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic ml-2">
+                            Nenhum tópico cadastrado
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {(!selectedSimuladoContest.evaluationCriteria || selectedSimuladoContest.evaluationCriteria.length === 0) &&
+                 (!selectedSimuladoContest.materias || selectedSimuladoContest.materias.length === 0) && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhum conteúdo programático cadastrado para este concurso.</p>
+                    <p className="text-sm mt-1">
+                      Edite o concurso para adicionar critérios de avaliação e matérias.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Nenhum concurso associado a este simulado.</p>
+              </div>
+            )}
+          </ScrollArea>
+
+          <DialogFooter className="border-t border-border pt-4 mt-4">
+            <Button variant="outline" onClick={() => setIsContentModalOpen(false)}>
+              Fechar
+            </Button>
+            {selectedSimuladoContest && (
+              <Button
+                onClick={() => {
+                  setIsContentModalOpen(false);
+                  handleEditContest(selectedSimuladoContest);
+                }}
+              >
+                <Pencil className="w-4 h-4 mr-2" />
+                Editar Concurso
+              </Button>
             )}
           </DialogFooter>
         </DialogContent>
