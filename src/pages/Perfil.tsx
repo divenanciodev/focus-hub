@@ -52,6 +52,7 @@ import {
   Crown,
   UserCheck,
   AlertTriangle,
+  Plus,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
@@ -61,7 +62,7 @@ export default function Perfil() {
   const navigate = useNavigate();
   const { settings, loading, updateSettings } = useUserSettings();
   const { user, profile, isAdmin, signOut, updatePassword, updateProfile, loading: authLoading } = useAuth();
-  const { users, loading: usersLoading, updateUserRole, deleteUser } = useUsers();
+  const { users, loading: usersLoading, updateUserRole, deleteUser, createUser } = useUsers();
   const { theme, setTheme } = useTheme();
   
   // Settings state
@@ -87,6 +88,14 @@ export default function Perfil() {
 
   // Delete account modal
   const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
+
+  // Create user modal
+  const [createUserModalOpen, setCreateUserModalOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
+  const [createUserLoading, setCreateUserLoading] = useState(false);
 
   // Sync state with profile and settings
   useEffect(() => {
@@ -171,6 +180,29 @@ export default function Perfil() {
       setPasswordModalOpen(false);
       setNewPassword('');
       setConfirmNewPassword('');
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserPassword) {
+      toast.error('Email e senha são obrigatórios');
+      return;
+    }
+    if (newUserPassword.length < 6) {
+      toast.error('A senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+
+    setCreateUserLoading(true);
+    const { error } = await createUser(newUserEmail, newUserPassword, newUserName, newUserRole);
+    setCreateUserLoading(false);
+
+    if (!error) {
+      setCreateUserModalOpen(false);
+      setNewUserEmail('');
+      setNewUserPassword('');
+      setNewUserName('');
+      setNewUserRole('user');
     }
   };
 
@@ -462,10 +494,16 @@ export default function Perfil() {
           {/* User Management (Admin Only) */}
           {isAdmin && (
             <div className="bg-card border border-border rounded-xl p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <Users className="w-5 h-5 text-foreground" />
-                <h3 className="font-semibold text-foreground">Gerenciar Usuários</h3>
-                <Badge className="ml-2 bg-amber-500/20 text-amber-500 border-amber-500/30">Admin</Badge>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-foreground" />
+                  <h3 className="font-semibold text-foreground">Gerenciar Usuários</h3>
+                  <Badge className="ml-2 bg-amber-500/20 text-amber-500 border-amber-500/30">Admin</Badge>
+                </div>
+                <Button onClick={() => setCreateUserModalOpen(true)} size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Usuário
+                </Button>
               </div>
 
               {usersLoading ? (
@@ -664,6 +702,83 @@ export default function Perfil() {
             </Button>
             <Button variant="destructive">
               Confirmar exclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Modal */}
+      <Dialog open={createUserModalOpen} onOpenChange={setCreateUserModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-user-name">Nome completo</Label>
+              <Input
+                id="new-user-name"
+                value={newUserName}
+                onChange={(e) => setNewUserName(e.target.value)}
+                placeholder="Nome do usuário"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-email">Email *</Label>
+              <Input
+                id="new-user-email"
+                type="email"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-password">Senha *</Label>
+              <Input
+                id="new-user-password"
+                type="password"
+                value={newUserPassword}
+                onChange={(e) => setNewUserPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-user-role">Papel</Label>
+              <Select value={newUserRole} onValueChange={(v) => setNewUserRole(v as 'admin' | 'user')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="w-3 h-3" />
+                      Usuário
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <Crown className="w-3 h-3" />
+                      Administrador
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateUserModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateUser} disabled={createUserLoading}>
+              {createUserLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                'Criar usuário'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
