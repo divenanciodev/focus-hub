@@ -92,6 +92,9 @@ export default function Financeiro() {
   
   // Expanded entries state for showing/hiding allocations
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+  
+  // Expanded expenses card state
+  const [isExpensesCardExpanded, setIsExpensesCardExpanded] = useState(false);
 
   // State for receivables (local for now)
   const [receivables, setReceivables] = useState<Receivable[]>([]);
@@ -427,12 +430,74 @@ export default function Financeiro() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        <StatCard title="Renda total" value={formatCurrency(totalIncome)} icon={TrendingUp} iconBgClassName="bg-success/20" />
-        <StatCard title="Despesas fixas" value={formatCurrency(totalFixedExpenses)} icon={TrendingDown} iconBgClassName="bg-destructive/20" />
-        <StatCard title="Despesas variáveis" value={formatCurrency(totalVariableExpenses)} icon={Wallet} iconBgClassName="bg-destructive/20" />
-        <StatCard title="A receber" value={formatCurrency(totalReceivables)} icon={Users} iconBgClassName="bg-orange-500/20" />
-        <StatCard title="Guardado" value={formatCurrency(totalSaved)} icon={PiggyBankIcon} iconBgClassName="bg-warning/20" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <StatCard 
+          title="Renda total" 
+          value={formatCurrency(totalIncome)} 
+          icon={TrendingUp} 
+          iconBgClassName="bg-emerald-500/20" 
+        />
+        
+        {/* Expandable Expenses Card */}
+        <div className="col-span-1">
+          <div
+            onClick={() => setIsExpensesCardExpanded(!isExpensesCardExpanded)}
+            className={cn(
+              'bg-card border border-border rounded-xl p-5 transition-all duration-200 cursor-pointer hover:border-foreground/20 hover:shadow-md hover:-translate-y-0.5 fade-in',
+              isExpensesCardExpanded && 'border-rose-500/50'
+            )}
+          >
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-rose-500/20 mb-3">
+              <TrendingDown className="w-5 h-5 text-rose-600" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">Despesas totais</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {formatCurrency(totalFixedExpenses + totalVariableExpenses)}
+                </p>
+              </div>
+              {isExpensesCardExpanded ? (
+                <ChevronUp className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+            
+            {/* Expanded content */}
+            {isExpensesCardExpanded && (
+              <div className="mt-4 pt-4 border-t border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-rose-600" />
+                    <span className="text-sm text-muted-foreground">Fixas</span>
+                  </div>
+                  <span className="text-sm font-semibold">{formatCurrency(totalFixedExpenses)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-orange-500" />
+                    <span className="text-sm text-muted-foreground">Variáveis</span>
+                  </div>
+                  <span className="text-sm font-semibold">{formatCurrency(totalVariableExpenses)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <StatCard 
+          title="A receber" 
+          value={formatCurrency(totalReceivables)} 
+          icon={Users} 
+          iconBgClassName="bg-amber-500/20" 
+        />
+        <StatCard 
+          title="Guardado" 
+          value={formatCurrency(totalSaved)} 
+          icon={PiggyBankIcon} 
+          iconBgClassName="bg-sky-500/20" 
+        />
       </div>
 
       <Tabs defaultValue="entradas" className="w-full">
