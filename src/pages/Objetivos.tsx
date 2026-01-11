@@ -401,12 +401,15 @@ export default function Objetivos() {
               <div className="space-y-2">
                 <Label>Quanto vai custar? (R$)</Label>
                 <Input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={newObjective.estimatedCost}
-                  onChange={(e) => setNewObjective({ ...newObjective, estimatedCost: e.target.value })}
+                  onChange={(e) => {
+                    // Allow only numbers, dots and commas
+                    const value = e.target.value.replace(/[^0-9.,]/g, '');
+                    setNewObjective({ ...newObjective, estimatedCost: value });
+                  }}
                   placeholder="0,00"
-                  min="0"
-                  step="0.01"
                 />
               </div>
             )}
