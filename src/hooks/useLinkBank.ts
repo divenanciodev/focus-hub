@@ -9,7 +9,7 @@ export interface BankLink {
   description?: string;
   imageUrl?: string;
   createdAt: Date;
-  subfolderId: string;
+  subfolderId?: string; // Optional - links can exist without a folder
 }
 
 export interface BankSubfolder {
@@ -73,7 +73,7 @@ export function useLinkBank() {
           url: l.url,
           description: l.description || undefined,
           imageUrl: l.image_url || undefined,
-          subfolderId: l.subfolder_id || '',
+          subfolderId: l.subfolder_id || undefined,
           createdAt: new Date(l.created_at || Date.now()),
         }))
       );
@@ -230,7 +230,7 @@ export function useLinkBank() {
           url: data.url,
           description: data.description,
           image_url: data.imageUrl,
-          subfolder_id: data.subfolderId,
+          subfolder_id: data.subfolderId || null,
         })
         .select()
         .single();
@@ -243,7 +243,7 @@ export function useLinkBank() {
         url: newData.url,
         description: newData.description || undefined,
         imageUrl: newData.image_url || undefined,
-        subfolderId: newData.subfolder_id || '',
+        subfolderId: newData.subfolder_id || undefined,
         createdAt: new Date(newData.created_at || Date.now()),
       };
 
@@ -264,6 +264,7 @@ export function useLinkBank() {
       if (data.url !== undefined) updateData.url = data.url;
       if (data.description !== undefined) updateData.description = data.description;
       if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl;
+      if (data.subfolderId !== undefined) updateData.subfolder_id = data.subfolderId || null;
 
       const { error } = await supabase.from('links').update(updateData).eq('id', id);
       if (error) throw error;
@@ -273,6 +274,27 @@ export function useLinkBank() {
     } catch (error) {
       console.error('Error updating link:', error);
       toast.error('Erro ao atualizar link');
+      return false;
+    }
+  };
+
+  const assignLinkToSubfolder = async (linkId: string, subfolderId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('links')
+        .update({ subfolder_id: subfolderId })
+        .eq('id', linkId);
+      
+      if (error) throw error;
+
+      setLinks((prev) => prev.map((l) => 
+        l.id === linkId ? { ...l, subfolderId: subfolderId || undefined } : l
+      ));
+      toast.success(subfolderId ? 'Link atribuído à pasta!' : 'Link removido da pasta!');
+      return true;
+    } catch (error) {
+      console.error('Error assigning link:', error);
+      toast.error('Erro ao atribuir link');
       return false;
     }
   };
@@ -295,6 +317,7 @@ export function useLinkBank() {
   // Helper functions
   const getSubfoldersByFolder = (folderId: string) => subfolders.filter((s) => s.folderId === folderId);
   const getLinksBySubfolder = (subfolderId: string) => links.filter((l) => l.subfolderId === subfolderId);
+  const getUnassignedLinks = () => links.filter((l) => !l.subfolderId);
 
   useEffect(() => {
     fetchAll();
@@ -314,8 +337,10 @@ export function useLinkBank() {
     addLink,
     updateLink,
     deleteLink,
+    assignLinkToSubfolder,
     getSubfoldersByFolder,
     getLinksBySubfolder,
+    getUnassignedLinks,
     refetch: fetchAll,
   };
 }

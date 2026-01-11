@@ -7,9 +7,11 @@ interface SubfolderCardProps {
   onClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  linkCount?: number;
 }
 
-export function SubfolderCard({ subfolder, onClick, onEdit, onDelete }: SubfolderCardProps) {
+export function SubfolderCard({ subfolder, onClick, onEdit, onDelete, linkCount }: SubfolderCardProps) {
+  const displayLinkCount = linkCount ?? subfolder.links.length;
   return (
     <div
       className="bg-card border border-border rounded-xl p-5 hover:border-foreground/20 hover:shadow-md transition-all duration-200 cursor-pointer group"
@@ -32,7 +34,7 @@ export function SubfolderCard({ subfolder, onClick, onEdit, onDelete }: Subfolde
 
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
-          {subfolder.links.length} {subfolder.links.length === 1 ? 'link' : 'links'}
+          {displayLinkCount} {displayLinkCount === 1 ? 'link' : 'links'}
         </span>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
