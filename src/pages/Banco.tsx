@@ -213,7 +213,7 @@ export default function Banco() {
 
   // Breadcrumb for library
   const getBreadcrumb = () => {
-    const parts = ['Biblioteca'];
+    const parts: string[] = [];
     if (currentFolder) parts.push(currentFolder.name);
     if (currentSubfolder) parts.push(currentSubfolder.name);
     return parts;
