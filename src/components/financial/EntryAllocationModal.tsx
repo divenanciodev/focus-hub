@@ -25,6 +25,9 @@ import {
   Receipt,
   ShoppingCart,
   Tag,
+  Edit,
+  Check,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FinancialEntry, PiggyBank as PiggyBankType, FixedExpense } from '@/hooks/useFinancial';
@@ -46,6 +49,7 @@ interface EntryAllocationModalProps {
   piggyBanks: PiggyBankType[];
   fixedExpenses: FixedExpense[];
   onAddAllocation: (allocation: Omit<EntryAllocation, 'id'>) => Promise<void>;
+  onUpdateAllocation: (id: string, data: Partial<EntryAllocation>) => Promise<boolean>;
   onDeleteAllocation: (id: string) => Promise<void>;
 }
 
@@ -64,12 +68,18 @@ export function EntryAllocationModal({
   piggyBanks,
   fixedExpenses,
   onAddAllocation,
+  onUpdateAllocation,
   onDeleteAllocation,
 }: EntryAllocationModalProps) {
   const [destinationType, setDestinationType] = useState<EntryAllocation['destinationType']>('expense');
   const [destinationId, setDestinationId] = useState<string>('');
   const [destinationName, setDestinationName] = useState('');
   const [amount, setAmount] = useState('');
+  
+  // Edit mode state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editName, setEditName] = useState('');
 
   const entryAllocations = allocations.filter((a) => a.entryId === entry?.id);
   const totalAllocated = entryAllocations.reduce((acc, a) => acc + a.amount, 0);
@@ -112,6 +122,37 @@ export function EntryAllocationModal({
     setAmount('');
     setDestinationName('');
     setDestinationId('');
+  };
+
+  const handleStartEdit = (allocation: EntryAllocation) => {
+    setEditingId(allocation.id);
+    setEditAmount(allocation.amount.toString());
+    setEditName(allocation.destinationName);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditAmount('');
+    setEditName('');
+  };
+
+  const handleSaveEdit = async (allocation: EntryAllocation) => {
+    const newAmount = parseFloat(editAmount);
+    const otherAllocationsTotal = entryAllocations
+      .filter((a) => a.id !== allocation.id)
+      .reduce((acc, a) => acc + a.amount, 0);
+    const maxAllowed = entry ? entry.amount - otherAllocationsTotal : 0;
+
+    if (newAmount <= 0 || newAmount > maxAllowed) return;
+
+    await onUpdateAllocation(allocation.id, {
+      amount: newAmount,
+      destinationName: editName || allocation.destinationName,
+    });
+
+    setEditingId(null);
+    setEditAmount('');
+    setEditName('');
   };
 
   const getDestinationIcon = (type: EntryAllocation['destinationType']) => {
@@ -171,31 +212,78 @@ export function EntryAllocationModal({
                     key={allocation.id}
                     className="flex items-center justify-between p-3 bg-card border border-border rounded-lg"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
-                        {getDestinationIcon(allocation.destinationType)}
+                    {editingId === allocation.id ? (
+                      // Edit mode
+                      <div className="flex-1 flex items-center gap-2">
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="flex-1 h-8 text-sm"
+                          placeholder="Nome"
+                        />
+                        <Input
+                          type="number"
+                          value={editAmount}
+                          onChange={(e) => setEditAmount(e.target.value)}
+                          className="w-24 h-8 text-sm"
+                          placeholder="Valor"
+                          min="0"
+                          step="0.01"
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => handleSaveEdit(allocation)}
+                        >
+                          <Check className="w-4 h-4 text-success" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={handleCancelEdit}
+                        >
+                          <X className="w-4 h-4 text-muted-foreground" />
+                        </Button>
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground text-sm">
-                          {allocation.destinationName}
-                        </p>
-                        <Badge variant="secondary" className="text-xs">
-                          {getDestinationLabel(allocation.destinationType)}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">
-                        {formatCurrency(allocation.amount)}
-                      </span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => onDeleteAllocation(allocation.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                    </div>
+                    ) : (
+                      // View mode
+                      <>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted">
+                            {getDestinationIcon(allocation.destinationType)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground text-sm">
+                              {allocation.destinationName}
+                            </p>
+                            <Badge variant="secondary" className="text-xs">
+                              {getDestinationLabel(allocation.destinationType)}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">
+                            {formatCurrency(allocation.amount)}
+                          </span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleStartEdit(allocation)}
+                          >
+                            <Edit className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => onDeleteAllocation(allocation.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>

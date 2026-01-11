@@ -26,7 +26,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { disciplines, loading: loadingDisciplines } = useDisciplines();
   const { objectives, loading: loadingObjectives } = useObjectives();
-  const { piggyBanks, loading: loadingFinancial } = useFinancial();
+  const { piggyBanks, allocatedSaved, loading: loadingFinancial } = useFinancial();
 
   const loading = loadingDisciplines || loadingObjectives || loadingFinancial;
 
@@ -35,7 +35,8 @@ export default function Dashboard() {
   const averageProgress = disciplines.length > 0 
     ? Math.round(disciplines.reduce((acc, d) => acc + d.progress, 0) / disciplines.length) 
     : 0;
-  const totalSaved = piggyBanks.reduce((acc, p) => acc + p.currentAmount, 0);
+  // Include both piggy bank amounts and allocated savings
+  const totalSaved = piggyBanks.reduce((acc, p) => acc + p.currentAmount, 0) + allocatedSaved;
   const totalTarget = piggyBanks.reduce((acc, p) => acc + p.targetAmount, 0);
   const financialProgress = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
   const pendingObjectives = objectives.filter(o => o.status !== 'completed');
