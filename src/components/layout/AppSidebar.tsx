@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Zap,
   Calendar,
+  Languages,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePrefetch, preloadComponent } from '@/hooks/usePrefetch';
@@ -23,6 +24,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: BookOpen, label: 'Estudos', path: '/estudos' },
   { icon: Calendar, label: 'Cronograma', path: '/cronograma' },
+  { icon: Languages, label: 'Idiomas', path: '/idiomas' },
   { icon: Target, label: 'Treinos & Simulados', path: '/treinos' },
   { icon: Trophy, label: 'Concursos', path: '/concursos' },
   { icon: GraduationCap, label: 'Cursinhos', path: '/cursinhos' },

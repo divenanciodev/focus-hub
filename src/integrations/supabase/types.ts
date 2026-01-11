@@ -408,6 +408,212 @@ export type Database = {
         }
         Relationships: []
       }
+      language_contents: {
+        Row: {
+          content: string
+          content_type: string
+          created_at: string | null
+          id: string
+          sort_order: number | null
+          structure_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          content_type: string
+          created_at?: string | null
+          id?: string
+          sort_order?: number | null
+          structure_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          content_type?: string
+          created_at?: string | null
+          id?: string
+          sort_order?: number | null
+          structure_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "language_contents_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "language_structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      language_levels: {
+        Row: {
+          created_at: string | null
+          id: string
+          language_id: string
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          language_id: string
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          language_id?: string
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "language_levels_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      language_sections: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          level_id: string
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          level_id: string
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          level_id?: string
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "language_sections_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "language_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      language_structures: {
+        Row: {
+          audio_url: string | null
+          created_at: string | null
+          id: string
+          name: string
+          progress: string | null
+          section_id: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          progress?: string | null
+          section_id: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          progress?: string | null
+          section_id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "language_structures_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "language_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      languages: {
+        Row: {
+          category: string | null
+          color: string | null
+          created_at: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          objective: string | null
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          objective?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          objective?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       link_folders: {
         Row: {
           color: string | null

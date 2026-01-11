@@ -20,6 +20,9 @@ import Banco from "./pages/Banco";
 import Perfil from "./pages/Perfil";
 import Habitos from "./pages/Habitos";
 import Cronograma from "./pages/Cronograma";
+import Idiomas from "./pages/Idiomas";
+import IdiomaDetail from "./pages/IdiomaDetail";
+import EstruturaLesson from "./pages/EstruturaLesson";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -175,6 +178,30 @@ function AppRoutes() {
             <MainLayout>
               <Cronograma />
             </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/idiomas"
+        element={
+          <ProtectedRoute>
+            <Idiomas />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/idiomas/:id"
+        element={
+          <ProtectedRoute>
+            <IdiomaDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/idiomas/:id/estrutura/:structureId"
+        element={
+          <ProtectedRoute>
+            <EstruturaLesson />
           </ProtectedRoute>
         }
       />
