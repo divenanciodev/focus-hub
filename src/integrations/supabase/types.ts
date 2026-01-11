@@ -194,6 +194,50 @@ export type Database = {
         }
         Relationships: []
       }
+      entry_allocations: {
+        Row: {
+          amount: number
+          created_at: string | null
+          destination_id: string | null
+          destination_name: string
+          destination_type: string
+          entry_id: string
+          id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          destination_id?: string | null
+          destination_name: string
+          destination_type: string
+          entry_id: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          destination_id?: string | null
+          destination_name?: string
+          destination_type?: string
+          entry_id?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entry_allocations_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "financial_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_entries: {
         Row: {
           amount: number

@@ -28,23 +28,35 @@ export interface FixedExpense {
   notificationsEnabled: boolean;
 }
 
+export interface EntryAllocation {
+  id: string;
+  entryId: string;
+  destinationType: 'expense' | 'piggy_bank' | 'fixed_expense' | 'other';
+  destinationId?: string;
+  destinationName: string;
+  amount: number;
+}
+
 export function useFinancial() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpense[]>([]);
+  const [allocations, setAllocations] = useState<EntryAllocation[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = async () => {
     try {
-      const [entriesRes, piggyRes, fixedRes] = await Promise.all([
+      const [entriesRes, piggyRes, fixedRes, allocationsRes] = await Promise.all([
         supabase.from('financial_entries').select('*').order('date', { ascending: false }),
         supabase.from('piggy_banks').select('*').order('created_at', { ascending: false }),
         supabase.from('fixed_expenses').select('*').order('created_at', { ascending: false }),
+        supabase.from('entry_allocations').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (entriesRes.error) throw entriesRes.error;
       if (piggyRes.error) throw piggyRes.error;
       if (fixedRes.error) throw fixedRes.error;
+      if (allocationsRes.error) throw allocationsRes.error;
 
       setEntries(
         (entriesRes.data || []).map((e) => ({
@@ -75,6 +87,17 @@ export function useFinancial() {
           dueDay: f.due_day || 1,
           category: f.category || '',
           notificationsEnabled: f.notifications_enabled ?? true,
+        }))
+      );
+
+      setAllocations(
+        (allocationsRes.data || []).map((a) => ({
+          id: a.id,
+          entryId: a.entry_id,
+          destinationType: a.destination_type as EntryAllocation['destinationType'],
+          destinationId: a.destination_id || undefined,
+          destinationName: a.destination_name,
+          amount: Number(a.amount),
         }))
       );
     } catch (error) {
@@ -272,6 +295,56 @@ export function useFinancial() {
     }
   };
 
+  // Entry Allocations
+  const addAllocation = async (data: Omit<EntryAllocation, 'id'>) => {
+    try {
+      const { data: newData, error } = await supabase
+        .from('entry_allocations')
+        .insert({
+          entry_id: data.entryId,
+          destination_type: data.destinationType,
+          destination_id: data.destinationId || null,
+          destination_name: data.destinationName,
+          amount: data.amount,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const mapped: EntryAllocation = {
+        id: newData.id,
+        entryId: newData.entry_id,
+        destinationType: newData.destination_type as EntryAllocation['destinationType'],
+        destinationId: newData.destination_id || undefined,
+        destinationName: newData.destination_name,
+        amount: Number(newData.amount),
+      };
+
+      setAllocations((prev) => [mapped, ...prev]);
+      toast.success('Destino adicionado!');
+      return mapped;
+    } catch (error) {
+      console.error('Error adding allocation:', error);
+      toast.error('Erro ao adicionar destino');
+      return null;
+    }
+  };
+
+  const deleteAllocation = async (id: string) => {
+    try {
+      const { error } = await supabase.from('entry_allocations').delete().eq('id', id);
+      if (error) throw error;
+      setAllocations((prev) => prev.filter((a) => a.id !== id));
+      toast.success('Destino removido!');
+      return true;
+    } catch (error) {
+      console.error('Error deleting allocation:', error);
+      toast.error('Erro ao remover destino');
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchAll();
   }, []);
@@ -287,6 +360,7 @@ export function useFinancial() {
     entries,
     piggyBanks,
     fixedExpenses,
+    allocations,
     loading,
     totalIncome,
     totalExpenses,
@@ -301,6 +375,8 @@ export function useFinancial() {
     addFixedExpense,
     updateFixedExpense,
     deleteFixedExpense,
+    addAllocation,
+    deleteAllocation,
     refetch: fetchAll,
   };
 }
