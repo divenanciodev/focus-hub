@@ -143,11 +143,34 @@ export function useFinancial() {
     }
   };
 
+  const updateEntry = async (id: string, data: Partial<FinancialEntry>) => {
+    try {
+      const updateData: Record<string, unknown> = {};
+      if (data.type !== undefined) updateData.type = data.type;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.amount !== undefined) updateData.amount = data.amount;
+      if (data.date !== undefined) updateData.date = data.date.toISOString();
+      if (data.category !== undefined) updateData.category = data.category;
+
+      const { error } = await supabase.from('financial_entries').update(updateData).eq('id', id);
+      if (error) throw error;
+
+      setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...data } : e)));
+      toast.success('Registro atualizado!');
+      return true;
+    } catch (error) {
+      console.error('Error updating entry:', error);
+      toast.error('Erro ao atualizar registro');
+      return false;
+    }
+  };
+
   const deleteEntry = async (id: string) => {
     try {
       const { error } = await supabase.from('financial_entries').delete().eq('id', id);
       if (error) throw error;
       setEntries((prev) => prev.filter((e) => e.id !== id));
+      toast.success('Registro excluído!');
       return true;
     } catch (error) {
       console.error('Error deleting entry:', error);
@@ -400,6 +423,7 @@ export function useFinancial() {
     allocatedSaved,
     balance,
     addEntry,
+    updateEntry,
     deleteEntry,
     addPiggyBank,
     updatePiggyBank,
