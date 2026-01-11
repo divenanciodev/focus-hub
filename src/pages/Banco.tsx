@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,9 @@ import {
   Pencil,
   Trash2,
   FolderInput,
-  ExternalLink,
+  Copy,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useLinkBank, BankFolder, BankSubfolder, BankLink } from '@/hooks/useLinkBank';
 import { FolderCard } from '@/components/banco/FolderCard';
 import { SubfolderCard } from '@/components/banco/SubfolderCard';
@@ -304,15 +305,16 @@ export default function Banco() {
                               {link.description && (
                                 <p className="text-xs text-muted-foreground line-clamp-1">{link.description}</p>
                               )}
-                              <a 
-                                href={link.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
+                              <button 
+                                onClick={async () => {
+                                  await navigator.clipboard.writeText(link.url);
+                                  toast.success('Link copiado!');
+                                }}
                                 className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
                               >
-                                <ExternalLink className="w-3 h-3" />
-                                Abrir
-                              </a>
+                                <Copy className="w-3 h-3" />
+                                Copiar link
+                              </button>
                             </div>
                           </div>
                           <div className="flex gap-1 mt-3 pt-3 border-t border-border">
@@ -383,15 +385,16 @@ export default function Banco() {
                                     {folder.name} / {subfolder.name}
                                   </p>
                                 )}
-                                <a 
-                                  href={link.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
+                                <button 
+                                  onClick={async () => {
+                                    await navigator.clipboard.writeText(link.url);
+                                    toast.success('Link copiado!');
+                                  }}
                                   className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
                                 >
-                                  <ExternalLink className="w-3 h-3" />
-                                  Abrir
-                                </a>
+                                  <Copy className="w-3 h-3" />
+                                  Copiar link
+                                </button>
                               </div>
                             </div>
                             <div className="flex gap-1 mt-3 pt-3 border-t border-border">
