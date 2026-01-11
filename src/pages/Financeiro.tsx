@@ -494,19 +494,22 @@ export default function Financeiro() {
 
                 return (
                   <div key={entry.id} className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted">
-                          {getEntryIcon(entry.type)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{entry.description}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {entry.category} • {formatDate(entry.date)}
-                          </p>
-                        </div>
+                    <div className="flex items-center gap-3">
+                      {/* Icon */}
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted flex-shrink-0">
+                        {getEntryIcon(entry.type)}
                       </div>
-                      <div className="flex items-center gap-2">
+                      
+                      {/* Description - flex grow */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">{entry.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {entry.category} • {formatDate(entry.date)}
+                        </p>
+                      </div>
+                      
+                      {/* Value - fixed width for alignment */}
+                      <div className="w-28 text-right flex-shrink-0">
                         <span
                           className={cn(
                             'font-semibold',
@@ -516,10 +519,15 @@ export default function Financeiro() {
                           {entry.type === 'income' ? '+' : '-'}
                           {formatCurrency(entry.amount)}
                         </span>
+                      </div>
+                      
+                      {/* Actions - fixed width */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         {entry.type === 'income' && (
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
                             onClick={() => {
                               setSelectedEntryForAllocation(entry);
                               setIsAllocationModalOpen(true);
@@ -536,6 +544,7 @@ export default function Financeiro() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
                             onClick={() => toggleEntryExpanded(entry.id)}
                             title={isExpanded ? 'Minimizar' : 'Expandir'}
                           >
@@ -546,9 +555,14 @@ export default function Financeiro() {
                             )}
                           </Button>
                         )}
+                        {/* Placeholder for alignment when no allocation buttons */}
+                        {entry.type === 'expense' && (
+                          <div className="w-8" />
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-8 w-8"
                           onClick={() => handleEditEntry(entry)}
                           title="Editar"
                         >
@@ -557,6 +571,7 @@ export default function Financeiro() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-8 w-8"
                           onClick={() => handleDeleteEntry(entry.id)}
                         >
                           <Trash2 className="w-4 h-4 text-muted-foreground" />
