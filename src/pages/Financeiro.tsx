@@ -63,6 +63,7 @@ export default function Financeiro() {
     allocatedExpenses,
     allocatedSaved,
     addEntry,
+    updateEntry,
     deleteEntry,
     addPiggyBank,
     updatePiggyBank,
@@ -79,6 +80,11 @@ export default function Financeiro() {
   const [isAddEntryModalOpen, setIsAddEntryModalOpen] = useState(false);
   const [entryType, setEntryType] = useState<'income' | 'expense'>('income');
   const [newEntry, setNewEntry] = useState({ description: '', amount: '' });
+  
+  // Edit entry state
+  const [editingEntry, setEditingEntry] = useState<FinancialEntry | null>(null);
+  const [isEditEntryModalOpen, setIsEditEntryModalOpen] = useState(false);
+  const [editEntryData, setEditEntryData] = useState({ description: '', amount: '' });
 
   // Allocation modal state
   const [selectedEntryForAllocation, setSelectedEntryForAllocation] = useState<FinancialEntry | null>(null);
@@ -178,6 +184,27 @@ export default function Financeiro() {
 
   const handleDeleteEntry = async (id: string) => {
     await deleteEntry(id);
+  };
+
+  const handleEditEntry = (entry: FinancialEntry) => {
+    setEditingEntry(entry);
+    setEditEntryData({
+      description: entry.description,
+      amount: entry.amount.toString(),
+    });
+    setIsEditEntryModalOpen(true);
+  };
+
+  const handleUpdateEntry = async () => {
+    if (editingEntry && editEntryData.description && editEntryData.amount) {
+      await updateEntry(editingEntry.id, {
+        description: editEntryData.description,
+        amount: parseFloat(editEntryData.amount),
+      });
+      setEditingEntry(null);
+      setEditEntryData({ description: '', amount: '' });
+      setIsEditEntryModalOpen(false);
+    }
   };
 
   // Handlers for receivables (local)
@@ -519,6 +546,14 @@ export default function Financeiro() {
                             )}
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditEntry(entry)}
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4 text-muted-foreground" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1430,6 +1465,51 @@ export default function Financeiro() {
           await deleteAllocation(id);
         }}
       />
+
+      {/* Edit Entry Modal */}
+      <Dialog open={isEditEntryModalOpen} onOpenChange={setIsEditEntryModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Editar {editingEntry?.type === 'income' ? 'Entrada' : 'Saída'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Input
+                value={editEntryData.description}
+                onChange={(e) => setEditEntryData({ ...editEntryData, description: e.target.value })}
+                placeholder="Ex: Salário, Freelance..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor (R$)</Label>
+              <Input
+                type="number"
+                value={editEntryData.amount}
+                onChange={(e) => setEditEntryData({ ...editEntryData, amount: e.target.value })}
+                placeholder="0,00"
+                min="0"
+                step="0.01"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsEditEntryModalOpen(false);
+                setEditingEntry(null);
+                setEditEntryData({ description: '', amount: '' });
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateEntry}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
