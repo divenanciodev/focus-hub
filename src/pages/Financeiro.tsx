@@ -555,8 +555,15 @@ export default function Financeiro() {
                             )}
                           </Button>
                         )}
-                        {/* Placeholder for alignment when no allocation buttons */}
+                        {/* Placeholders for alignment when no allocation buttons */}
                         {entry.type === 'expense' && (
+                          <>
+                            <div className="w-8" />
+                            <div className="w-8" />
+                          </>
+                        )}
+                        {/* Placeholder when income has no allocations (no expand button) */}
+                        {entry.type === 'income' && !hasAllocations && (
                           <div className="w-8" />
                         )}
                         <Button
