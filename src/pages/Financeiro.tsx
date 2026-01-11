@@ -5,6 +5,7 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useFinancial, FinancialEntry, PiggyBank, FixedExpense } from '@/hooks/useFinancial';
+import { EntryAllocationModal } from '@/components/financial/EntryAllocationModal';
 import { Receivable, PurchaseGoal, Consortium } from '@/types';
 import {
   Plus,
@@ -27,6 +28,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Loader2,
+  Split,
 } from 'lucide-react';
 import {
   Dialog,
@@ -47,12 +49,14 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export default function Financeiro() {
   const {
     entries,
     piggyBanks,
     fixedExpenses,
+    allocations,
     loading,
     addEntry,
     deleteEntry,
@@ -62,12 +66,18 @@ export default function Financeiro() {
     addFixedExpense,
     updateFixedExpense,
     deleteFixedExpense,
+    addAllocation,
+    deleteAllocation,
   } = useFinancial();
 
   // Modal states
   const [isAddEntryModalOpen, setIsAddEntryModalOpen] = useState(false);
   const [entryType, setEntryType] = useState<'income' | 'expense'>('income');
   const [newEntry, setNewEntry] = useState({ description: '', amount: '' });
+
+  // Allocation modal state
+  const [selectedEntryForAllocation, setSelectedEntryForAllocation] = useState<FinancialEntry | null>(null);
+  const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
 
   // State for receivables (local for now)
   const [receivables, setReceivables] = useState<Receivable[]>([]);
@@ -417,39 +427,82 @@ export default function Financeiro() {
             </div>
           ) : (
             <div className="bg-card border border-border rounded-xl divide-y divide-border">
-              {entries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted">
-                      {getEntryIcon(entry.type)}
+              {entries.map((entry) => {
+                const entryAllocations = allocations.filter((a) => a.entryId === entry.id);
+                const totalAllocated = entryAllocations.reduce((acc, a) => acc + a.amount, 0);
+                const hasAllocations = entryAllocations.length > 0;
+                const isFullyAllocated = totalAllocated >= entry.amount;
+
+                return (
+                  <div key={entry.id} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted">
+                          {getEntryIcon(entry.type)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{entry.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {entry.category} • {formatDate(entry.date)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            'font-semibold',
+                            entry.type === 'income' ? 'text-success' : 'text-destructive'
+                          )}
+                        >
+                          {entry.type === 'income' ? '+' : '-'}
+                          {formatCurrency(entry.amount)}
+                        </span>
+                        {entry.type === 'income' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedEntryForAllocation(entry);
+                              setIsAllocationModalOpen(true);
+                            }}
+                            title="Alocar destinos"
+                          >
+                            <Split className={cn(
+                              'w-4 h-4',
+                              isFullyAllocated ? 'text-success' : hasAllocations ? 'text-warning' : 'text-muted-foreground'
+                            )} />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteEntry(entry.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">{entry.description}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {entry.category} • {formatDate(entry.date)}
-                      </p>
-                    </div>
+
+                    {/* Show allocations summary for income entries */}
+                    {entry.type === 'income' && hasAllocations && (
+                      <div className="mt-3 pl-13 ml-13">
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {entryAllocations.map((alloc) => (
+                            <Badge key={alloc.id} variant="secondary" className="text-xs">
+                              {alloc.destinationName}: {formatCurrency(alloc.amount)}
+                            </Badge>
+                          ))}
+                          {!isFullyAllocated && (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              Restante: {formatCurrency(entry.amount - totalAllocated)}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={cn(
-                        'font-semibold',
-                        entry.type === 'income' ? 'text-success' : 'text-destructive'
-                      )}
-                    >
-                      {entry.type === 'income' ? '+' : '-'}
-                      {formatCurrency(entry.amount)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteEntry(entry.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-muted-foreground" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </TabsContent>
@@ -1242,6 +1295,25 @@ export default function Financeiro() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Entry Allocation Modal */}
+      <EntryAllocationModal
+        isOpen={isAllocationModalOpen}
+        onClose={() => {
+          setIsAllocationModalOpen(false);
+          setSelectedEntryForAllocation(null);
+        }}
+        entry={selectedEntryForAllocation}
+        allocations={allocations}
+        piggyBanks={piggyBanks}
+        fixedExpenses={fixedExpenses}
+        onAddAllocation={async (data) => {
+          await addAllocation(data);
+        }}
+        onDeleteAllocation={async (id) => {
+          await deleteAllocation(id);
+        }}
+      />
     </div>
   );
 }
