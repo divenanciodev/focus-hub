@@ -54,6 +54,26 @@ export function useUsers() {
     }
   };
 
+  const createUser = async (email: string, password: string, fullName: string, role: 'admin' | 'user' = 'user') => {
+    try {
+      // Use the edge function to create user (admin only)
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: { email, password, fullName, role }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      await fetchUsers();
+      toast.success('Usuário criado com sucesso!');
+      return { error: null };
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      toast.error(error.message || 'Erro ao criar usuário');
+      return { error };
+    }
+  };
+
   const updateUserRole = async (userId: string, newRole: 'admin' | 'user') => {
     try {
       const { error } = await supabase
@@ -76,20 +96,19 @@ export function useUsers() {
 
   const deleteUser = async (userId: string) => {
     try {
-      // Note: This only deletes the profile, the auth user remains
-      // Full deletion requires admin API access
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-      
+      // Use edge function to delete user completely
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId }
+      });
+
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       
       setUsers(prev => prev.filter(u => u.id !== userId));
       toast.success('Usuário removido');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
-      toast.error('Erro ao remover usuário');
+      toast.error(error.message || 'Erro ao remover usuário');
     }
   };
 
@@ -101,6 +120,7 @@ export function useUsers() {
     users,
     loading,
     fetchUsers,
+    createUser,
     updateUserRole,
     deleteUser,
   };
