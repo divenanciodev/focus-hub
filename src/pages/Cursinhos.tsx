@@ -29,12 +29,14 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { CurriculumItemEditor } from '@/components/cursinhos/CurriculumItemEditor';
+import { CourseContentModal } from '@/components/cursinhos/CourseContentModal';
 
 export default function Cursinhos() {
   const { courses, loading, addCourse, updateCourse, deleteCourse, toggleCurriculumItem } = useCourses();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [contentCourse, setContentCourse] = useState<Course | null>(null);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
@@ -404,7 +406,8 @@ export default function Cursinhos() {
               {courses.map((course) => (
                 <div
                   key={course.id}
-                  className="bg-card border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
+                  className="bg-card border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col cursor-pointer"
+                  onClick={() => setContentCourse(course)}
                 >
                   {course.imageUrl ? (
                     <div className="h-28 bg-muted">
@@ -493,12 +496,15 @@ export default function Cursinhos() {
                       <p className="text-xs text-muted-foreground mb-2 flex-1">Sem grade curricular.</p>
                     )}
 
-                    <div className="flex gap-2 pt-2 border-t border-border mt-auto">
+                    <div className="flex gap-2 pt-2 border-t border-border mt-auto" onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="outline"
                         size="sm"
                         className="flex-1 h-7 text-xs"
-                        onClick={() => setSelectedCourse(course)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCourse(course);
+                        }}
                       >
                         Ver detalhes
                       </Button>
@@ -977,6 +983,13 @@ export default function Cursinhos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Course Content Modal - Resumos e Flashcards */}
+      <CourseContentModal
+        course={contentCourse}
+        open={!!contentCourse}
+        onOpenChange={(open) => !open && setContentCourse(null)}
+      />
     </div>
   );
 }
