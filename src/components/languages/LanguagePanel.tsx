@@ -18,13 +18,14 @@ import {
   GraduationCap,
   Pencil,
   Save,
-  Type,
+  Library,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { Language } from '@/types/languages';
-import { LanguagePractice } from './LanguagePractice';
+import { LanguageHomeView } from './LanguageHomeView';
+import { FillPracticeMode } from './FillPracticeMode';
 
 interface LanguagePanelProps {
   language: Language;
@@ -77,13 +78,16 @@ interface PatternPart {
   wordType?: string;
 }
 
+type ViewMode = 'home' | 'edit' | 'practice' | 'fill-practice';
+
 export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProps) {
-  const [activeTab, setActiveTab] = useState('edit');
+  const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [editedLanguage, setEditedLanguage] = useState({ ...language });
   const [sections, setSections] = useState<Section[]>([]);
   const [structures, setStructures] = useState<Record<string, Structure[]>>({});
   const [vocabulary, setVocabulary] = useState<Record<string, VocabularyWord[]>>({});
   const [loading, setLoading] = useState(true);
+  const [selectedPracticeSection, setSelectedPracticeSection] = useState<string | null>(null);
   
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const [openStructures, setOpenStructures] = useState<Set<string>>(new Set());
@@ -266,7 +270,6 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
 
   // Add placeholder to pattern
   const addPlaceholderToPattern = (wordType: string) => {
-    // If there's pending text, add it first
     if (currentText.trim()) {
       setPatternParts([
         ...patternParts, 
@@ -302,7 +305,6 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
   const handleGoToStep2 = async () => {
     if (!selectedSectionId || !structureName.trim()) return;
 
-    // Add any remaining text
     let finalParts = [...patternParts];
     if (currentText.trim()) {
       finalParts.push({ type: 'text', value: currentText });
@@ -332,7 +334,6 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
       toast.success('Estrutura criada! Agora adicione o vocabulário.');
       setNewStructureId(data.id);
       
-      // Initialize stepTwoVocab with empty arrays for each word type
       const wordTypes = getPatternWordTypes();
       const initialVocab: Record<string, { word: string; translation: string }[]> = {};
       wordTypes.forEach(type => {
@@ -408,11 +409,6 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
     setStructureModalOpen(false);
   };
 
-  const handleAddStructure = async () => {
-    // This now just goes to step 2
-    await handleGoToStep2();
-  };
-
   const handleDeleteStructure = async (structureId: string) => {
     if (!confirm('Excluir esta estrutura?')) return;
     await supabase.from('language_structures').delete().eq('id', structureId);
@@ -469,12 +465,10 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
     setOpenStructures(newOpen);
   };
 
-  // Get word type info
   const getWordTypeInfo = (type: string) => {
     return WORD_TYPES.find(t => t.value === type) || { value: type, label: type, color: 'bg-gray-500' };
   };
 
-  // Get unique word types used in a structure's pattern
   const getStructureWordTypes = (pattern: string | null): string[] => {
     if (!pattern) return [];
     const matches = pattern.match(/\[(\w+)\]/g);
@@ -482,7 +476,6 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
     return [...new Set(matches.map(m => m.slice(1, -1)))];
   };
 
-  // Parse pattern for display with highlighted placeholders
   const renderPattern = (pattern: string | null) => {
     if (!pattern) return null;
     const parts = pattern.split(/(\[\w+\])/g);
@@ -507,7 +500,6 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
     });
   };
 
-  // Get vocabulary grouped by word type for a structure
   const getVocabByType = (structureId: string) => {
     const vocabList = vocabulary[structureId] || [];
     const grouped: Record<string, VocabularyWord[]> = {};
@@ -520,10 +512,31 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
     return grouped;
   };
 
+  const handleStartPractice = (sectionId: string | null) => {
+    setSelectedPracticeSection(sectionId);
+    setViewMode('fill-practice');
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
+
+  // Fill Practice Mode View
+  if (viewMode === 'fill-practice') {
+    return (
+      <div className="fixed inset-0 bg-background z-50 flex flex-col">
+        <FillPracticeMode
+          languageCategory={editedLanguage.category || language.name}
+          sections={sections}
+          structures={structures}
+          vocabulary={vocabulary}
+          selectedSectionId={selectedPracticeSection}
+          onBack={() => setViewMode('home')}
+        />
       </div>
     );
   }
@@ -541,15 +554,26 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
             )}
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {viewMode !== 'home' && (
+            <Button variant="ghost" onClick={() => setViewMode('home')}>
+              Voltar
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
       </header>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+      <Tabs value={viewMode === 'home' ? 'home' : viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="flex-1 flex flex-col">
         <div className="border-b border-border px-4">
           <TabsList className="h-12">
+            <TabsTrigger value="home" className="gap-2">
+              <Library className="w-4 h-4" />
+              Início
+            </TabsTrigger>
             <TabsTrigger value="edit" className="gap-2">
               <Pencil className="w-4 h-4" />
               Editar
@@ -560,6 +584,18 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
             </TabsTrigger>
           </TabsList>
         </div>
+
+        {/* Home Tab */}
+        <TabsContent value="home" className="flex-1 overflow-auto m-0">
+          <LanguageHomeView
+            language={language}
+            sections={sections}
+            structures={structures}
+            vocabulary={vocabulary}
+            onRefresh={loadData}
+            onStartPractice={handleStartPractice}
+          />
+        </TabsContent>
 
         {/* Edit Tab */}
         <TabsContent value="edit" className="flex-1 overflow-auto p-4 m-0">
@@ -698,100 +734,80 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
                                                 ) : (
                                                   <ChevronRight className="w-3 h-3" />
                                                 )}
-                                                <span className="font-medium">{structure.name}</span>
+                                                <span className="font-medium text-sm">{structure.name}</span>
                                               </div>
                                               {structure.pattern && (
-                                                <div className="ml-5 text-sm flex items-center flex-wrap gap-1">
+                                                <div className="text-sm ml-5 flex items-center flex-wrap">
                                                   {renderPattern(structure.pattern)}
                                                 </div>
                                               )}
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                              <Badge variant="secondary" className="text-xs">
-                                                {(vocabulary[structure.id] || []).length} palavras
-                                              </Badge>
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-destructive"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleDeleteStructure(structure.id);
-                                                }}
-                                              >
-                                                <Trash2 className="w-3 h-3" />
-                                              </Button>
-                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 text-destructive"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteStructure(structure.id);
+                                              }}
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
                                           </div>
                                         </CollapsibleTrigger>
                                         <CollapsibleContent>
-                                          <div className="px-3 pb-3 space-y-3">
-                                            {/* Vocabulary cards by type */}
-                                            {wordTypes.length === 0 ? (
-                                              <p className="text-xs text-muted-foreground text-center py-2">
-                                                Nenhum campo de preenchimento definido no padrão
+                                          <div className="px-3 pb-3 space-y-2">
+                                            {/* Translation */}
+                                            {structure.patternTranslation && (
+                                              <p className="text-sm text-muted-foreground italic ml-5">
+                                                "{structure.patternTranslation}"
                                               </p>
-                                            ) : (
-                                              <div className="grid gap-3">
-                                                {wordTypes.map((wordType) => {
+                                            )}
+
+                                            {/* Vocabulary by type */}
+                                            {wordTypes.length > 0 && (
+                                              <div className="ml-5 space-y-2">
+                                                {wordTypes.map(wordType => {
                                                   const typeInfo = getWordTypeInfo(wordType);
-                                                  const typeVocab = vocabByType[wordType] || [];
+                                                  const words = vocabByType[wordType] || [];
                                                   
                                                   return (
-                                                    <Card key={wordType} className="border-l-4" style={{ borderLeftColor: typeInfo.color.replace('bg-', '').includes('-') ? `var(--${typeInfo.color.replace('bg-', '')})` : undefined }}>
-                                                      <CardHeader className="py-2 px-3">
-                                                        <div className="flex items-center justify-between">
-                                                          <div className="flex items-center gap-2">
-                                                            <Badge className={cn('text-white', typeInfo.color)}>
-                                                              {typeInfo.label}
-                                                            </Badge>
-                                                            <span className="text-xs text-muted-foreground">
-                                                              {typeVocab.length} palavras
-                                                            </span>
-                                                          </div>
-                                                          <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-7"
-                                                            onClick={() => {
-                                                              setSelectedStructureId(structure.id);
-                                                              setSelectedVocabType(wordType);
-                                                              setNewVocab({ word: '', translation: '' });
-                                                              setVocabularyModalOpen(true);
-                                                            }}
+                                                    <div key={wordType} className="flex items-start gap-2">
+                                                      <Badge className={cn('text-white text-xs', typeInfo.color)}>
+                                                        {typeInfo.label}
+                                                      </Badge>
+                                                      <div className="flex flex-wrap gap-1">
+                                                        {words.map(word => (
+                                                          <Badge
+                                                            key={word.id}
+                                                            variant="outline"
+                                                            className="text-xs cursor-pointer hover:bg-destructive/10 group"
+                                                            onClick={() => handleDeleteVocabulary(word.id)}
                                                           >
-                                                            <Plus className="w-3 h-3 mr-1" />
-                                                            Adicionar
-                                                          </Button>
-                                                        </div>
-                                                      </CardHeader>
-                                                      <CardContent className="py-2 px-3">
-                                                        {typeVocab.length === 0 ? (
-                                                          <p className="text-xs text-muted-foreground">
-                                                            Clique em "Adicionar" para cadastrar palavras
-                                                          </p>
-                                                        ) : (
-                                                          <div className="flex flex-wrap gap-1">
-                                                            {typeVocab.map((vocab) => (
-                                                              <Badge
-                                                                key={vocab.id}
-                                                                variant="outline"
-                                                                className="text-xs group cursor-pointer hover:bg-destructive/10"
-                                                                onClick={() => handleDeleteVocabulary(vocab.id)}
-                                                              >
-                                                                {vocab.word}
-                                                                {vocab.translation && (
-                                                                  <span className="text-muted-foreground ml-1">
-                                                                    ({vocab.translation})
-                                                                  </span>
-                                                                )}
-                                                                <X className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100" />
-                                                              </Badge>
-                                                            ))}
-                                                          </div>
-                                                        )}
-                                                      </CardContent>
-                                                    </Card>
+                                                            {word.word}
+                                                            {word.translation && (
+                                                              <span className="text-muted-foreground ml-1">
+                                                                ({word.translation})
+                                                              </span>
+                                                            )}
+                                                            <X className="w-2 h-2 ml-1 opacity-0 group-hover:opacity-100" />
+                                                          </Badge>
+                                                        ))}
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="h-5 px-1 text-xs"
+                                                          onClick={() => {
+                                                            setSelectedStructureId(structure.id);
+                                                            setSelectedVocabType(wordType);
+                                                            setNewVocab({ word: '', translation: '' });
+                                                            setVocabularyModalOpen(true);
+                                                          }}
+                                                        >
+                                                          <Plus className="w-3 h-3" />
+                                                        </Button>
+                                                      </div>
+                                                    </div>
                                                   );
                                                 })}
                                               </div>
@@ -816,13 +832,49 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
         </TabsContent>
 
         {/* Practice Tab */}
-        <TabsContent value="practice" className="flex-1 overflow-auto m-0">
-          <LanguagePractice
-            languageId={language.id}
-            sections={sections}
-            structures={structures}
-            vocabulary={vocabulary}
-          />
+        <TabsContent value="practice" className="flex-1 overflow-auto p-4 m-0">
+          <div className="max-w-2xl mx-auto">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Selecione a Seção</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select 
+                  value={selectedPracticeSection || 'all'} 
+                  onValueChange={(v) => setSelectedPracticeSection(v === 'all' ? null : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma seção" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as Seções</SelectItem>
+                    {sections.map((section) => (
+                      <SelectItem key={section.id} value={section.id}>
+                        {section.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 gap-4">
+              <Card
+                className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
+                onClick={() => handleStartPractice(selectedPracticeSection)}
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <GraduationCap className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">Preencher</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Digite a palavra correta dentro do padrão
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -838,7 +890,12 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
               <Input
                 value={newSectionName}
                 onChange={(e) => setNewSectionName(e.target.value)}
-                placeholder="Ex: Basics – Section I"
+                placeholder="Ex: Basics - Section I"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newSectionName.trim()) {
+                    handleAddSection();
+                  }
+                }}
               />
             </div>
             <Button onClick={handleAddSection} className="w-full" disabled={!newSectionName.trim()}>
@@ -848,22 +905,20 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
         </DialogContent>
       </Dialog>
 
-      {/* Structure Modal with Pattern Builder - Step 1 & 2 */}
+      {/* Structure Modal */}
       <Dialog open={structureModalOpen} onOpenChange={(open) => {
         if (!open) {
-          setStructureStep(1);
-          setNewStructureId(null);
-          setStepTwoVocab({});
+          handleSkipStep2();
         }
         setStructureModalOpen(open);
       }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {structureStep === 1 ? 'Nova Estrutura - Passo 1: Padrão' : 'Nova Estrutura - Passo 2: Vocabulário'}
+              {structureStep === 1 ? 'Nova Estrutura' : 'Adicionar Vocabulário'}
             </DialogTitle>
           </DialogHeader>
-          
+
           {structureStep === 1 ? (
             <div className="space-y-4 mt-4">
               <div>
@@ -871,89 +926,51 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
                 <Input
                   value={structureName}
                   onChange={(e) => setStructureName(e.target.value)}
-                  placeholder="Ex: I wanna"
+                  placeholder="Ex: I Wanna + Verb"
                 />
               </div>
-              
-              {/* Pattern Builder */}
-              <div>
-                <Label>Construir Padrão</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Digite o texto e adicione campos selecionando a classe gramatical
-                </p>
-                
-                {/* Pattern Preview */}
-                <div className="bg-muted/50 rounded-lg p-3 mb-3 min-h-[50px]">
-                  {patternParts.length === 0 && !currentText ? (
-                    <span className="text-muted-foreground text-sm">O padrão aparecerá aqui...</span>
-                  ) : (
-                    <div className="flex items-center flex-wrap gap-1">
-                      {patternParts.map((part, idx) => {
-                        if (part.type === 'placeholder') {
-                          const typeInfo = getWordTypeInfo(part.wordType || '');
-                          return (
-                            <span
-                              key={idx}
-                              className={cn(
-                                'inline-flex items-center px-2 py-0.5 rounded text-white text-sm font-medium',
-                                typeInfo.color
-                              )}
-                            >
-                              {typeInfo.label}
-                            </span>
-                          );
-                        }
-                        return <span key={idx} className="text-sm">{part.value}</span>;
-                      })}
-                      {currentText && <span className="text-sm text-muted-foreground">{currentText}</span>}
-                    </div>
-                  )}
-                </div>
 
-                {/* Text Input */}
-                <div className="flex gap-2 mb-3">
+              {/* Pattern builder */}
+              <div>
+                <Label>Padrão (Pattern)</Label>
+                <div className="border rounded-lg p-3 min-h-[60px] bg-muted/30 mb-2 flex items-center flex-wrap gap-1">
+                  {patternParts.map((part, idx) => (
+                    part.type === 'placeholder' ? (
+                      <Badge key={idx} className={cn('text-white', getWordTypeInfo(part.wordType || '').color)}>
+                        [{part.wordType}]
+                      </Badge>
+                    ) : (
+                      <span key={idx}>{part.value}</span>
+                    )
+                  ))}
                   <Input
                     value={currentText}
                     onChange={(e) => setCurrentText(e.target.value)}
-                    placeholder="Digite o texto..."
-                    className="flex-1"
+                    placeholder="Digite texto..."
+                    className="border-none shadow-none focus-visible:ring-0 flex-1 min-w-[100px] h-8 p-0"
                   />
                 </div>
-
-                {/* Word Type Buttons */}
-                <div className="space-y-2">
-                  <Label className="text-xs">Clique para adicionar um campo:</Label>
-                  <div className="flex flex-wrap gap-1">
-                    {WORD_TYPES.map((type) => (
-                      <Button
-                        key={type.value}
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          'text-xs h-7',
-                          'hover:text-white',
-                          `hover:${type.color}`
-                        )}
-                        onClick={() => addPlaceholderToPattern(type.value)}
-                      >
-                        <Type className="w-3 h-3 mr-1" />
-                        {type.label}
-                      </Button>
-                    ))}
-                  </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {WORD_TYPES.slice(0, 6).map(type => (
+                    <Button
+                      key={type.value}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => addPlaceholderToPattern(type.value)}
+                    >
+                      + {type.label}
+                    </Button>
+                  ))}
                 </div>
-
-                {/* Actions */}
-                {patternParts.length > 0 && (
-                  <div className="flex gap-2 mt-3">
-                    <Button variant="outline" size="sm" onClick={removeLastPart}>
-                      Desfazer
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={clearPattern}>
-                      Limpar
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={removeLastPart} disabled={patternParts.length === 0}>
+                    Desfazer
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={clearPattern}>
+                    Limpar
+                  </Button>
+                </div>
               </div>
 
               <div>
@@ -961,43 +978,33 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
                 <Input
                   value={patternTranslation}
                   onChange={(e) => setPatternTranslation(e.target.value)}
-                  placeholder="Ex: Eu quero + verbo"
+                  placeholder="Ex: Eu quero + Verbo"
                 />
               </div>
-              
+
               <Button 
-                onClick={handleAddStructure} 
+                onClick={handleGoToStep2} 
                 className="w-full" 
-                disabled={!structureName.trim() || getPatternWordTypes().length === 0}
+                disabled={!structureName.trim()}
               >
                 Próximo: Adicionar Vocabulário
               </Button>
-              <p className="text-xs text-muted-foreground text-center">
-                Adicione pelo menos um campo de classe gramatical ao padrão
-              </p>
             </div>
           ) : (
             <div className="space-y-4 mt-4">
+              {/* Pattern preview */}
               <div className="bg-muted/30 rounded-lg p-3">
-                <p className="text-sm font-medium mb-1">{structureName}</p>
+                <p className="text-sm text-muted-foreground mb-1">Padrão criado:</p>
                 <div className="flex items-center flex-wrap gap-1">
-                  {patternParts.map((part, idx) => {
-                    if (part.type === 'placeholder') {
-                      const typeInfo = getWordTypeInfo(part.wordType || '');
-                      return (
-                        <span
-                          key={idx}
-                          className={cn(
-                            'inline-flex items-center px-2 py-0.5 rounded text-white text-xs font-medium',
-                            typeInfo.color
-                          )}
-                        >
-                          {typeInfo.label}
-                        </span>
-                      );
-                    }
-                    return <span key={idx} className="text-sm">{part.value}</span>;
-                  })}
+                  {patternParts.map((part, idx) => (
+                    part.type === 'placeholder' ? (
+                      <Badge key={idx} className={cn('text-white', getWordTypeInfo(part.wordType || '').color)}>
+                        [{part.wordType}]
+                      </Badge>
+                    ) : (
+                      <span key={idx}>{part.value}</span>
+                    )
+                  ))}
                 </div>
               </div>
 
@@ -1006,13 +1013,13 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
               </p>
 
               {/* Vocabulary cards for each word type */}
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[300px] overflow-auto">
                 {getPatternWordTypes().map((wordType) => {
                   const typeInfo = getWordTypeInfo(wordType);
                   const vocabList = stepTwoVocab[wordType] || [];
                   
                   return (
-                    <Card key={wordType} className="border-l-4" style={{ borderLeftColor: typeInfo.color.includes('bg-') ? undefined : typeInfo.color }}>
+                    <Card key={wordType} className="border-l-4" style={{ borderLeftColor: undefined }}>
                       <CardHeader className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Badge className={cn('text-white', typeInfo.color)}>
@@ -1027,7 +1034,7 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
                         {/* Input for adding words */}
                         <div className="flex gap-2">
                           <Input
-                            placeholder={`Ex: ${wordType === 'verb' ? 'play, run, eat' : wordType === 'noun' ? 'car, house' : 'palavra'}`}
+                            placeholder={`Ex: ${wordType === 'verb' ? 'play, run, eat' : 'palavra'}`}
                             className="flex-1"
                             id={`vocab-input-${wordType}`}
                             onKeyDown={(e) => {
@@ -1088,9 +1095,6 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
                             ))}
                           </div>
                         )}
-                        <p className="text-xs text-muted-foreground">
-                          Pressione Enter para adicionar rapidamente
-                        </p>
                       </CardContent>
                     </Card>
                   );
@@ -1099,7 +1103,7 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
 
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleSkipStep2} className="flex-1">
-                  Pular (Adicionar depois)
+                  Pular
                 </Button>
                 <Button onClick={handleSaveStep2Vocabulary} className="flex-1">
                   Salvar Vocabulário
@@ -1153,9 +1157,6 @@ export function LanguagePanel({ language, onClose, onUpdate }: LanguagePanelProp
             <Button onClick={handleAddVocabulary} className="w-full" disabled={!newVocab.word.trim()}>
               Adicionar {getWordTypeInfo(selectedVocabType).label}
             </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Pressione Enter para adicionar rapidamente
-            </p>
           </div>
         </DialogContent>
       </Dialog>
