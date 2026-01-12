@@ -337,6 +337,68 @@ export type Database = {
         }
         Relationships: []
       }
+      grammar_structures: {
+        Row: {
+          allowed_classes: string[] | null
+          category: string | null
+          created_at: string | null
+          difficulty: string | null
+          examples: string[] | null
+          expected_input: string
+          fixed_text: string
+          grammar_tip: string | null
+          id: string
+          language_id: string
+          mastery_level: number | null
+          sort_order: number | null
+          translation: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          allowed_classes?: string[] | null
+          category?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          examples?: string[] | null
+          expected_input: string
+          fixed_text: string
+          grammar_tip?: string | null
+          id?: string
+          language_id: string
+          mastery_level?: number | null
+          sort_order?: number | null
+          translation?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          allowed_classes?: string[] | null
+          category?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          examples?: string[] | null
+          expected_input?: string
+          fixed_text?: string
+          grammar_tip?: string | null
+          id?: string
+          language_id?: string
+          mastery_level?: number | null
+          sort_order?: number | null
+          translation?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grammar_structures_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       habit_logs: {
         Row: {
           completed: boolean | null
@@ -408,257 +470,49 @@ export type Database = {
         }
         Relationships: []
       }
-      language_contents: {
-        Row: {
-          content: string
-          content_type: string
-          created_at: string | null
-          id: string
-          sort_order: number | null
-          structure_id: string
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          content: string
-          content_type: string
-          created_at?: string | null
-          id?: string
-          sort_order?: number | null
-          structure_id: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          content?: string
-          content_type?: string
-          created_at?: string | null
-          id?: string
-          sort_order?: number | null
-          structure_id?: string
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "language_contents_structure_id_fkey"
-            columns: ["structure_id"]
-            isOneToOne: false
-            referencedRelation: "language_structures"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      language_levels: {
-        Row: {
-          created_at: string | null
-          id: string
-          language_id: string
-          name: string
-          sort_order: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          language_id: string
-          name: string
-          sort_order?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          language_id?: string
-          name?: string
-          sort_order?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "language_levels_language_id_fkey"
-            columns: ["language_id"]
-            isOneToOne: false
-            referencedRelation: "languages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       language_practice_sessions: {
         Row: {
           completed_at: string | null
           correct_answers: number | null
           created_at: string | null
+          exercise_type: string | null
           id: string
+          language_id: string
           practice_type: string
-          structure_id: string
-          total_answers: number | null
+          time_spent_seconds: number | null
+          total_questions: number | null
           user_id: string | null
         }
         Insert: {
           completed_at?: string | null
           correct_answers?: number | null
           created_at?: string | null
+          exercise_type?: string | null
           id?: string
+          language_id: string
           practice_type: string
-          structure_id: string
-          total_answers?: number | null
+          time_spent_seconds?: number | null
+          total_questions?: number | null
           user_id?: string | null
         }
         Update: {
           completed_at?: string | null
           correct_answers?: number | null
           created_at?: string | null
+          exercise_type?: string | null
           id?: string
+          language_id?: string
           practice_type?: string
-          structure_id?: string
-          total_answers?: number | null
+          time_spent_seconds?: number | null
+          total_questions?: number | null
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "language_practice_sessions_structure_id_fkey"
-            columns: ["structure_id"]
+            foreignKeyName: "language_practice_sessions_language_id_fkey"
+            columns: ["language_id"]
             isOneToOne: false
-            referencedRelation: "language_structures"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      language_sections: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          level_id: string
-          name: string
-          sort_order: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          level_id: string
-          name: string
-          sort_order?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          level_id?: string
-          name?: string
-          sort_order?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "language_sections_level_id_fkey"
-            columns: ["level_id"]
-            isOneToOne: false
-            referencedRelation: "language_levels"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      language_structures: {
-        Row: {
-          audio_url: string | null
-          created_at: string | null
-          id: string
-          name: string
-          pattern: string | null
-          pattern_translation: string | null
-          progress: string | null
-          section_id: string
-          sort_order: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          audio_url?: string | null
-          created_at?: string | null
-          id?: string
-          name: string
-          pattern?: string | null
-          pattern_translation?: string | null
-          progress?: string | null
-          section_id: string
-          sort_order?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          audio_url?: string | null
-          created_at?: string | null
-          id?: string
-          name?: string
-          pattern?: string | null
-          pattern_translation?: string | null
-          progress?: string | null
-          section_id?: string
-          sort_order?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "language_structures_section_id_fkey"
-            columns: ["section_id"]
-            isOneToOne: false
-            referencedRelation: "language_sections"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      language_vocabulary: {
-        Row: {
-          created_at: string | null
-          id: string
-          sort_order: number | null
-          structure_id: string
-          translation: string | null
-          updated_at: string | null
-          user_id: string | null
-          word: string
-          word_type: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          sort_order?: number | null
-          structure_id: string
-          translation?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          word: string
-          word_type: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          sort_order?: number | null
-          structure_id?: string
-          translation?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          word?: string
-          word_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "language_vocabulary_structure_id_fkey"
-            columns: ["structure_id"]
-            isOneToOne: false
-            referencedRelation: "language_structures"
+            referencedRelation: "languages"
             referencedColumns: ["id"]
           },
         ]
@@ -1006,6 +860,50 @@ export type Database = {
         }
         Relationships: []
       }
+      structure_practice_stats: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_practiced_at: string | null
+          next_review_at: string | null
+          structure_id: string
+          times_correct: number | null
+          times_practiced: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_practiced_at?: string | null
+          next_review_at?: string | null
+          structure_id: string
+          times_correct?: number | null
+          times_practiced?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_practiced_at?: string | null
+          next_review_at?: string | null
+          structure_id?: string
+          times_correct?: number | null
+          times_practiced?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "structure_practice_stats_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "grammar_structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1068,6 +966,159 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      vocabulary_sets: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          grammatical_class: string | null
+          icon: string | null
+          id: string
+          language_id: string
+          name: string
+          set_type: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          grammatical_class?: string | null
+          icon?: string | null
+          id?: string
+          language_id: string
+          name: string
+          set_type: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          grammatical_class?: string | null
+          icon?: string | null
+          id?: string
+          language_id?: string
+          name?: string
+          set_type?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocabulary_sets_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vocabulary_words: {
+        Row: {
+          audio_url: string | null
+          created_at: string | null
+          difficulty: string | null
+          example: string | null
+          id: string
+          image_url: string | null
+          mastery_level: number | null
+          set_id: string
+          sort_order: number | null
+          translation: string | null
+          updated_at: string | null
+          user_id: string | null
+          word: string
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          example?: string | null
+          id?: string
+          image_url?: string | null
+          mastery_level?: number | null
+          set_id: string
+          sort_order?: number | null
+          translation?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          word: string
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          example?: string | null
+          id?: string
+          image_url?: string | null
+          mastery_level?: number | null
+          set_id?: string
+          sort_order?: number | null
+          translation?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocabulary_words_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "vocabulary_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      word_practice_stats: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_practiced_at: string | null
+          next_review_at: string | null
+          times_correct: number | null
+          times_practiced: number | null
+          updated_at: string | null
+          user_id: string | null
+          word_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_practiced_at?: string | null
+          next_review_at?: string | null
+          times_correct?: number | null
+          times_practiced?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          word_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_practiced_at?: string | null
+          next_review_at?: string | null
+          times_correct?: number | null
+          times_practiced?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_practice_stats_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "vocabulary_words"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
