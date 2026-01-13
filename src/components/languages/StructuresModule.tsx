@@ -225,7 +225,7 @@ function StructureSetDetail({
   // Form state
   const [fixedText, setFixedText] = useState('');
   const [expectedInputs, setExpectedInputs] = useState<(ExpectedInput | '')[]>(['verb', '', '', '']);
-  const [phraseInputs, setPhraseInputs] = useState<string[]>(['', '', '', '']);
+  const [phraseInputs, setPhraseInputs] = useState<string[][]>([[], [], [], []]);
   const [translation, setTranslation] = useState('');
   const [grammarTip, setGrammarTip] = useState('');
   const [examples, setExamples] = useState('');
@@ -235,17 +235,35 @@ function StructureSetDetail({
     newInputs[index] = value;
     setExpectedInputs(newInputs);
     
-    // Clear phrase input if not "phrase" type
+    // Clear phrase inputs if not "phrase" type
     if (value !== 'phrase') {
       const newPhraseInputs = [...phraseInputs];
-      newPhraseInputs[index] = '';
+      newPhraseInputs[index] = [];
+      setPhraseInputs(newPhraseInputs);
+    } else if (phraseInputs[index].length === 0) {
+      // Initialize with one empty phrase when selecting "phrase"
+      const newPhraseInputs = [...phraseInputs];
+      newPhraseInputs[index] = [''];
       setPhraseInputs(newPhraseInputs);
     }
   };
 
-  const updatePhraseInput = (index: number, value: string) => {
+  const updatePhraseInput = (typeIndex: number, phraseIndex: number, value: string) => {
     const newPhraseInputs = [...phraseInputs];
-    newPhraseInputs[index] = value;
+    newPhraseInputs[typeIndex] = [...newPhraseInputs[typeIndex]];
+    newPhraseInputs[typeIndex][phraseIndex] = value;
+    setPhraseInputs(newPhraseInputs);
+  };
+
+  const addPhraseInput = (typeIndex: number) => {
+    const newPhraseInputs = [...phraseInputs];
+    newPhraseInputs[typeIndex] = [...newPhraseInputs[typeIndex], ''];
+    setPhraseInputs(newPhraseInputs);
+  };
+
+  const removePhraseInput = (typeIndex: number, phraseIndex: number) => {
+    const newPhraseInputs = [...phraseInputs];
+    newPhraseInputs[typeIndex] = newPhraseInputs[typeIndex].filter((_, i) => i !== phraseIndex);
     setPhraseInputs(newPhraseInputs);
   };
 
@@ -267,7 +285,7 @@ function StructureSetDetail({
     // Reset form
     setFixedText('');
     setExpectedInputs(['verb', '', '', '']);
-    setPhraseInputs(['', '', '', '']);
+    setPhraseInputs([[], [], [], []]);
     setTranslation('');
     setGrammarTip('');
     setExamples('');
@@ -395,18 +413,45 @@ function StructureSetDetail({
                   
                   {/* Phrase input fields - appear when "phrase" is selected */}
                   {expectedInputs.some((input) => input === 'phrase') && (
-                    <div className="space-y-2 mt-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="space-y-3 mt-3 p-3 bg-muted/50 rounded-lg">
                       <Label className="text-sm text-muted-foreground">Frases esperadas:</Label>
-                      {expectedInputs.map((input, index) => 
+                      {expectedInputs.map((input, typeIndex) => 
                         input === 'phrase' && (
-                          <div key={index} className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground min-w-[60px]">Tipo {index + 1}:</span>
-                            <Input 
-                              value={phraseInputs[index]}
-                              onChange={(e) => updatePhraseInput(index, e.target.value)}
-                              placeholder="Digite a frase esperada..."
-                              className="flex-1"
-                            />
+                          <div key={typeIndex} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium">Tipo {typeIndex + 1}:</span>
+                              <Button 
+                                type="button"
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => addPhraseInput(typeIndex)}
+                                className="h-7 text-xs"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Adicionar frase
+                              </Button>
+                            </div>
+                            {phraseInputs[typeIndex].map((phrase, phraseIndex) => (
+                              <div key={phraseIndex} className="flex items-center gap-2">
+                                <Input 
+                                  value={phrase}
+                                  onChange={(e) => updatePhraseInput(typeIndex, phraseIndex, e.target.value)}
+                                  placeholder={`Frase ${phraseIndex + 1}...`}
+                                  className="flex-1"
+                                />
+                                {phraseInputs[typeIndex].length > 1 && (
+                                  <Button 
+                                    type="button"
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => removePhraseInput(typeIndex, phraseIndex)}
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         )
                       )}
