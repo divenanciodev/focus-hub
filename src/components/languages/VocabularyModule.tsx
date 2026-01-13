@@ -246,11 +246,18 @@ function VocabularySetDetail({
   onBack: () => void;
   onPractice: () => void;
 }) {
-  const { words, loading, addWord, deleteWord } = useVocabularyWords(set.id);
+  const { words, loading, addWord, updateWord, deleteWord } = useVocabularyWords(set.id);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newWord, setNewWord] = useState('');
   const [newTranslation, setNewTranslation] = useState('');
   const [newExample, setNewExample] = useState('');
+
+  // Edit state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingWord, setEditingWord] = useState<VocabularyWord | null>(null);
+  const [editWord, setEditWord] = useState('');
+  const [editTranslation, setEditTranslation] = useState('');
+  const [editExample, setEditExample] = useState('');
 
   const handleAddWord = async () => {
     if (!newWord.trim()) return;
@@ -265,6 +272,27 @@ function VocabularySetDetail({
     setNewTranslation('');
     setNewExample('');
     setAddModalOpen(false);
+  };
+
+  const openEditModal = (word: VocabularyWord) => {
+    setEditingWord(word);
+    setEditWord(word.word);
+    setEditTranslation(word.translation || '');
+    setEditExample(word.example || '');
+    setEditModalOpen(true);
+  };
+
+  const handleEditWord = async () => {
+    if (!editingWord || !editWord.trim()) return;
+
+    await updateWord(editingWord.id, {
+      word: editWord.trim(),
+      translation: editTranslation || undefined,
+      example: editExample || undefined,
+    });
+
+    setEditModalOpen(false);
+    setEditingWord(null);
   };
 
   return (
@@ -357,18 +385,65 @@ function VocabularySetDetail({
                     <div className="text-xs text-muted-foreground italic mt-1">"{word.example}"</div>
                   )}
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => deleteWord(word.id)}
-                >
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => openEditModal(word)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => deleteWord(word.id)}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Edit Word Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Palavra</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Palavra *</Label>
+              <Input 
+                value={editWord}
+                onChange={(e) => setEditWord(e.target.value)}
+                placeholder="Ex: study, work, etc."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tradução</Label>
+              <Input 
+                value={editTranslation}
+                onChange={(e) => setEditTranslation(e.target.value)}
+                placeholder="Ex: estudar, trabalhar, etc."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Exemplo</Label>
+              <Input 
+                value={editExample}
+                onChange={(e) => setEditExample(e.target.value)}
+                placeholder="Ex: I study every day."
+              />
+            </div>
+            <Button onClick={handleEditWord} className="w-full">
+              Salvar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
