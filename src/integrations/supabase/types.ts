@@ -337,6 +337,53 @@ export type Database = {
         }
         Relationships: []
       }
+      grammar_structure_sets: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          language_id: string
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          language_id: string
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          language_id?: string
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grammar_structure_sets_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grammar_structures: {
         Row: {
           allowed_classes: string[] | null
@@ -350,6 +397,7 @@ export type Database = {
           id: string
           language_id: string
           mastery_level: number | null
+          set_id: string | null
           sort_order: number | null
           translation: string | null
           updated_at: string | null
@@ -367,6 +415,7 @@ export type Database = {
           id?: string
           language_id: string
           mastery_level?: number | null
+          set_id?: string | null
           sort_order?: number | null
           translation?: string | null
           updated_at?: string | null
@@ -384,6 +433,7 @@ export type Database = {
           id?: string
           language_id?: string
           mastery_level?: number | null
+          set_id?: string | null
           sort_order?: number | null
           translation?: string | null
           updated_at?: string | null
@@ -395,6 +445,13 @@ export type Database = {
             columns: ["language_id"]
             isOneToOne: false
             referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grammar_structures_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "grammar_structure_sets"
             referencedColumns: ["id"]
           },
         ]

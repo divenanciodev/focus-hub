@@ -17,11 +17,10 @@ import {
   Dumbbell,
   ChevronRight,
   Lightbulb,
-  ArrowLeft,
-  Pencil
+  ArrowLeft
 } from 'lucide-react';
-import { useGrammarStructures } from '@/hooks/useLanguagesModule';
-import type { GrammarStructure, ExpectedInput } from '@/types/languages';
+import { useGrammarStructureSets, useGrammarStructures, useAllGrammarStructures } from '@/hooks/useLanguagesModule';
+import type { GrammarStructureSet, GrammarStructure, ExpectedInput } from '@/types/languages';
 import { EXPECTED_INPUTS } from '@/types/languages';
 import { StructuresPractice } from './StructuresPractice';
 
@@ -30,37 +29,27 @@ interface StructuresModuleProps {
 }
 
 export function StructuresModule({ languageId }: StructuresModuleProps) {
-  const { structures, loading, addStructure, deleteStructure } = useGrammarStructures(languageId);
+  const { sets, loading, addSet, deleteSet } = useGrammarStructureSets(languageId);
+  const { structures: allStructures } = useAllGrammarStructures(languageId);
   const [activeTab, setActiveTab] = useState<'edit' | 'practice'>('edit');
-  const [selectedStructure, setSelectedStructure] = useState<GrammarStructure | null>(null);
+  const [selectedSet, setSelectedSet] = useState<GrammarStructureSet | null>(null);
   const [isPracticing, setIsPracticing] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  
-  // Form state
-  const [fixedText, setFixedText] = useState('');
-  const [expectedInput, setExpectedInput] = useState<ExpectedInput>('verb');
-  const [translation, setTranslation] = useState('');
-  const [grammarTip, setGrammarTip] = useState('');
-  const [examples, setExamples] = useState('');
+  const [newSetName, setNewSetName] = useState('');
+  const [newSetDescription, setNewSetDescription] = useState('');
 
-  const handleCreateStructure = async () => {
-    if (!fixedText.trim()) return;
+  const handleCreateSet = async () => {
+    if (!newSetName.trim()) return;
     
-    await addStructure({
-      fixedText: fixedText.trim(),
-      expectedInput,
-      translation: translation || undefined,
-      grammarTip: grammarTip || undefined,
-      examples: examples.split('\n').filter(e => e.trim()),
-      allowedClasses: [expectedInput],
+    await addSet({
+      name: newSetName,
+      description: newSetDescription || undefined,
+      color: '#8b5cf6',
+      icon: '📝',
     });
     
-    // Reset form
-    setFixedText('');
-    setExpectedInput('verb');
-    setTranslation('');
-    setGrammarTip('');
-    setExamples('');
+    setNewSetName('');
+    setNewSetDescription('');
     setCreateModalOpen(false);
   };
 
@@ -68,26 +57,27 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
   if (isPracticing) {
     return (
       <StructuresPractice 
-        structures={structures}
+        structures={allStructures}
         languageId={languageId}
         onBack={() => {
           setIsPracticing(false);
-          setSelectedStructure(null);
+          setSelectedSet(null);
         }}
       />
     );
   }
 
-  // If viewing a specific structure
-  if (selectedStructure) {
+  // If viewing a specific set
+  if (selectedSet) {
     return (
-      <StructureDetail 
-        structure={selectedStructure}
-        onBack={() => setSelectedStructure(null)}
+      <StructureSetDetail 
+        set={selectedSet}
+        languageId={languageId}
+        onBack={() => setSelectedSet(null)}
         onPractice={() => setIsPracticing(true)}
-        onDelete={() => {
-          deleteStructure(selectedStructure.id);
-          setSelectedStructure(null);
+        onDeleteSet={() => {
+          deleteSet(selectedSet.id);
+          setSelectedSet(null);
         }}
       />
     );
@@ -108,73 +98,33 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
               <DialogTrigger asChild>
                 <Button size="sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  Nova Estrutura
+                  Novo Conjunto
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Criar Estrutura Gramatical</DialogTitle>
+                  <DialogTitle>Criar Conjunto de Estruturas</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Texto Fixo (antes do +) *</Label>
+                    <Label>Nome do Conjunto</Label>
                     <Input 
-                      value={fixedText}
-                      onChange={(e) => setFixedText(e.target.value)}
-                      placeholder="Ex: I wanna, Do you want me to, I'm good at"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      O texto que vem antes do campo que o usuário preenche
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Tipo de Entrada Esperada</Label>
-                    <Select value={expectedInput} onValueChange={(v: ExpectedInput) => setExpectedInput(v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EXPECTED_INPUTS.map(input => (
-                          <SelectItem key={input} value={input}>
-                            {input.charAt(0).toUpperCase() + input.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Tradução</Label>
-                    <Input 
-                      value={translation}
-                      onChange={(e) => setTranslation(e.target.value)}
-                      placeholder="Ex: Eu quero..."
+                      value={newSetName}
+                      onChange={(e) => setNewSetName(e.target.value)}
+                      placeholder="Ex: Modal Verbs, Phrasal Verbs, etc."
                     />
                   </div>
-
                   <div className="space-y-2">
-                    <Label>Dica Gramatical</Label>
+                    <Label>Descrição (opcional)</Label>
                     <Textarea 
-                      value={grammarTip}
-                      onChange={(e) => setGrammarTip(e.target.value)}
-                      placeholder="Ex: Usado para expressar desejo ou intenção"
+                      value={newSetDescription}
+                      onChange={(e) => setNewSetDescription(e.target.value)}
+                      placeholder="Ex: Estruturas com verbos modais em inglês"
                       rows={2}
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label>Exemplos (um por linha)</Label>
-                    <Textarea 
-                      value={examples}
-                      onChange={(e) => setExamples(e.target.value)}
-                      placeholder="I wanna learn English.&#10;I wanna travel to Japan."
-                      rows={3}
-                    />
-                  </div>
-
-                  <Button onClick={handleCreateStructure} className="w-full">
-                    Criar Estrutura
+                  <Button onClick={handleCreateSet} className="w-full">
+                    Criar Conjunto
                   </Button>
                 </div>
               </DialogContent>
@@ -189,42 +139,33 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
                 <Skeleton key={i} className="h-28" />
               ))}
             </div>
-          ) : structures.length === 0 ? (
+          ) : sets.length === 0 ? (
             <EmptyState
               icon={<Dumbbell className="w-12 h-12 text-muted-foreground" />}
-              title="Nenhuma estrutura criada"
-              description="Crie estruturas gramaticais como 'I wanna + verb'"
+              title="Nenhum conjunto criado"
+              description="Crie um conjunto para organizar suas estruturas gramaticais"
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {structures.map(structure => (
+              {sets.map(set => (
                 <Card 
-                  key={structure.id}
+                  key={set.id}
                   className="cursor-pointer hover:border-primary transition-colors group"
-                  onClick={() => setSelectedStructure(structure)}
+                  onClick={() => setSelectedSet(set)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base font-mono">
-                        {structure.fixedText} +
-                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{set.icon}</span>
+                        <CardTitle className="text-base">{set.name}</CardTitle>
+                      </div>
                       <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">
-                        {structure.expectedInput}
-                      </Badge>
-                      {structure.examples.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          {structure.examples.length} exemplo(s)
-                        </span>
-                      )}
-                    </div>
-                    {structure.translation && (
-                      <p className="text-sm text-muted-foreground mt-2 truncate">
-                        {structure.translation}
+                    {set.description && (
+                      <p className="text-sm text-muted-foreground truncate">
+                        {set.description}
                       </p>
                     )}
                   </CardContent>
@@ -237,44 +178,26 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
         <TabsContent value="practice" className="mt-4">
           {loading ? (
             <Skeleton className="h-32" />
-          ) : structures.length === 0 ? (
+          ) : allStructures.length === 0 ? (
             <EmptyState
               icon={<Play className="w-12 h-12 text-muted-foreground" />}
               title="Nenhuma estrutura para praticar"
-              description="Adicione estruturas primeiro"
+              description="Adicione estruturas aos conjuntos primeiro"
             />
           ) : (
-            <div className="space-y-4">
-              <p className="text-muted-foreground">
-                Selecione uma estrutura para praticar:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {structures.map(structure => (
-                  <Card 
-                    key={structure.id}
-                    className="cursor-pointer hover:border-primary transition-colors"
-                    onClick={() => {
-                      setSelectedStructure(structure);
-                      setIsPracticing(true);
-                    }}
-                  >
-                    <CardContent className="pt-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-medium">{structure.fixedText} +</span>
-                          <Badge variant="outline" className="text-xs">
-                            {structure.expectedInput}
-                          </Badge>
-                        </div>
-                        <Button size="sm" variant="ghost">
-                          <Play className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
+            <Card className="max-w-md mx-auto">
+              <CardContent className="py-8 text-center space-y-4">
+                <Dumbbell className="w-12 h-12 mx-auto text-primary" />
+                <h3 className="text-lg font-medium">Praticar Estruturas</h3>
+                <p className="text-muted-foreground">
+                  {allStructures.length} estrutura(s) disponível(is)
+                </p>
+                <Button onClick={() => setIsPracticing(true)}>
+                  <Play className="w-4 h-4 mr-2" />
+                  Iniciar Prática
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
@@ -282,18 +205,51 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
   );
 }
 
-// Component for viewing details of a specific structure
-function StructureDetail({ 
-  structure, 
+// Component for viewing/editing structures within a set
+function StructureSetDetail({ 
+  set, 
+  languageId,
   onBack,
   onPractice,
-  onDelete
+  onDeleteSet
 }: { 
-  structure: GrammarStructure; 
+  set: GrammarStructureSet; 
+  languageId: string;
   onBack: () => void;
   onPractice: () => void;
-  onDelete: () => void;
+  onDeleteSet: () => void;
 }) {
+  const { structures, loading, addStructure, deleteStructure } = useGrammarStructures(set.id, languageId);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  
+  // Form state
+  const [fixedText, setFixedText] = useState('');
+  const [expectedInput, setExpectedInput] = useState<ExpectedInput>('verb');
+  const [translation, setTranslation] = useState('');
+  const [grammarTip, setGrammarTip] = useState('');
+  const [examples, setExamples] = useState('');
+
+  const handleAddStructure = async () => {
+    if (!fixedText.trim()) return;
+    
+    await addStructure({
+      fixedText: fixedText.trim(),
+      expectedInput,
+      translation: translation || undefined,
+      grammarTip: grammarTip || undefined,
+      examples: examples.split('\n').filter(e => e.trim()),
+      allowedClasses: [expectedInput],
+    }, languageId);
+    
+    // Reset form
+    setFixedText('');
+    setExpectedInput('verb');
+    setTranslation('');
+    setGrammarTip('');
+    setExamples('');
+    setAddModalOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -301,85 +257,151 @@ function StructureDetail({
           <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div>
-            <h2 className="text-xl font-bold font-mono">{structure.fixedText} +</h2>
-            <Badge variant="secondary" className="mt-1">
-              {structure.expectedInput}
-            </Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{set.icon}</span>
+            <h2 className="text-xl font-bold">{set.name}</h2>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button onClick={onPractice}>
-            <Play className="w-4 h-4 mr-2" />
-            Praticar
-          </Button>
-          <Button variant="outline" onClick={onDelete}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Excluir
-          </Button>
+          {structures.length > 0 && (
+            <Button onClick={onPractice}>
+              <Play className="w-4 h-4 mr-2" />
+              Praticar
+            </Button>
+          )}
+          <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Estrutura
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Adicionar Estrutura</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Texto Fixo (antes do +) *</Label>
+                  <Input 
+                    value={fixedText}
+                    onChange={(e) => setFixedText(e.target.value)}
+                    placeholder="Ex: I wanna, Do you want me to, I'm good at"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    O texto que vem antes do campo que o usuário preenche
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Tipo de Entrada Esperada</Label>
+                  <Select value={expectedInput} onValueChange={(v: ExpectedInput) => setExpectedInput(v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXPECTED_INPUTS.map(input => (
+                        <SelectItem key={input} value={input}>
+                          {input.charAt(0).toUpperCase() + input.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tradução</Label>
+                  <Input 
+                    value={translation}
+                    onChange={(e) => setTranslation(e.target.value)}
+                    placeholder="Ex: Eu quero..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Dica Gramatical</Label>
+                  <Textarea 
+                    value={grammarTip}
+                    onChange={(e) => setGrammarTip(e.target.value)}
+                    placeholder="Ex: Usado para expressar desejo ou intenção"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Exemplos (um por linha)</Label>
+                  <Textarea 
+                    value={examples}
+                    onChange={(e) => setExamples(e.target.value)}
+                    placeholder="I wanna learn English.&#10;I wanna travel to Japan."
+                    rows={3}
+                  />
+                </div>
+
+                <Button onClick={handleAddStructure} className="w-full">
+                  Adicionar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      <div className="grid gap-4">
-        {structure.translation && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Tradução</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{structure.translation}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {structure.grammarTip && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-                <Lightbulb className="w-4 h-4 text-yellow-500" />
-                Dica Gramatical
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{structure.grammarTip}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {structure.examples.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Exemplos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {structure.examples.map((example, idx) => (
-                  <li key={idx} className="text-sm italic text-muted-foreground">
-                    "{example}"
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {structure.allowedClasses && structure.allowedClasses.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground">Classes Aceitas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {structure.allowedClasses.map((cls, idx) => (
-                  <Badge key={idx} variant="outline">
-                    {cls}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      {loading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+      ) : structures.length === 0 ? (
+        <EmptyState
+          icon={<Dumbbell className="w-12 h-12 text-muted-foreground" />}
+          title="Nenhuma estrutura cadastrada"
+          description="Adicione estruturas a este conjunto"
+        />
+      ) : (
+        <div className="space-y-2">
+          {structures.map(structure => (
+            <Card key={structure.id}>
+              <CardContent className="py-3 flex items-start justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-medium">
+                      {structure.fixedText} +
+                    </span>
+                    <Badge variant="secondary">
+                      {structure.expectedInput}
+                    </Badge>
+                  </div>
+                  {structure.translation && (
+                    <p className="text-sm text-muted-foreground">
+                      {structure.translation}
+                    </p>
+                  )}
+                  {structure.grammarTip && (
+                    <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <Lightbulb className="w-3 h-3 mt-0.5 text-yellow-500" />
+                      <span className="text-xs">{structure.grammarTip}</span>
+                    </div>
+                  )}
+                  {structure.examples.length > 0 && (
+                    <p className="text-xs italic text-muted-foreground">
+                      Ex: {structure.examples[0]}
+                    </p>
+                  )}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => deleteStructure(structure.id)}
+                >
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

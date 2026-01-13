@@ -71,9 +71,22 @@ export interface VocabularyWord {
   updatedAt: Date;
 }
 
+export interface GrammarStructureSet {
+  id: string;
+  languageId: string;
+  name: string;
+  description?: string;
+  color: string;
+  icon: string;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface GrammarStructure {
   id: string;
   languageId: string;
+  setId?: string;
   fixedText: string;
   expectedInput: ExpectedInput;
   allowedClasses: string[];
