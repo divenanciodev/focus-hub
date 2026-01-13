@@ -23,6 +23,7 @@ export const EXPECTED_INPUTS = [
   'verb-ing',
   'past participle',
   'sentence',
+  'phrase',
   'any'
 ] as const;
 

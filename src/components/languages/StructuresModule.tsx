@@ -225,6 +225,7 @@ function StructureSetDetail({
   // Form state
   const [fixedText, setFixedText] = useState('');
   const [expectedInputs, setExpectedInputs] = useState<(ExpectedInput | '')[]>(['verb', '', '', '']);
+  const [phraseInputs, setPhraseInputs] = useState<string[]>(['', '', '', '']);
   const [translation, setTranslation] = useState('');
   const [grammarTip, setGrammarTip] = useState('');
   const [examples, setExamples] = useState('');
@@ -233,6 +234,19 @@ function StructureSetDetail({
     const newInputs = [...expectedInputs];
     newInputs[index] = value;
     setExpectedInputs(newInputs);
+    
+    // Clear phrase input if not "phrase" type
+    if (value !== 'phrase') {
+      const newPhraseInputs = [...phraseInputs];
+      newPhraseInputs[index] = '';
+      setPhraseInputs(newPhraseInputs);
+    }
+  };
+
+  const updatePhraseInput = (index: number, value: string) => {
+    const newPhraseInputs = [...phraseInputs];
+    newPhraseInputs[index] = value;
+    setPhraseInputs(newPhraseInputs);
   };
 
   const handleAddStructure = async () => {
@@ -253,6 +267,7 @@ function StructureSetDetail({
     // Reset form
     setFixedText('');
     setExpectedInputs(['verb', '', '', '']);
+    setPhraseInputs(['', '', '', '']);
     setTranslation('');
     setGrammarTip('');
     setExamples('');
@@ -313,7 +328,7 @@ function StructureSetDetail({
                           <SelectItem value="__empty__">-</SelectItem>
                           {EXPECTED_INPUTS.map(input => (
                             <SelectItem key={input} value={input}>
-                              {input.charAt(0).toUpperCase() + input.slice(1)}
+                              {input === 'phrase' ? 'Frase' : input.charAt(0).toUpperCase() + input.slice(1)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -332,7 +347,7 @@ function StructureSetDetail({
                           <SelectItem value="__empty__">-</SelectItem>
                           {EXPECTED_INPUTS.map(input => (
                             <SelectItem key={input} value={input}>
-                              {input.charAt(0).toUpperCase() + input.slice(1)}
+                              {input === 'phrase' ? 'Frase' : input.charAt(0).toUpperCase() + input.slice(1)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -351,7 +366,7 @@ function StructureSetDetail({
                           <SelectItem value="__empty__">-</SelectItem>
                           {EXPECTED_INPUTS.map(input => (
                             <SelectItem key={input} value={input}>
-                              {input.charAt(0).toUpperCase() + input.slice(1)}
+                              {input === 'phrase' ? 'Frase' : input.charAt(0).toUpperCase() + input.slice(1)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -370,13 +385,33 @@ function StructureSetDetail({
                           <SelectItem value="__empty__">-</SelectItem>
                           {EXPECTED_INPUTS.map(input => (
                             <SelectItem key={input} value={input}>
-                              {input.charAt(0).toUpperCase() + input.slice(1)}
+                              {input === 'phrase' ? 'Frase' : input.charAt(0).toUpperCase() + input.slice(1)}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
+                  
+                  {/* Phrase input fields - appear when "phrase" is selected */}
+                  {expectedInputs.some((input) => input === 'phrase') && (
+                    <div className="space-y-2 mt-3 p-3 bg-muted/50 rounded-lg">
+                      <Label className="text-sm text-muted-foreground">Frases esperadas:</Label>
+                      {expectedInputs.map((input, index) => 
+                        input === 'phrase' && (
+                          <div key={index} className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground min-w-[60px]">Tipo {index + 1}:</span>
+                            <Input 
+                              value={phraseInputs[index]}
+                              onChange={(e) => updatePhraseInput(index, e.target.value)}
+                              placeholder="Digite a frase esperada..."
+                              className="flex-1"
+                            />
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Monte a estrutura: texto fixo + tipos de entrada. Use "-" para campos não utilizados.
                   </p>
