@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useFinancial, FinancialEntry, PiggyBank, FixedExpense } from '@/hooks/useFinancial';
 import { EntryAllocationModal } from '@/components/financial/EntryAllocationModal';
+import { FinancialReport } from '@/components/financial/FinancialReport';
 import { Receivable, PurchaseGoal, Consortium } from '@/types';
 import {
   Plus,
@@ -31,6 +32,7 @@ import {
   Split,
   ChevronDown,
   ChevronUp,
+  FileBarChart,
 } from 'lucide-react';
 import {
   Dialog,
@@ -509,6 +511,10 @@ export default function Financeiro() {
           <TabsTrigger value="variaveis">Despesas Variáveis</TabsTrigger>
           <TabsTrigger value="compras">Compras</TabsTrigger>
           <TabsTrigger value="consorcio">Consórcio</TabsTrigger>
+          <TabsTrigger value="relatorios" className="gap-1.5">
+            <FileBarChart className="w-4 h-4" />
+            Relatórios
+          </TabsTrigger>
         </TabsList>
 
         {/* Entradas e Saídas */}
@@ -1205,6 +1211,16 @@ export default function Financeiro() {
               })}
             </div>
           )}
+        </TabsContent>
+
+        {/* Relatórios */}
+        <TabsContent value="relatorios" className="mt-0">
+          <FinancialReport
+            entries={entries}
+            piggyBanks={piggyBanks}
+            fixedExpenses={fixedExpenses}
+            allocations={allocations}
+          />
         </TabsContent>
       </Tabs>
 
