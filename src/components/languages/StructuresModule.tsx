@@ -224,26 +224,35 @@ function StructureSetDetail({
   
   // Form state
   const [fixedText, setFixedText] = useState('');
-  const [expectedInput, setExpectedInput] = useState<ExpectedInput>('verb');
+  const [expectedInputs, setExpectedInputs] = useState<(ExpectedInput | '')[]>(['verb', '', '', '']);
   const [translation, setTranslation] = useState('');
   const [grammarTip, setGrammarTip] = useState('');
   const [examples, setExamples] = useState('');
 
+  const updateExpectedInput = (index: number, value: ExpectedInput | '') => {
+    const newInputs = [...expectedInputs];
+    newInputs[index] = value;
+    setExpectedInputs(newInputs);
+  };
+
   const handleAddStructure = async () => {
     if (!fixedText.trim()) return;
     
+    const validInputs = expectedInputs.filter(input => input !== '') as ExpectedInput[];
+    if (validInputs.length === 0) return;
+    
     await addStructure({
       fixedText: fixedText.trim(),
-      expectedInput,
+      expectedInput: validInputs[0],
       translation: translation || undefined,
       grammarTip: grammarTip || undefined,
       examples: examples.split('\n').filter(e => e.trim()),
-      allowedClasses: [expectedInput],
+      allowedClasses: validInputs,
     }, languageId);
     
     // Reset form
     setFixedText('');
-    setExpectedInput('verb');
+    setExpectedInputs(['verb', '', '', '']);
     setTranslation('');
     setGrammarTip('');
     setExamples('');
@@ -276,39 +285,102 @@ function StructureSetDetail({
                   Adicionar Estrutura
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Adicionar Estrutura</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="flex-1 space-y-2">
-                    <Label>Texto Fixo *</Label>
-                    <Input 
-                      value={fixedText}
-                      onChange={(e) => setFixedText(e.target.value)}
-                      placeholder="Ex: I wanna, Do you want me to"
-                    />
+                <div className="space-y-2">
+                  <Label>Estrutura da Frase *</Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex-1 min-w-[180px]">
+                      <Input 
+                        value={fixedText}
+                        onChange={(e) => setFixedText(e.target.value)}
+                        placeholder="Texto fixo (ex: I wanna)"
+                      />
+                    </div>
+                    <span className="text-lg font-bold text-muted-foreground">+</span>
+                    <div className="w-28">
+                      <Select 
+                        value={expectedInputs[0] || '__empty__'} 
+                        onValueChange={(v) => updateExpectedInput(0, v === '__empty__' ? '' : v as ExpectedInput)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Tipo 1" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__empty__">-</SelectItem>
+                          {EXPECTED_INPUTS.map(input => (
+                            <SelectItem key={input} value={input}>
+                              {input.charAt(0).toUpperCase() + input.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <span className="text-lg font-bold text-muted-foreground">+</span>
+                    <div className="w-28">
+                      <Select 
+                        value={expectedInputs[1] || '__empty__'} 
+                        onValueChange={(v) => updateExpectedInput(1, v === '__empty__' ? '' : v as ExpectedInput)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Tipo 2" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__empty__">-</SelectItem>
+                          {EXPECTED_INPUTS.map(input => (
+                            <SelectItem key={input} value={input}>
+                              {input.charAt(0).toUpperCase() + input.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <span className="text-lg font-bold text-muted-foreground">+</span>
+                    <div className="w-28">
+                      <Select 
+                        value={expectedInputs[2] || '__empty__'} 
+                        onValueChange={(v) => updateExpectedInput(2, v === '__empty__' ? '' : v as ExpectedInput)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Tipo 3" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__empty__">-</SelectItem>
+                          {EXPECTED_INPUTS.map(input => (
+                            <SelectItem key={input} value={input}>
+                              {input.charAt(0).toUpperCase() + input.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <span className="text-lg font-bold text-muted-foreground">+</span>
+                    <div className="w-28">
+                      <Select 
+                        value={expectedInputs[3] || '__empty__'} 
+                        onValueChange={(v) => updateExpectedInput(3, v === '__empty__' ? '' : v as ExpectedInput)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Tipo 4" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__empty__">-</SelectItem>
+                          {EXPECTED_INPUTS.map(input => (
+                            <SelectItem key={input} value={input}>
+                              {input.charAt(0).toUpperCase() + input.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="w-36 space-y-2">
-                    <Label>Entrada Esperada</Label>
-                    <Select value={expectedInput} onValueChange={(v: ExpectedInput) => setExpectedInput(v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EXPECTED_INPUTS.map(input => (
-                          <SelectItem key={input} value={input}>
-                            {input.charAt(0).toUpperCase() + input.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Monte a estrutura: texto fixo + tipos de entrada. Use "-" para campos não utilizados.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  O texto fixo vem antes do campo que o usuário preenche
-                </p>
 
                 <div className="space-y-2">
                   <Label>Tradução</Label>
