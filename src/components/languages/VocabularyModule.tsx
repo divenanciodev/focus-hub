@@ -372,35 +372,39 @@ function VocabularySetDetail({
           description="Adicione palavras a este conjunto"
         />
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {words.map(word => (
-            <Card key={word.id}>
-              <CardContent className="py-3 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{word.word}</div>
-                  {word.translation && (
-                    <div className="text-sm text-muted-foreground">{word.translation}</div>
-                  )}
-                  {word.example && (
-                    <div className="text-xs text-muted-foreground italic mt-1">"{word.example}"</div>
-                  )}
+            <Card key={word.id} className="group">
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between gap-1">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm truncate">{word.word}</div>
+                    {word.translation && (
+                      <div className="text-xs text-muted-foreground truncate">{word.translation}</div>
+                    )}
+                  </div>
+                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => openEditModal(word)}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => deleteWord(word.id)}
+                    >
+                      <Trash2 className="w-3 h-3 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => openEditModal(word)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => deleteWord(word.id)}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </div>
+                {word.example && (
+                  <div className="text-xs text-muted-foreground italic mt-1 truncate">"{word.example}"</div>
+                )}
               </CardContent>
             </Card>
           ))}
