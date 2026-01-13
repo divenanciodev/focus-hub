@@ -16,11 +16,13 @@ import {
   Play,
   Dumbbell,
   ChevronRight,
-  Lightbulb
+  Lightbulb,
+  ArrowLeft,
+  Pencil
 } from 'lucide-react';
 import { useGrammarStructures } from '@/hooks/useLanguagesModule';
 import type { GrammarStructure, ExpectedInput } from '@/types/languages';
-import { EXPECTED_INPUTS, GRAMMATICAL_CLASSES } from '@/types/languages';
+import { EXPECTED_INPUTS } from '@/types/languages';
 import { StructuresPractice } from './StructuresPractice';
 
 interface StructuresModuleProps {
@@ -30,6 +32,7 @@ interface StructuresModuleProps {
 export function StructuresModule({ languageId }: StructuresModuleProps) {
   const { structures, loading, addStructure, deleteStructure } = useGrammarStructures(languageId);
   const [activeTab, setActiveTab] = useState<'edit' | 'practice'>('edit');
+  const [selectedStructure, setSelectedStructure] = useState<GrammarStructure | null>(null);
   const [isPracticing, setIsPracticing] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   
@@ -61,16 +64,36 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
     setCreateModalOpen(false);
   };
 
+  // If practicing
   if (isPracticing) {
     return (
       <StructuresPractice 
         structures={structures}
         languageId={languageId}
-        onBack={() => setIsPracticing(false)}
+        onBack={() => {
+          setIsPracticing(false);
+          setSelectedStructure(null);
+        }}
       />
     );
   }
 
+  // If viewing a specific structure
+  if (selectedStructure) {
+    return (
+      <StructureDetail 
+        structure={selectedStructure}
+        onBack={() => setSelectedStructure(null)}
+        onPractice={() => setIsPracticing(true)}
+        onDelete={() => {
+          deleteStructure(selectedStructure.id);
+          setSelectedStructure(null);
+        }}
+      />
+    );
+  }
+
+  // Main structures view
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
@@ -161,9 +184,9 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
 
         <TabsContent value="edit" className="mt-4">
           {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <Skeleton key={i} className="h-24" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <Skeleton key={i} className="h-28" />
               ))}
             </div>
           ) : structures.length === 0 ? (
@@ -173,45 +196,37 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
               description="Crie estruturas gramaticais como 'I wanna + verb'"
             />
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {structures.map(structure => (
-                <Card key={structure.id}>
-                  <CardContent className="py-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-mono font-medium">
-                            {structure.fixedText} + 
-                          </span>
-                          <Badge variant="secondary">
-                            {structure.expectedInput}
-                          </Badge>
-                        </div>
-                        {structure.translation && (
-                          <p className="text-sm text-muted-foreground">
-                            {structure.translation}
-                          </p>
-                        )}
-                        {structure.grammarTip && (
-                          <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                            <Lightbulb className="w-4 h-4 mt-0.5 text-yellow-500" />
-                            <span>{structure.grammarTip}</span>
-                          </div>
-                        )}
-                        {structure.examples.length > 0 && (
-                          <div className="text-sm italic text-muted-foreground">
-                            Ex: {structure.examples[0]}
-                          </div>
-                        )}
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => deleteStructure(structure.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                <Card 
+                  key={structure.id}
+                  className="cursor-pointer hover:border-primary transition-colors group"
+                  onClick={() => setSelectedStructure(structure)}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-mono">
+                        {structure.fixedText} +
+                      </CardTitle>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
                     </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">
+                        {structure.expectedInput}
+                      </Badge>
+                      {structure.examples.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {structure.examples.length} exemplo(s)
+                        </span>
+                      )}
+                    </div>
+                    {structure.translation && (
+                      <p className="text-sm text-muted-foreground mt-2 truncate">
+                        {structure.translation}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -229,22 +244,142 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
               description="Adicione estruturas primeiro"
             />
           ) : (
-            <Card className="max-w-md mx-auto">
-              <CardContent className="py-8 text-center space-y-4">
-                <Dumbbell className="w-12 h-12 mx-auto text-primary" />
-                <h3 className="text-lg font-medium">Praticar Estruturas</h3>
-                <p className="text-muted-foreground">
-                  {structures.length} estrutura(s) disponível(is)
-                </p>
-                <Button onClick={() => setIsPracticing(true)}>
-                  <Play className="w-4 h-4 mr-2" />
-                  Iniciar Prática
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                Selecione uma estrutura para praticar:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {structures.map(structure => (
+                  <Card 
+                    key={structure.id}
+                    className="cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => {
+                      setSelectedStructure(structure);
+                      setIsPracticing(true);
+                    }}
+                  >
+                    <CardContent className="pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-medium">{structure.fixedText} +</span>
+                          <Badge variant="outline" className="text-xs">
+                            {structure.expectedInput}
+                          </Badge>
+                        </div>
+                        <Button size="sm" variant="ghost">
+                          <Play className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Component for viewing details of a specific structure
+function StructureDetail({ 
+  structure, 
+  onBack,
+  onPractice,
+  onDelete
+}: { 
+  structure: GrammarStructure; 
+  onBack: () => void;
+  onPractice: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h2 className="text-xl font-bold font-mono">{structure.fixedText} +</h2>
+            <Badge variant="secondary" className="mt-1">
+              {structure.expectedInput}
+            </Badge>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={onPractice}>
+            <Play className="w-4 h-4 mr-2" />
+            Praticar
+          </Button>
+          <Button variant="outline" onClick={onDelete}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Excluir
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4">
+        {structure.translation && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Tradução</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>{structure.translation}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {structure.grammarTip && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-yellow-500" />
+                Dica Gramatical
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>{structure.grammarTip}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {structure.examples.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Exemplos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {structure.examples.map((example, idx) => (
+                  <li key={idx} className="text-sm italic text-muted-foreground">
+                    "{example}"
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {structure.allowedClasses && structure.allowedClasses.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-muted-foreground">Classes Aceitas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {structure.allowedClasses.map((cls, idx) => (
+                  <Badge key={idx} variant="outline">
+                    {cls}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
