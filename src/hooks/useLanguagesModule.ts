@@ -338,12 +338,23 @@ export function useGrammarStructureSets(languageId: string | null) {
     if (!languageId) return;
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: 'Erro',
+          description: 'Você precisa estar logado para criar conjuntos',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const { error } = await supabase.from('grammar_structure_sets').insert({
         language_id: languageId,
         name: data.name,
         description: data.description,
         color: data.color,
         icon: data.icon,
+        user_id: user.id,
       });
       
       if (error) throw error;
