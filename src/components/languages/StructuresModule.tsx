@@ -10,15 +10,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Plus, 
   Trash2, 
   Play,
   Dumbbell,
   ChevronRight,
+  ChevronDown,
   Lightbulb,
   ArrowLeft,
-  Pencil
+  Pencil,
+  Library
 } from 'lucide-react';
 import { useGrammarStructureSets, useGrammarStructures, useAllGrammarStructures } from '@/hooks/useLanguagesModule';
 import type { GrammarStructureSet, GrammarStructure, ExpectedInput } from '@/types/languages';
@@ -228,7 +231,9 @@ function StructureSetDetail({
   // Form state for adding
   const [fixedText, setFixedText] = useState('');
   const [expectedInputs, setExpectedInputs] = useState<(ExpectedInput | '')[]>(['verb', '', '', '']);
-  const [phraseInputs, setPhraseInputs] = useState<string[][]>([[], [], [], []]);
+  const [phraseLibrary, setPhraseLibrary] = useState<Record<number, string[]>>({ 0: [], 1: [], 2: [], 3: [] });
+  const [newPhraseText, setNewPhraseText] = useState<Record<number, string>>({ 0: '', 1: '', 2: '', 3: '' });
+  const [libraryOpen, setLibraryOpen] = useState<Record<number, boolean>>({ 0: false, 1: false, 2: false, 3: false });
   const [translation, setTranslation] = useState('');
   const [grammarTip, setGrammarTip] = useState('');
   const [examples, setExamples] = useState('');
@@ -236,7 +241,9 @@ function StructureSetDetail({
   // Form state for editing
   const [editFixedText, setEditFixedText] = useState('');
   const [editExpectedInputs, setEditExpectedInputs] = useState<(ExpectedInput | '')[]>(['verb', '', '', '']);
-  const [editPhraseInputs, setEditPhraseInputs] = useState<string[][]>([[], [], [], []]);
+  const [editPhraseLibrary, setEditPhraseLibrary] = useState<Record<number, string[]>>({ 0: [], 1: [], 2: [], 3: [] });
+  const [editNewPhraseText, setEditNewPhraseText] = useState<Record<number, string>>({ 0: '', 1: '', 2: '', 3: '' });
+  const [editLibraryOpen, setEditLibraryOpen] = useState<Record<number, boolean>>({ 0: false, 1: false, 2: false, 3: false });
   const [editTranslation, setEditTranslation] = useState('');
   const [editGrammarTip, setEditGrammarTip] = useState('');
   const [editExamples, setEditExamples] = useState('');
@@ -246,36 +253,37 @@ function StructureSetDetail({
     newInputs[index] = value;
     setExpectedInputs(newInputs);
     
-    // Clear phrase inputs if not "phrase" type
+    // Clear phrase library if not "phrase" type
     if (value !== 'phrase') {
-      const newPhraseInputs = [...phraseInputs];
-      newPhraseInputs[index] = [];
-      setPhraseInputs(newPhraseInputs);
-    } else if (phraseInputs[index].length === 0) {
-      // Initialize with one empty phrase when selecting "phrase"
-      const newPhraseInputs = [...phraseInputs];
-      newPhraseInputs[index] = [''];
-      setPhraseInputs(newPhraseInputs);
+      setPhraseLibrary(prev => ({ ...prev, [index]: [] }));
+      setNewPhraseText(prev => ({ ...prev, [index]: '' }));
     }
   };
 
-  const updatePhraseInput = (typeIndex: number, phraseIndex: number, value: string) => {
-    const newPhraseInputs = [...phraseInputs];
-    newPhraseInputs[typeIndex] = [...newPhraseInputs[typeIndex]];
-    newPhraseInputs[typeIndex][phraseIndex] = value;
-    setPhraseInputs(newPhraseInputs);
+  const addPhraseToLibrary = (typeIndex: number) => {
+    const text = newPhraseText[typeIndex]?.trim();
+    if (!text) return;
+    
+    setPhraseLibrary(prev => ({
+      ...prev,
+      [typeIndex]: [...(prev[typeIndex] || []), text]
+    }));
+    setNewPhraseText(prev => ({ ...prev, [typeIndex]: '' }));
   };
 
-  const addPhraseInput = (typeIndex: number) => {
-    const newPhraseInputs = [...phraseInputs];
-    newPhraseInputs[typeIndex] = [...newPhraseInputs[typeIndex], ''];
-    setPhraseInputs(newPhraseInputs);
+  const removePhraseFromLibrary = (typeIndex: number, phraseIndex: number) => {
+    setPhraseLibrary(prev => ({
+      ...prev,
+      [typeIndex]: prev[typeIndex].filter((_, i) => i !== phraseIndex)
+    }));
   };
 
-  const removePhraseInput = (typeIndex: number, phraseIndex: number) => {
-    const newPhraseInputs = [...phraseInputs];
-    newPhraseInputs[typeIndex] = newPhraseInputs[typeIndex].filter((_, i) => i !== phraseIndex);
-    setPhraseInputs(newPhraseInputs);
+  const toggleLibrary = (typeIndex: number) => {
+    setLibraryOpen(prev => ({ ...prev, [typeIndex]: !prev[typeIndex] }));
+  };
+
+  const getTotalPhraseCount = () => {
+    return Object.values(phraseLibrary).reduce((acc, phrases) => acc + phrases.length, 0);
   };
 
   // Edit form handlers
@@ -285,33 +293,35 @@ function StructureSetDetail({
     setEditExpectedInputs(newInputs);
     
     if (value !== 'phrase') {
-      const newPhraseInputs = [...editPhraseInputs];
-      newPhraseInputs[index] = [];
-      setEditPhraseInputs(newPhraseInputs);
-    } else if (editPhraseInputs[index].length === 0) {
-      const newPhraseInputs = [...editPhraseInputs];
-      newPhraseInputs[index] = [''];
-      setEditPhraseInputs(newPhraseInputs);
+      setEditPhraseLibrary(prev => ({ ...prev, [index]: [] }));
+      setEditNewPhraseText(prev => ({ ...prev, [index]: '' }));
     }
   };
 
-  const updateEditPhraseInput = (typeIndex: number, phraseIndex: number, value: string) => {
-    const newPhraseInputs = [...editPhraseInputs];
-    newPhraseInputs[typeIndex] = [...newPhraseInputs[typeIndex]];
-    newPhraseInputs[typeIndex][phraseIndex] = value;
-    setEditPhraseInputs(newPhraseInputs);
+  const addEditPhraseToLibrary = (typeIndex: number) => {
+    const text = editNewPhraseText[typeIndex]?.trim();
+    if (!text) return;
+    
+    setEditPhraseLibrary(prev => ({
+      ...prev,
+      [typeIndex]: [...(prev[typeIndex] || []), text]
+    }));
+    setEditNewPhraseText(prev => ({ ...prev, [typeIndex]: '' }));
   };
 
-  const addEditPhraseInput = (typeIndex: number) => {
-    const newPhraseInputs = [...editPhraseInputs];
-    newPhraseInputs[typeIndex] = [...newPhraseInputs[typeIndex], ''];
-    setEditPhraseInputs(newPhraseInputs);
+  const removeEditPhraseFromLibrary = (typeIndex: number, phraseIndex: number) => {
+    setEditPhraseLibrary(prev => ({
+      ...prev,
+      [typeIndex]: prev[typeIndex].filter((_, i) => i !== phraseIndex)
+    }));
   };
 
-  const removeEditPhraseInput = (typeIndex: number, phraseIndex: number) => {
-    const newPhraseInputs = [...editPhraseInputs];
-    newPhraseInputs[typeIndex] = newPhraseInputs[typeIndex].filter((_, i) => i !== phraseIndex);
-    setEditPhraseInputs(newPhraseInputs);
+  const toggleEditLibrary = (typeIndex: number) => {
+    setEditLibraryOpen(prev => ({ ...prev, [typeIndex]: !prev[typeIndex] }));
+  };
+
+  const getEditTotalPhraseCount = () => {
+    return Object.values(editPhraseLibrary).reduce((acc, phrases) => acc + phrases.length, 0);
   };
 
   const openEditModal = (structure: GrammarStructure) => {
@@ -328,7 +338,9 @@ function StructureSetDetail({
       inputs = [structure.expectedInput as ExpectedInput, '', '', ''];
     }
     setEditExpectedInputs(inputs);
-    setEditPhraseInputs([[], [], [], []]);
+    setEditPhraseLibrary({ 0: [], 1: [], 2: [], 3: [] });
+    setEditNewPhraseText({ 0: '', 1: '', 2: '', 3: '' });
+    setEditLibraryOpen({ 0: false, 1: false, 2: false, 3: false });
     setEditTranslation(structure.translation || '');
     setEditGrammarTip(structure.grammarTip || '');
     setEditExamples(structure.examples.join('\n'));
@@ -353,7 +365,9 @@ function StructureSetDetail({
     // Reset form
     setFixedText('');
     setExpectedInputs(['verb', '', '', '']);
-    setPhraseInputs([[], [], [], []]);
+    setPhraseLibrary({ 0: [], 1: [], 2: [], 3: [] });
+    setNewPhraseText({ 0: '', 1: '', 2: '', 3: '' });
+    setLibraryOpen({ 0: false, 1: false, 2: false, 3: false });
     setTranslation('');
     setGrammarTip('');
     setExamples('');
@@ -498,47 +512,68 @@ function StructureSetDetail({
                     </div>
                   </div>
                   
-                  {/* Phrase input fields - appear when "phrase" is selected */}
+                  {/* Phrase library - appear when "phrase" is selected */}
                   {expectedInputs.some((input) => input === 'phrase') && (
-                    <div className="space-y-3 mt-3 p-3 bg-muted/50 rounded-lg">
-                      <Label className="text-sm text-muted-foreground">Frases esperadas:</Label>
+                    <div className="space-y-3 mt-3">
                       {expectedInputs.map((input, typeIndex) => 
                         input === 'phrase' && (
-                          <div key={typeIndex} className="space-y-2">
-                            <div className="flex items-center justify-between">
+                          <div key={typeIndex} className="space-y-2 p-3 bg-muted/50 rounded-lg">
+                            <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">Tipo {typeIndex + 1}:</span>
-                              <Button 
-                                type="button"
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => addPhraseInput(typeIndex)}
-                                className="h-7 text-xs"
-                              >
-                                <Plus className="w-3 h-3 mr-1" />
-                                Adicionar frase
-                              </Button>
-                            </div>
-                            {phraseInputs[typeIndex].map((phrase, phraseIndex) => (
-                              <div key={phraseIndex} className="flex items-center gap-2">
+                              <div className="flex-1 flex gap-2">
                                 <Input 
-                                  value={phrase}
-                                  onChange={(e) => updatePhraseInput(typeIndex, phraseIndex, e.target.value)}
-                                  placeholder={`Frase ${phraseIndex + 1}...`}
+                                  value={newPhraseText[typeIndex] || ''}
+                                  onChange={(e) => setNewPhraseText(prev => ({ ...prev, [typeIndex]: e.target.value }))}
+                                  placeholder="Digite uma frase esperada..."
                                   className="flex-1"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      addPhraseToLibrary(typeIndex);
+                                    }
+                                  }}
                                 />
-                                {phraseInputs[typeIndex].length > 1 && (
-                                  <Button 
-                                    type="button"
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => removePhraseInput(typeIndex, phraseIndex)}
-                                    className="h-8 w-8 text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                )}
+                                <Button 
+                                  type="button"
+                                  variant="secondary" 
+                                  size="sm"
+                                  onClick={() => addPhraseToLibrary(typeIndex)}
+                                  className="shrink-0"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
                               </div>
-                            ))}
+                            </div>
+                            
+                            {phraseLibrary[typeIndex]?.length > 0 && (
+                              <Collapsible open={libraryOpen[typeIndex]} onOpenChange={() => toggleLibrary(typeIndex)}>
+                                <CollapsibleTrigger asChild>
+                                  <Button variant="outline" size="sm" className="w-full justify-between">
+                                    <span className="flex items-center gap-2">
+                                      <Library className="w-4 h-4" />
+                                      Minha biblioteca ({phraseLibrary[typeIndex].length})
+                                    </span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform ${libraryOpen[typeIndex] ? 'rotate-180' : ''}`} />
+                                  </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="mt-2 space-y-1">
+                                  {phraseLibrary[typeIndex].map((phrase, phraseIndex) => (
+                                    <div key={phraseIndex} className="flex items-center gap-2 p-2 bg-background rounded border">
+                                      <span className="flex-1 text-sm">{phrase}</span>
+                                      <Button 
+                                        type="button"
+                                        variant="ghost" 
+                                        size="icon"
+                                        onClick={() => removePhraseFromLibrary(typeIndex, phraseIndex)}
+                                        className="h-7 w-7 text-destructive hover:text-destructive"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </CollapsibleContent>
+                              </Collapsible>
+                            )}
                           </div>
                         )
                       )}
@@ -680,47 +715,68 @@ function StructureSetDetail({
                     </div>
                   </div>
                   
-                  {/* Phrase input fields for edit */}
+                  {/* Phrase library for edit */}
                   {editExpectedInputs.some((input) => input === 'phrase') && (
-                    <div className="space-y-3 mt-3 p-3 bg-muted/50 rounded-lg">
-                      <Label className="text-sm text-muted-foreground">Frases esperadas:</Label>
+                    <div className="space-y-3 mt-3">
                       {editExpectedInputs.map((input, typeIndex) => 
                         input === 'phrase' && (
-                          <div key={typeIndex} className="space-y-2">
-                            <div className="flex items-center justify-between">
+                          <div key={typeIndex} className="space-y-2 p-3 bg-muted/50 rounded-lg">
+                            <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">Tipo {typeIndex + 1}:</span>
-                              <Button 
-                                type="button"
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => addEditPhraseInput(typeIndex)}
-                                className="h-7 text-xs"
-                              >
-                                <Plus className="w-3 h-3 mr-1" />
-                                Adicionar frase
-                              </Button>
-                            </div>
-                            {editPhraseInputs[typeIndex].map((phrase, phraseIndex) => (
-                              <div key={phraseIndex} className="flex items-center gap-2">
+                              <div className="flex-1 flex gap-2">
                                 <Input 
-                                  value={phrase}
-                                  onChange={(e) => updateEditPhraseInput(typeIndex, phraseIndex, e.target.value)}
-                                  placeholder={`Frase ${phraseIndex + 1}...`}
+                                  value={editNewPhraseText[typeIndex] || ''}
+                                  onChange={(e) => setEditNewPhraseText(prev => ({ ...prev, [typeIndex]: e.target.value }))}
+                                  placeholder="Digite uma frase esperada..."
                                   className="flex-1"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      addEditPhraseToLibrary(typeIndex);
+                                    }
+                                  }}
                                 />
-                                {editPhraseInputs[typeIndex].length > 1 && (
-                                  <Button 
-                                    type="button"
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => removeEditPhraseInput(typeIndex, phraseIndex)}
-                                    className="h-8 w-8 text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                )}
+                                <Button 
+                                  type="button"
+                                  variant="secondary" 
+                                  size="sm"
+                                  onClick={() => addEditPhraseToLibrary(typeIndex)}
+                                  className="shrink-0"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
                               </div>
-                            ))}
+                            </div>
+                            
+                            {editPhraseLibrary[typeIndex]?.length > 0 && (
+                              <Collapsible open={editLibraryOpen[typeIndex]} onOpenChange={() => toggleEditLibrary(typeIndex)}>
+                                <CollapsibleTrigger asChild>
+                                  <Button variant="outline" size="sm" className="w-full justify-between">
+                                    <span className="flex items-center gap-2">
+                                      <Library className="w-4 h-4" />
+                                      Minha biblioteca ({editPhraseLibrary[typeIndex].length})
+                                    </span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform ${editLibraryOpen[typeIndex] ? 'rotate-180' : ''}`} />
+                                  </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="mt-2 space-y-1">
+                                  {editPhraseLibrary[typeIndex].map((phrase, phraseIndex) => (
+                                    <div key={phraseIndex} className="flex items-center gap-2 p-2 bg-background rounded border">
+                                      <span className="flex-1 text-sm">{phrase}</span>
+                                      <Button 
+                                        type="button"
+                                        variant="ghost" 
+                                        size="icon"
+                                        onClick={() => removeEditPhraseFromLibrary(typeIndex, phraseIndex)}
+                                        className="h-7 w-7 text-destructive hover:text-destructive"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </CollapsibleContent>
+                              </Collapsible>
+                            )}
                           </div>
                         )
                       )}
