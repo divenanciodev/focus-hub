@@ -96,7 +96,7 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
           {activeTab === 'edit' && (
             <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Conjunto
                 </Button>
@@ -123,7 +123,7 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
                       rows={2}
                     />
                   </div>
-                  <Button onClick={handleCreateSet} className="w-full">
+                  <Button onClick={handleCreateSet} className="w-full bg-foreground text-background hover:bg-foreground/90">
                     Criar Conjunto
                   </Button>
                 </div>
@@ -192,7 +192,7 @@ export function StructuresModule({ languageId }: StructuresModuleProps) {
                 <p className="text-muted-foreground">
                   {allStructures.length} estrutura(s) disponível(is)
                 </p>
-                <Button onClick={() => setIsPracticing(true)}>
+                <Button onClick={() => setIsPracticing(true)} className="bg-foreground text-background hover:bg-foreground/90">
                   <Play className="w-4 h-4 mr-2" />
                   Iniciar Prática
                 </Button>
@@ -264,7 +264,7 @@ function StructureSetDetail({
         </div>
         <div className="flex gap-2">
           {structures.length > 0 && (
-            <Button onClick={onPractice}>
+            <Button onClick={onPractice} className="bg-foreground text-background hover:bg-foreground/90">
               <Play className="w-4 h-4 mr-2" />
               Praticar
             </Button>
@@ -338,7 +338,7 @@ function StructureSetDetail({
                   />
                 </div>
 
-                <Button onClick={handleAddStructure} className="w-full">
+                <Button onClick={handleAddStructure} className="w-full bg-foreground text-background hover:bg-foreground/90">
                   Adicionar
                 </Button>
               </div>
