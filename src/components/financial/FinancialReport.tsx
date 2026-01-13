@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +7,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, TrendingUp, TrendingDown, PiggyBank, ArrowRightLeft, FileText, Download } from 'lucide-react';
+import { CalendarIcon, TrendingUp, TrendingDown, PiggyBank, ArrowRightLeft, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FinancialEntry, PiggyBank as PiggyBankType, FixedExpense, EntryAllocation } from '@/hooks/useFinancial';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { addMonths, subMonths, addYears, subYears, addDays, subDays } from 'date-fns';
 
 type PeriodType = 'day' | 'month' | 'year' | 'custom';
 
@@ -20,7 +21,17 @@ interface FinancialReportProps {
   allocations: EntryAllocation[];
 }
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+// Cores vibrantes para os gráficos
+const PIE_COLORS = [
+  '#ef4444', // red
+  '#f97316', // orange
+  '#eab308', // yellow
+  '#22c55e', // green
+  '#06b6d4', // cyan
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+];
 
 export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocations }: FinancialReportProps) {
   const [periodType, setPeriodType] = useState<PeriodType>('month');
@@ -30,6 +41,21 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const navigatePeriod = (direction: 'prev' | 'next') => {
+    const modifier = direction === 'next' ? 1 : -1;
+    switch (periodType) {
+      case 'day':
+        setSelectedDate(direction === 'next' ? addDays(selectedDate, 1) : subDays(selectedDate, 1));
+        break;
+      case 'month':
+        setSelectedDate(direction === 'next' ? addMonths(selectedDate, 1) : subMonths(selectedDate, 1));
+        break;
+      case 'year':
+        setSelectedDate(direction === 'next' ? addYears(selectedDate, 1) : subYears(selectedDate, 1));
+        break;
+    }
   };
 
   const getDateRange = useMemo(() => {
@@ -63,7 +89,6 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
     return allocations.filter((a) => filteredEntryIds.has(a.entryId));
   }, [allocations, filteredEntries]);
 
-  // Calculate totals for the period
   const periodTotals = useMemo(() => {
     const income = filteredEntries.filter((e) => e.type === 'income').reduce((acc, e) => acc + e.amount, 0);
     const expenses = filteredEntries.filter((e) => e.type === 'expense').reduce((acc, e) => acc + e.amount, 0);
@@ -81,11 +106,9 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
     return { income, expenses: totalExpenses, allocatedSaved, balance };
   }, [filteredEntries, filteredAllocations]);
 
-  // Category breakdown for expenses
   const expensesByCategory = useMemo(() => {
     const categoryMap = new Map<string, number>();
 
-    // Direct expenses
     filteredEntries
       .filter((e) => e.type === 'expense')
       .forEach((e) => {
@@ -93,7 +116,6 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
         categoryMap.set(e.category, current + e.amount);
       });
 
-    // Allocated expenses
     filteredAllocations
       .filter((a) => a.destinationType === 'expense' || a.destinationType === 'fixed_expense' || a.destinationType === 'health')
       .forEach((a) => {
@@ -107,7 +129,6 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
       .sort((a, b) => b.value - a.value);
   }, [filteredEntries, filteredAllocations]);
 
-  // Income sources breakdown
   const incomeBySource = useMemo(() => {
     const sourceMap = new Map<string, number>();
 
@@ -123,17 +144,17 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
       .sort((a, b) => b.value - a.value);
   }, [filteredEntries]);
 
-  // Daily/Monthly breakdown for chart
   const timeSeriesData = useMemo(() => {
-    const dataMap = new Map<string, { income: number; expense: number }>();
+    const dataMap = new Map<string, { income: number; expense: number; sortKey: number }>();
 
     filteredEntries.forEach((entry) => {
       const date = new Date(entry.date);
       const key = periodType === 'year' 
         ? format(date, 'MMM', { locale: ptBR })
-        : format(date, 'dd/MM');
+        : format(date, 'dd');
+      const sortKey = periodType === 'year' ? date.getMonth() : date.getDate();
 
-      const current = dataMap.get(key) || { income: 0, expense: 0 };
+      const current = dataMap.get(key) || { income: 0, expense: 0, sortKey };
       if (entry.type === 'income') {
         current.income += entry.amount;
       } else {
@@ -142,11 +163,14 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
       dataMap.set(key, current);
     });
 
-    return Array.from(dataMap.entries()).map(([date, values]) => ({
-      date,
-      Receita: values.income,
-      Despesa: values.expense,
-    }));
+    return Array.from(dataMap.entries())
+      .map(([date, values]) => ({
+        date,
+        Receita: values.income,
+        Despesa: values.expense,
+        sortKey: values.sortKey,
+      }))
+      .sort((a, b) => a.sortKey - b.sortKey);
   }, [filteredEntries, periodType]);
 
   const getPeriodLabel = () => {
@@ -188,20 +212,29 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
     link.click();
   };
 
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+          <p className="font-medium text-sm mb-2">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {formatCurrency(entry.value)}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Period Selector */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Filtros do Relatório
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Período</label>
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4 items-center justify-between">
+            <div className="flex items-center gap-3">
               <Select value={periodType} onValueChange={(v) => setPeriodType(v as PeriodType)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
@@ -213,38 +246,52 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
                   <SelectItem value="custom">Personalizado</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
 
-            {periodType !== 'custom' && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-[200px] justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {getPeriodLabel()}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
-                      initialFocus
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            )}
-
-            {periodType === 'custom' && (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">De</label>
+              {periodType !== 'custom' && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => navigatePeriod('prev')}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-[150px] justify-start text-left font-normal">
+                      <Button variant="outline" className="min-w-[180px] justify-center font-medium">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <span className="capitalize">{getPeriodLabel()}</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="center">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => date && setSelectedDate(date)}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => navigatePeriod('next')}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+
+              {periodType === 'custom' && (
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-[130px] justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {customStartDate ? format(customStartDate, 'dd/MM/yyyy') : 'Início'}
                       </Button>
@@ -259,12 +306,10 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
                       />
                     </PopoverContent>
                   </Popover>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Até</label>
+                  <span className="text-muted-foreground">até</span>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-[150px] justify-start text-left font-normal">
+                      <Button variant="outline" className="w-[130px] justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {customEndDate ? format(customEndDate, 'dd/MM/yyyy') : 'Fim'}
                       </Button>
@@ -280,12 +325,12 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
                     </PopoverContent>
                   </Popover>
                 </div>
-              </>
-            )}
+              )}
+            </div>
 
-            <Button variant="outline" onClick={handleExportCSV} className="gap-2">
+            <Button variant="outline" onClick={handleExportCSV} size="sm" className="gap-2">
               <Download className="w-4 h-4" />
-              Exportar CSV
+              Exportar
             </Button>
           </div>
         </CardContent>
@@ -293,56 +338,56 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/20">
+              <div className="p-2.5 rounded-xl bg-emerald-500/15">
                 <TrendingUp className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Receitas</p>
-                <p className="text-xl font-bold text-emerald-600">{formatCurrency(periodTotals.income)}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Receitas</p>
+                <p className="text-xl font-bold text-foreground">{formatCurrency(periodTotals.income)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-l-4 border-l-rose-500">
+          <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-rose-500/20">
+              <div className="p-2.5 rounded-xl bg-rose-500/15">
                 <TrendingDown className="w-5 h-5 text-rose-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Despesas</p>
-                <p className="text-xl font-bold text-rose-600">{formatCurrency(periodTotals.expenses)}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Despesas</p>
+                <p className="text-xl font-bold text-foreground">{formatCurrency(periodTotals.expenses)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-l-4 border-l-sky-500">
+          <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-sky-500/20">
+              <div className="p-2.5 rounded-xl bg-sky-500/15">
                 <PiggyBank className="w-5 h-5 text-sky-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Poupado</p>
-                <p className="text-xl font-bold text-sky-600">{formatCurrency(periodTotals.allocatedSaved)}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Poupado</p>
+                <p className="text-xl font-bold text-foreground">{formatCurrency(periodTotals.allocatedSaved)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
+        <Card className={cn("border-l-4", periodTotals.balance >= 0 ? "border-l-emerald-500" : "border-l-rose-500")}>
+          <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-3">
-              <div className={cn("p-2 rounded-lg", periodTotals.balance >= 0 ? "bg-emerald-500/20" : "bg-rose-500/20")}>
+              <div className={cn("p-2.5 rounded-xl", periodTotals.balance >= 0 ? "bg-emerald-500/15" : "bg-rose-500/15")}>
                 <ArrowRightLeft className={cn("w-5 h-5", periodTotals.balance >= 0 ? "text-emerald-600" : "text-rose-600")} />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Saldo</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Saldo</p>
                 <p className={cn("text-xl font-bold", periodTotals.balance >= 0 ? "text-emerald-600" : "text-rose-600")}>
                   {formatCurrency(periodTotals.balance)}
                 </p>
@@ -356,26 +401,48 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
       <div className="grid md:grid-cols-2 gap-6">
         {/* Time Series Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Evolução no Período</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">Evolução no Período</CardTitle>
           </CardHeader>
           <CardContent>
             {timeSeriesData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={timeSeriesData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} className="fill-muted-foreground" />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} className="fill-muted-foreground" />
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={timeSeriesData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    tickLine={false}
                   />
-                  <Bar dataKey="Receita" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Despesa" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                  <YAxis 
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                    axisLine={false}
+                    tickLine={false}
+                    width={50}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: 15 }}
+                    formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
+                  />
+                  <Bar 
+                    dataKey="Receita" 
+                    fill="#22c55e" 
+                    radius={[4, 4, 0, 0]} 
+                    maxBarSize={40}
+                  />
+                  <Bar 
+                    dataKey="Despesa" 
+                    fill="#ef4444" 
+                    radius={[4, 4, 0, 0]} 
+                    maxBarSize={40}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                 Sem dados para o período selecionado
               </div>
             )}
@@ -384,33 +451,47 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
 
         {/* Expenses by Category Pie Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Despesas por Categoria</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">Despesas por Categoria</CardTitle>
           </CardHeader>
           <CardContent>
             {expensesByCategory.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
                     data={expensesByCategory}
                     cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
+                    cy="45%"
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={3}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
                   >
                     {expensesByCategory.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend 
+                    layout="vertical"
+                    align="right"
+                    verticalAlign="middle"
+                    wrapperStyle={{ paddingLeft: 20 }}
+                    formatter={(value, entry: any) => (
+                      <span className="text-xs text-foreground">{value}</span>
+                    )}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                 Sem despesas no período
               </div>
             )}
@@ -422,24 +503,40 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
       <div className="grid md:grid-cols-2 gap-6">
         {/* Top Expenses */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Maiores Despesas</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">Maiores Despesas</CardTitle>
           </CardHeader>
           <CardContent>
             {expensesByCategory.length > 0 ? (
               <div className="space-y-3">
-                {expensesByCategory.slice(0, 5).map((item, index) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      />
-                      <span className="text-sm truncate max-w-[150px]">{item.name}</span>
+                {expensesByCategory.slice(0, 5).map((item, index) => {
+                  const percentage = periodTotals.expenses > 0 
+                    ? (item.value / periodTotals.expenses) * 100 
+                    : 0;
+                  return (
+                    <div key={item.name} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                          />
+                          <span className="truncate max-w-[140px]">{item.name}</span>
+                        </div>
+                        <span className="font-medium">{formatCurrency(item.value)}</span>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ 
+                            width: `${percentage}%`,
+                            backgroundColor: PIE_COLORS[index % PIE_COLORS.length]
+                          }}
+                        />
+                      </div>
                     </div>
-                    <span className="font-medium text-sm">{formatCurrency(item.value)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Nenhuma despesa no período</p>
@@ -449,24 +546,34 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
 
         {/* Income Sources */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Fontes de Renda</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">Fontes de Renda</CardTitle>
           </CardHeader>
           <CardContent>
             {incomeBySource.length > 0 ? (
               <div className="space-y-3">
-                {incomeBySource.slice(0, 5).map((item, index) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: COLORS[(index + 2) % COLORS.length] }}
-                      />
-                      <span className="text-sm truncate max-w-[150px]">{item.name}</span>
+                {incomeBySource.slice(0, 5).map((item, index) => {
+                  const percentage = periodTotals.income > 0 
+                    ? (item.value / periodTotals.income) * 100 
+                    : 0;
+                  return (
+                    <div key={item.name} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full flex-shrink-0 bg-emerald-500" />
+                          <span className="truncate max-w-[140px]">{item.name}</span>
+                        </div>
+                        <span className="font-medium text-emerald-600">{formatCurrency(item.value)}</span>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </div>
-                    <span className="font-medium text-sm text-emerald-600">{formatCurrency(item.value)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Nenhuma receita no período</p>
@@ -477,20 +584,25 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
 
       {/* Transaction List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Transações ({filteredEntries.length})
-          </CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">
+              Transações
+            </CardTitle>
+            <span className="text-sm text-muted-foreground">
+              {filteredEntries.length} registro{filteredEntries.length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </CardHeader>
         <CardContent>
           {filteredEntries.length > 0 ? (
-            <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
+            <div className="divide-y divide-border max-h-[350px] overflow-y-auto -mx-1 px-1">
               {filteredEntries.map((entry) => (
-                <div key={entry.id} className="py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div key={entry.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center",
-                      entry.type === 'income' ? 'bg-emerald-500/20' : 'bg-rose-500/20'
+                      "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0",
+                      entry.type === 'income' ? 'bg-emerald-500/15' : 'bg-rose-500/15'
                     )}>
                       {entry.type === 'income' ? (
                         <TrendingUp className="w-4 h-4 text-emerald-600" />
@@ -498,15 +610,15 @@ export function FinancialReport({ entries, piggyBanks, fixedExpenses, allocation
                         <TrendingDown className="w-4 h-4 text-rose-600" />
                       )}
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">{entry.description}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{entry.description}</p>
                       <p className="text-xs text-muted-foreground">
                         {entry.category} • {format(new Date(entry.date), 'dd/MM/yyyy')}
                       </p>
                     </div>
                   </div>
                   <span className={cn(
-                    "font-semibold",
+                    "font-semibold text-sm flex-shrink-0",
                     entry.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
                   )}>
                     {entry.type === 'income' ? '+' : '-'}{formatCurrency(entry.amount)}
