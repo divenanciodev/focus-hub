@@ -11,10 +11,11 @@ import {
   SkipForward,
   RotateCcw,
   Trophy,
-  Lightbulb
+  Lightbulb,
+  AlertCircle
 } from 'lucide-react';
-import { useLanguageAllWords } from '@/hooks/useLanguagesModule';
-import type { GrammarStructure, VocabularyWord } from '@/types/languages';
+import { useWordsByGrammaticalClass } from '@/hooks/useLanguagesModule';
+import type { GrammarStructure, ExpectedInput } from '@/types/languages';
 import confetti from 'canvas-confetti';
 
 interface StructuresPracticeProps {
@@ -36,8 +37,24 @@ interface PracticeState {
 }
 
 export function StructuresPractice({ structures, languageId, onBack }: StructuresPracticeProps) {
-  const { words, loading: wordsLoading } = useLanguageAllWords(languageId);
+  const { wordsByClass, loading: wordsLoading } = useWordsByGrammaticalClass(languageId);
   const [state, setState] = useState<PracticeState | null>(null);
+
+  // Map expected input types to grammatical classes
+  const inputTypeToClass: Record<string, string> = {
+    'verb': 'verb',
+    'noun': 'noun',
+    'adjective': 'adjective',
+    'adverb': 'adverb',
+    'verb-ing': 'verb', // verb forms come from verb vocabulary
+    'past participle': 'verb', // past participle comes from verbs
+    'pronoun': 'pronoun',
+    'preposition': 'preposition',
+    'conjunction': 'conjunction',
+    'determiner': 'determiner',
+    'interjection': 'interjection',
+    'article': 'article',
+  };
 
   // Initialize practice
   useEffect(() => {
@@ -57,17 +74,62 @@ export function StructuresPractice({ structures, languageId, onBack }: Structure
     }
   }, [structures, state]);
 
-  // Get valid words for current structure
+  // Get valid words for current structure based on expected input
   const getValidWords = useCallback((structure: GrammarStructure): string[] => {
+    // For sentences or any, accept anything
     if (structure.expectedInput === 'sentence' || structure.expectedInput === 'any') {
-      return words.map(w => w.word.toLowerCase());
+      return [];
     }
     
-    // Filter by expected input type
-    // For now, accept all words - in a full implementation, 
-    // words would have a grammatical class assigned
-    return words.map(w => w.word.toLowerCase());
-  }, [words]);
+    // For 'phrase' type, check if there are allowed phrases stored in allowedClasses
+    if (structure.expectedInput === 'phrase') {
+      // allowedClasses stores the accepted phrases for 'phrase' type
+      return structure.allowedClasses.map(p => p.toLowerCase());
+    }
+    
+    // Get all valid words from all expected input types (allowedClasses stores the types)
+    const validWords: string[] = [];
+    const expectedTypes = structure.allowedClasses.length > 0 
+      ? structure.allowedClasses 
+      : [structure.expectedInput];
+    
+    for (const inputType of expectedTypes) {
+      // Skip 'phrase' type here as it's handled separately
+      if (inputType === 'phrase') continue;
+      
+      const gramClass = inputTypeToClass[inputType];
+      if (gramClass && wordsByClass[gramClass]) {
+        validWords.push(...wordsByClass[gramClass]);
+      }
+    }
+    
+    return validWords;
+  }, [wordsByClass, inputTypeToClass]);
+
+  // Check if vocabulary exists for expected input types
+  const hasVocabularyForStructure = useCallback((structure: GrammarStructure): boolean => {
+    if (structure.expectedInput === 'sentence' || structure.expectedInput === 'any') {
+      return true;
+    }
+    
+    if (structure.expectedInput === 'phrase') {
+      return structure.allowedClasses.length > 0;
+    }
+    
+    const expectedTypes = structure.allowedClasses.length > 0 
+      ? structure.allowedClasses 
+      : [structure.expectedInput];
+    
+    for (const inputType of expectedTypes) {
+      if (inputType === 'phrase') continue;
+      const gramClass = inputTypeToClass[inputType];
+      if (gramClass && wordsByClass[gramClass] && wordsByClass[gramClass].length > 0) {
+        return true;
+      }
+    }
+    
+    return false;
+  }, [wordsByClass, inputTypeToClass]);
 
   const handleSubmit = useCallback(() => {
     if (!state) return;
@@ -76,14 +138,29 @@ export function StructuresPractice({ structures, languageId, onBack }: Structure
     const validWords = getValidWords(currentStructure);
     const userWord = state.userInput.toLowerCase().trim();
     
-    // Check if the input is valid (either in vocabulary or matches examples)
-    const isInVocabulary = validWords.includes(userWord);
-    const matchesExample = currentStructure.examples.some(
-      ex => ex.toLowerCase().includes(userWord)
-    );
+    if (userWord.length === 0) return;
     
-    // For now, accept any non-empty input
-    const isCorrect = userWord.length > 0 && (isInVocabulary || matchesExample || validWords.length === 0);
+    let isCorrect = false;
+    
+    // For 'sentence' or 'any', accept any non-empty input
+    if (currentStructure.expectedInput === 'sentence' || currentStructure.expectedInput === 'any') {
+      isCorrect = true;
+    } 
+    // For 'phrase', check against allowed phrases
+    else if (currentStructure.expectedInput === 'phrase') {
+      isCorrect = validWords.includes(userWord);
+    }
+    // For grammatical classes, check against vocabulary
+    else if (validWords.length > 0) {
+      isCorrect = validWords.includes(userWord);
+    }
+    // If no vocabulary exists for this type, also check examples as fallback
+    else {
+      const matchesExample = currentStructure.examples.some(
+        ex => ex.toLowerCase().includes(userWord)
+      );
+      isCorrect = matchesExample;
+    }
     
     if (isCorrect) {
       confetti({
@@ -210,6 +287,8 @@ export function StructuresPractice({ structures, languageId, onBack }: Structure
 
   const currentStructure = state.structures[state.currentIndex];
   const progress = ((state.currentIndex) / state.structures.length) * 100;
+  const hasVocab = hasVocabularyForStructure(currentStructure);
+  const validWordsForHint = getValidWords(currentStructure);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -265,10 +344,23 @@ export function StructuresPractice({ structures, languageId, onBack }: Structure
           </div>
 
           {/* Expected input type */}
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <Badge variant="outline">
               Esperado: {currentStructure.expectedInput}
             </Badge>
+            
+            {/* Warning if no vocabulary exists for this input type */}
+            {!hasVocab && currentStructure.expectedInput !== 'sentence' && currentStructure.expectedInput !== 'any' && (
+              <div className="flex items-center justify-center gap-2 text-xs text-amber-600 bg-amber-500/10 p-2 rounded-lg">
+                <AlertCircle className="w-4 h-4" />
+                <span>
+                  {currentStructure.expectedInput === 'phrase' 
+                    ? 'Nenhuma frase cadastrada para esta estrutura'
+                    : `Adicione palavras do tipo "${currentStructure.expectedInput}" no Vocabulário`
+                  }
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -317,9 +409,22 @@ export function StructuresPractice({ structures, languageId, onBack }: Structure
                     <X className="w-6 h-6" />
                   )}
                   <span className="font-medium">
-                    {state.isCorrect ? 'Correto!' : 'Tente novamente'}
+                    {state.isCorrect ? 'Correto!' : 'Incorreto'}
                   </span>
                 </div>
+                
+                {/* Show valid words hint when incorrect */}
+                {!state.isCorrect && validWordsForHint.length > 0 && (
+                  <div className="text-sm mt-2">
+                    <span className="text-muted-foreground">
+                      {currentStructure.expectedInput === 'phrase' ? 'Frases aceitas: ' : 'Palavras válidas: '}
+                    </span>
+                    <span className="font-mono">
+                      {validWordsForHint.slice(0, 5).join(', ')}
+                      {validWordsForHint.length > 5 && '...'}
+                    </span>
+                  </div>
+                )}
               </div>
               
               {/* Examples */}
