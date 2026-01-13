@@ -21,6 +21,20 @@ import type { Language } from '@/types/languages';
 import { VocabularyModule } from '@/components/languages/VocabularyModule';
 import { StructuresModule } from '@/components/languages/StructuresModule';
 import { ProgressModule } from '@/components/languages/ProgressModule';
+import usFlagIcon from '@/assets/flags/us-flag.png';
+
+// Helper to render language icon - supports both emoji and image paths
+const LanguageIcon = ({ icon, className = "w-8 h-8" }: { icon: string; className?: string }) => {
+  const isImagePath = icon.startsWith('/') || icon.includes('flag');
+  
+  if (isImagePath) {
+    // Map the path to the imported asset
+    const imageSrc = icon.includes('us-flag') ? usFlagIcon : icon;
+    return <img src={imageSrc} alt="flag" className={`${className} object-cover rounded-sm`} />;
+  }
+  
+  return <span className="text-3xl">{icon}</span>;
+};
 
 export default function Idiomas() {
   const { languages, loading } = useLanguages();
@@ -59,7 +73,7 @@ export default function Idiomas() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl">{language.icon}</span>
+                      <LanguageIcon icon={language.icon} />
                       <CardTitle className="text-lg">{language.name}</CardTitle>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -95,7 +109,7 @@ export default function Idiomas() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{selectedLanguage.icon}</span>
+            <LanguageIcon icon={selectedLanguage.icon} />
             <div>
               <h1 className="text-2xl font-bold">{selectedLanguage.name}</h1>
               <p className="text-muted-foreground text-sm">
