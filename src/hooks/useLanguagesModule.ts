@@ -575,6 +575,79 @@ export function useAllGrammarStructures(languageId: string | null) {
   return { structures, loading, refetch: fetchStructures };
 }
 
+// Hook for fetching words by grammatical class (for practice validation)
+export function useWordsByGrammaticalClass(languageId: string | null) {
+  const [wordsByClass, setWordsByClass] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(true);
+
+  const fetchWordsByClass = useCallback(async () => {
+    if (!languageId) {
+      setWordsByClass({});
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // First get all vocabulary sets for this language with grammatical_class
+      const { data: sets, error: setsError } = await supabase
+        .from('vocabulary_sets')
+        .select('id, grammatical_class')
+        .eq('language_id', languageId)
+        .eq('set_type', 'grammatical_class')
+        .not('grammatical_class', 'is', null);
+      
+      if (setsError) throw setsError;
+      
+      if (!sets || sets.length === 0) {
+        setWordsByClass({});
+        setLoading(false);
+        return;
+      }
+      
+      // Get all words from these sets
+      const setIds = sets.map(s => s.id);
+      const { data: words, error: wordsError } = await supabase
+        .from('vocabulary_words')
+        .select('word, set_id')
+        .in('set_id', setIds);
+      
+      if (wordsError) throw wordsError;
+      
+      // Create a map of set_id to grammatical_class
+      const setToClass: Record<string, string> = {};
+      sets.forEach(s => {
+        if (s.grammatical_class) {
+          setToClass[s.id] = s.grammatical_class;
+        }
+      });
+      
+      // Group words by grammatical class
+      const grouped: Record<string, string[]> = {};
+      words?.forEach(w => {
+        const gramClass = setToClass[w.set_id];
+        if (gramClass) {
+          if (!grouped[gramClass]) {
+            grouped[gramClass] = [];
+          }
+          grouped[gramClass].push(w.word.toLowerCase());
+        }
+      });
+      
+      setWordsByClass(grouped);
+    } catch (error) {
+      console.error('Error fetching words by class:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [languageId]);
+
+  useEffect(() => {
+    fetchWordsByClass();
+  }, [fetchWordsByClass]);
+
+  return { wordsByClass, loading, refetch: fetchWordsByClass };
+}
+
 // Hook for fetching all words for a language (for practice validation)
 export function useLanguageAllWords(languageId: string | null) {
   const [words, setWords] = useState<VocabularyWord[]>([]);
