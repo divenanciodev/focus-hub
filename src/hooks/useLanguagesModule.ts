@@ -6,6 +6,7 @@ import type {
   VocabularySet, 
   VocabularyWord, 
   GrammarStructure,
+  GrammarStructureSet,
   PracticeSession,
   GrammaticalClass 
 } from '@/types/languages';
@@ -290,30 +291,128 @@ export function useVocabularyWords(setId: string | null) {
   return { words, loading, addWord, updateWord, deleteWord, refetch: fetchWords };
 }
 
-// Hook for managing grammar structures
-export function useGrammarStructures(languageId: string | null) {
-  const [structures, setStructures] = useState<GrammarStructure[]>([]);
+// Hook for managing grammar structure sets
+export function useGrammarStructureSets(languageId: string | null) {
+  const [sets, setSets] = useState<GrammarStructureSet[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchStructures = useCallback(async () => {
+  const fetchSets = useCallback(async () => {
     if (!languageId) {
-      setStructures([]);
+      setSets([]);
       setLoading(false);
       return;
     }
 
     try {
       const { data, error } = await supabase
-        .from('grammar_structures')
+        .from('grammar_structure_sets')
         .select('*')
         .eq('language_id', languageId)
         .order('sort_order');
       
       if (error) throw error;
       
+      setSets(data?.map(set => ({
+        id: set.id,
+        languageId: set.language_id,
+        name: set.name,
+        description: set.description || undefined,
+        color: set.color || '#8b5cf6',
+        icon: set.icon || '📝',
+        sortOrder: set.sort_order || 0,
+        createdAt: new Date(set.created_at || Date.now()),
+        updatedAt: new Date(set.updated_at || Date.now()),
+      })) || []);
+    } catch (error) {
+      console.error('Error fetching structure sets:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [languageId]);
+
+  useEffect(() => {
+    fetchSets();
+  }, [fetchSets]);
+
+  const addSet = async (data: Partial<GrammarStructureSet>) => {
+    if (!languageId) return;
+
+    try {
+      const { error } = await supabase.from('grammar_structure_sets').insert({
+        language_id: languageId,
+        name: data.name,
+        description: data.description,
+        color: data.color,
+        icon: data.icon,
+      });
+      
+      if (error) throw error;
+      
+      toast({ title: 'Sucesso', description: 'Conjunto criado' });
+      fetchSets();
+    } catch (error) {
+      console.error('Error adding structure set:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível criar o conjunto',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const deleteSet = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('grammar_structure_sets')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast({ title: 'Sucesso', description: 'Conjunto excluído' });
+      fetchSets();
+    } catch (error) {
+      console.error('Error deleting structure set:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o conjunto',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return { sets, loading, addSet, deleteSet, refetch: fetchSets };
+}
+
+// Hook for managing grammar structures within a set
+export function useGrammarStructures(setId: string | null, languageId?: string | null) {
+  const [structures, setStructures] = useState<GrammarStructure[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStructures = useCallback(async () => {
+    if (!setId && !languageId) {
+      setStructures([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      let query = supabase.from('grammar_structures').select('*');
+      
+      if (setId) {
+        query = query.eq('set_id', setId);
+      } else if (languageId) {
+        query = query.eq('language_id', languageId);
+      }
+      
+      const { data, error } = await query.order('sort_order');
+      
+      if (error) throw error;
+      
       setStructures(data?.map(s => ({
         id: s.id,
         languageId: s.language_id,
+        setId: s.set_id || undefined,
         fixedText: s.fixed_text,
         expectedInput: s.expected_input as any,
         allowedClasses: s.allowed_classes || [],
@@ -332,18 +431,20 @@ export function useGrammarStructures(languageId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [languageId]);
+  }, [setId, languageId]);
 
   useEffect(() => {
     fetchStructures();
   }, [fetchStructures]);
 
-  const addStructure = async (data: Partial<GrammarStructure>) => {
-    if (!languageId) return;
+  const addStructure = async (data: Partial<GrammarStructure>, targetLanguageId?: string) => {
+    const langId = targetLanguageId || languageId;
+    if (!langId) return;
 
     try {
       const { error } = await supabase.from('grammar_structures').insert({
-        language_id: languageId,
+        language_id: langId,
+        set_id: setId || undefined,
         fixed_text: data.fixedText,
         expected_input: data.expectedInput,
         allowed_classes: data.allowedClasses,
@@ -409,6 +510,58 @@ export function useGrammarStructures(languageId: string | null) {
   };
 
   return { structures, loading, addStructure, updateStructure, deleteStructure, refetch: fetchStructures };
+}
+
+// Hook to get all structures for a language (for practice)
+export function useAllGrammarStructures(languageId: string | null) {
+  const [structures, setStructures] = useState<GrammarStructure[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStructures = useCallback(async () => {
+    if (!languageId) {
+      setStructures([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('grammar_structures')
+        .select('*')
+        .eq('language_id', languageId)
+        .order('sort_order');
+      
+      if (error) throw error;
+      
+      setStructures(data?.map(s => ({
+        id: s.id,
+        languageId: s.language_id,
+        setId: s.set_id || undefined,
+        fixedText: s.fixed_text,
+        expectedInput: s.expected_input as any,
+        allowedClasses: s.allowed_classes || [],
+        examples: s.examples || [],
+        grammarTip: s.grammar_tip || undefined,
+        translation: s.translation || undefined,
+        difficulty: s.difficulty as 'easy' | 'medium' | 'hard',
+        category: s.category || undefined,
+        masteryLevel: s.mastery_level || 0,
+        sortOrder: s.sort_order || 0,
+        createdAt: new Date(s.created_at || Date.now()),
+        updatedAt: new Date(s.updated_at || Date.now()),
+      })) || []);
+    } catch (error) {
+      console.error('Error fetching all structures:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [languageId]);
+
+  useEffect(() => {
+    fetchStructures();
+  }, [fetchStructures]);
+
+  return { structures, loading, refetch: fetchStructures };
 }
 
 // Hook for fetching all words for a language (for practice validation)
