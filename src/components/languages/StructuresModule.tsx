@@ -281,33 +281,34 @@ function StructureSetDetail({
                 <DialogTitle>Adicionar Estrutura</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Texto Fixo (antes do +) *</Label>
-                  <Input 
-                    value={fixedText}
-                    onChange={(e) => setFixedText(e.target.value)}
-                    placeholder="Ex: I wanna, Do you want me to, I'm good at"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    O texto que vem antes do campo que o usuário preenche
-                  </p>
+                <div className="flex gap-3">
+                  <div className="flex-1 space-y-2">
+                    <Label>Texto Fixo *</Label>
+                    <Input 
+                      value={fixedText}
+                      onChange={(e) => setFixedText(e.target.value)}
+                      placeholder="Ex: I wanna, Do you want me to"
+                    />
+                  </div>
+                  <div className="w-36 space-y-2">
+                    <Label>Entrada Esperada</Label>
+                    <Select value={expectedInput} onValueChange={(v: ExpectedInput) => setExpectedInput(v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EXPECTED_INPUTS.map(input => (
+                          <SelectItem key={input} value={input}>
+                            {input.charAt(0).toUpperCase() + input.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label>Tipo de Entrada Esperada</Label>
-                  <Select value={expectedInput} onValueChange={(v: ExpectedInput) => setExpectedInput(v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EXPECTED_INPUTS.map(input => (
-                        <SelectItem key={input} value={input}>
-                          {input.charAt(0).toUpperCase() + input.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  O texto fixo vem antes do campo que o usuário preenche
+                </p>
 
                 <div className="space-y-2">
                   <Label>Tradução</Label>
