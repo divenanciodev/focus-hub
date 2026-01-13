@@ -270,12 +270,12 @@ function StructureSetDetail({
             </Button>
           )}
           <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Estrutura
-              </Button>
-            </DialogTrigger>
+              <DialogTrigger asChild>
+                <Button className="bg-foreground text-background hover:bg-foreground/90">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Estrutura
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Adicionar Estrutura</DialogTitle>
