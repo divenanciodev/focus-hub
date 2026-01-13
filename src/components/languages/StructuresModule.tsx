@@ -306,7 +306,7 @@ function StructureSetDetail({
                         value={expectedInputs[0] || '__empty__'} 
                         onValueChange={(v) => updateExpectedInput(0, v === '__empty__' ? '' : v as ExpectedInput)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-left">
                           <SelectValue placeholder="Tipo 1" />
                         </SelectTrigger>
                         <SelectContent>
@@ -325,7 +325,7 @@ function StructureSetDetail({
                         value={expectedInputs[1] || '__empty__'} 
                         onValueChange={(v) => updateExpectedInput(1, v === '__empty__' ? '' : v as ExpectedInput)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-left">
                           <SelectValue placeholder="Tipo 2" />
                         </SelectTrigger>
                         <SelectContent>
@@ -344,7 +344,7 @@ function StructureSetDetail({
                         value={expectedInputs[2] || '__empty__'} 
                         onValueChange={(v) => updateExpectedInput(2, v === '__empty__' ? '' : v as ExpectedInput)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-left">
                           <SelectValue placeholder="Tipo 3" />
                         </SelectTrigger>
                         <SelectContent>
@@ -363,7 +363,7 @@ function StructureSetDetail({
                         value={expectedInputs[3] || '__empty__'} 
                         onValueChange={(v) => updateExpectedInput(3, v === '__empty__' ? '' : v as ExpectedInput)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="text-left">
                           <SelectValue placeholder="Tipo 4" />
                         </SelectTrigger>
                         <SelectContent>
