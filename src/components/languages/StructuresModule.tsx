@@ -17,7 +17,8 @@ import {
   Dumbbell,
   ChevronRight,
   Lightbulb,
-  ArrowLeft
+  ArrowLeft,
+  Pencil
 } from 'lucide-react';
 import { useGrammarStructureSets, useGrammarStructures, useAllGrammarStructures } from '@/hooks/useLanguagesModule';
 import type { GrammarStructureSet, GrammarStructure, ExpectedInput } from '@/types/languages';
@@ -219,16 +220,26 @@ function StructureSetDetail({
   onPractice: () => void;
   onDeleteSet: () => void;
 }) {
-  const { structures, loading, addStructure, deleteStructure } = useGrammarStructures(set.id, languageId);
+  const { structures, loading, addStructure, updateStructure, deleteStructure } = useGrammarStructures(set.id, languageId);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingStructure, setEditingStructure] = useState<GrammarStructure | null>(null);
   
-  // Form state
+  // Form state for adding
   const [fixedText, setFixedText] = useState('');
   const [expectedInputs, setExpectedInputs] = useState<(ExpectedInput | '')[]>(['verb', '', '', '']);
   const [phraseInputs, setPhraseInputs] = useState<string[][]>([[], [], [], []]);
   const [translation, setTranslation] = useState('');
   const [grammarTip, setGrammarTip] = useState('');
   const [examples, setExamples] = useState('');
+
+  // Form state for editing
+  const [editFixedText, setEditFixedText] = useState('');
+  const [editExpectedInputs, setEditExpectedInputs] = useState<(ExpectedInput | '')[]>(['verb', '', '', '']);
+  const [editPhraseInputs, setEditPhraseInputs] = useState<string[][]>([[], [], [], []]);
+  const [editTranslation, setEditTranslation] = useState('');
+  const [editGrammarTip, setEditGrammarTip] = useState('');
+  const [editExamples, setEditExamples] = useState('');
 
   const updateExpectedInput = (index: number, value: ExpectedInput | '') => {
     const newInputs = [...expectedInputs];
@@ -267,6 +278,63 @@ function StructureSetDetail({
     setPhraseInputs(newPhraseInputs);
   };
 
+  // Edit form handlers
+  const updateEditExpectedInput = (index: number, value: ExpectedInput | '') => {
+    const newInputs = [...editExpectedInputs];
+    newInputs[index] = value;
+    setEditExpectedInputs(newInputs);
+    
+    if (value !== 'phrase') {
+      const newPhraseInputs = [...editPhraseInputs];
+      newPhraseInputs[index] = [];
+      setEditPhraseInputs(newPhraseInputs);
+    } else if (editPhraseInputs[index].length === 0) {
+      const newPhraseInputs = [...editPhraseInputs];
+      newPhraseInputs[index] = [''];
+      setEditPhraseInputs(newPhraseInputs);
+    }
+  };
+
+  const updateEditPhraseInput = (typeIndex: number, phraseIndex: number, value: string) => {
+    const newPhraseInputs = [...editPhraseInputs];
+    newPhraseInputs[typeIndex] = [...newPhraseInputs[typeIndex]];
+    newPhraseInputs[typeIndex][phraseIndex] = value;
+    setEditPhraseInputs(newPhraseInputs);
+  };
+
+  const addEditPhraseInput = (typeIndex: number) => {
+    const newPhraseInputs = [...editPhraseInputs];
+    newPhraseInputs[typeIndex] = [...newPhraseInputs[typeIndex], ''];
+    setEditPhraseInputs(newPhraseInputs);
+  };
+
+  const removeEditPhraseInput = (typeIndex: number, phraseIndex: number) => {
+    const newPhraseInputs = [...editPhraseInputs];
+    newPhraseInputs[typeIndex] = newPhraseInputs[typeIndex].filter((_, i) => i !== phraseIndex);
+    setEditPhraseInputs(newPhraseInputs);
+  };
+
+  const openEditModal = (structure: GrammarStructure) => {
+    setEditingStructure(structure);
+    setEditFixedText(structure.fixedText);
+    
+    // Populate expected inputs from allowedClasses
+    let inputs: (ExpectedInput | '')[] = ['', '', '', ''];
+    if (structure.allowedClasses.length > 0) {
+      structure.allowedClasses.forEach((cls, i) => {
+        if (i < 4) inputs[i] = cls as ExpectedInput;
+      });
+    } else {
+      inputs = [structure.expectedInput as ExpectedInput, '', '', ''];
+    }
+    setEditExpectedInputs(inputs);
+    setEditPhraseInputs([[], [], [], []]);
+    setEditTranslation(structure.translation || '');
+    setEditGrammarTip(structure.grammarTip || '');
+    setEditExamples(structure.examples.join('\n'));
+    setEditModalOpen(true);
+  };
+
   const handleAddStructure = async () => {
     if (!fixedText.trim()) return;
     
@@ -290,6 +358,25 @@ function StructureSetDetail({
     setGrammarTip('');
     setExamples('');
     setAddModalOpen(false);
+  };
+
+  const handleEditStructure = async () => {
+    if (!editingStructure || !editFixedText.trim()) return;
+    
+    const validInputs = editExpectedInputs.filter(input => input !== '') as ExpectedInput[];
+    if (validInputs.length === 0) return;
+    
+    await updateStructure(editingStructure.id, {
+      fixedText: editFixedText.trim(),
+      expectedInput: validInputs[0],
+      translation: editTranslation || undefined,
+      grammarTip: editGrammarTip || undefined,
+      examples: editExamples.split('\n').filter(e => e.trim()),
+      allowedClasses: validInputs,
+    });
+    
+    setEditModalOpen(false);
+    setEditingStructure(null);
   };
 
   return (
@@ -497,6 +584,188 @@ function StructureSetDetail({
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Structure Modal */}
+          <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Editar Estrutura</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Estrutura da Frase *</Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex-1 min-w-[180px]">
+                      <Input 
+                        value={editFixedText}
+                        onChange={(e) => setEditFixedText(e.target.value)}
+                        placeholder="Texto fixo (ex: I wanna)"
+                      />
+                    </div>
+                    <span className="text-lg font-bold text-muted-foreground">+</span>
+                    <div className="w-28">
+                      <Select 
+                        value={editExpectedInputs[0] || '__empty__'} 
+                        onValueChange={(v) => updateEditExpectedInput(0, v === '__empty__' ? '' : v as ExpectedInput)}
+                      >
+                        <SelectTrigger className="text-left">
+                          <SelectValue placeholder="Tipo 1" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__empty__">-</SelectItem>
+                          {EXPECTED_INPUTS.map(input => (
+                            <SelectItem key={input} value={input}>
+                              {input === 'phrase' ? 'Frase' : input.charAt(0).toUpperCase() + input.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <span className="text-lg font-bold text-muted-foreground">+</span>
+                    <div className="w-28">
+                      <Select 
+                        value={editExpectedInputs[1] || '__empty__'} 
+                        onValueChange={(v) => updateEditExpectedInput(1, v === '__empty__' ? '' : v as ExpectedInput)}
+                      >
+                        <SelectTrigger className="text-left">
+                          <SelectValue placeholder="Tipo 2" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__empty__">-</SelectItem>
+                          {EXPECTED_INPUTS.map(input => (
+                            <SelectItem key={input} value={input}>
+                              {input === 'phrase' ? 'Frase' : input.charAt(0).toUpperCase() + input.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <span className="text-lg font-bold text-muted-foreground">+</span>
+                    <div className="w-28">
+                      <Select 
+                        value={editExpectedInputs[2] || '__empty__'} 
+                        onValueChange={(v) => updateEditExpectedInput(2, v === '__empty__' ? '' : v as ExpectedInput)}
+                      >
+                        <SelectTrigger className="text-left">
+                          <SelectValue placeholder="Tipo 3" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__empty__">-</SelectItem>
+                          {EXPECTED_INPUTS.map(input => (
+                            <SelectItem key={input} value={input}>
+                              {input === 'phrase' ? 'Frase' : input.charAt(0).toUpperCase() + input.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <span className="text-lg font-bold text-muted-foreground">+</span>
+                    <div className="w-28">
+                      <Select 
+                        value={editExpectedInputs[3] || '__empty__'} 
+                        onValueChange={(v) => updateEditExpectedInput(3, v === '__empty__' ? '' : v as ExpectedInput)}
+                      >
+                        <SelectTrigger className="text-left">
+                          <SelectValue placeholder="Tipo 4" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__empty__">-</SelectItem>
+                          {EXPECTED_INPUTS.map(input => (
+                            <SelectItem key={input} value={input}>
+                              {input === 'phrase' ? 'Frase' : input.charAt(0).toUpperCase() + input.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Phrase input fields for edit */}
+                  {editExpectedInputs.some((input) => input === 'phrase') && (
+                    <div className="space-y-3 mt-3 p-3 bg-muted/50 rounded-lg">
+                      <Label className="text-sm text-muted-foreground">Frases esperadas:</Label>
+                      {editExpectedInputs.map((input, typeIndex) => 
+                        input === 'phrase' && (
+                          <div key={typeIndex} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium">Tipo {typeIndex + 1}:</span>
+                              <Button 
+                                type="button"
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => addEditPhraseInput(typeIndex)}
+                                className="h-7 text-xs"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Adicionar frase
+                              </Button>
+                            </div>
+                            {editPhraseInputs[typeIndex].map((phrase, phraseIndex) => (
+                              <div key={phraseIndex} className="flex items-center gap-2">
+                                <Input 
+                                  value={phrase}
+                                  onChange={(e) => updateEditPhraseInput(typeIndex, phraseIndex, e.target.value)}
+                                  placeholder={`Frase ${phraseIndex + 1}...`}
+                                  className="flex-1"
+                                />
+                                {editPhraseInputs[typeIndex].length > 1 && (
+                                  <Button 
+                                    type="button"
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => removeEditPhraseInput(typeIndex, phraseIndex)}
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Monte a estrutura: texto fixo + tipos de entrada. Use "-" para campos não utilizados.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tradução</Label>
+                  <Input 
+                    value={editTranslation}
+                    onChange={(e) => setEditTranslation(e.target.value)}
+                    placeholder="Ex: Eu quero..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Dica Gramatical</Label>
+                  <Textarea 
+                    value={editGrammarTip}
+                    onChange={(e) => setEditGrammarTip(e.target.value)}
+                    placeholder="Ex: Usado para expressar desejo ou intenção"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Exemplos (um por linha)</Label>
+                  <Textarea 
+                    value={editExamples}
+                    onChange={(e) => setEditExamples(e.target.value)}
+                    placeholder="I wanna learn English.&#10;I wanna travel to Japan."
+                    rows={3}
+                  />
+                </div>
+
+                <Button onClick={handleEditStructure} className="w-full bg-foreground text-background hover:bg-foreground/90">
+                  Salvar Alterações
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -525,6 +794,11 @@ function StructureSetDetail({
                     <Badge variant="secondary">
                       {structure.expectedInput}
                     </Badge>
+                    {structure.allowedClasses.length > 1 && (
+                      <span className="text-xs text-muted-foreground">
+                        +{structure.allowedClasses.length - 1}
+                      </span>
+                    )}
                   </div>
                   {structure.translation && (
                     <p className="text-sm text-muted-foreground">
@@ -543,13 +817,22 @@ function StructureSetDetail({
                     </p>
                   )}
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => deleteStructure(structure.id)}
-                >
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => openEditModal(structure)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => deleteStructure(structure.id)}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
