@@ -277,7 +277,7 @@ export default function Financeiro() {
   const handleDeposit = async () => {
     if (selectedPiggyBank && depositAmount) {
       await updatePiggyBank(selectedPiggyBank.id, {
-        currentAmount: selectedPiggyBank.currentAmount + parseFloat(depositAmount),
+        currentAmount: selectedPiggyBank.currentAmount + parseCurrencyToNumber(depositAmount),
       });
       setDepositAmount('');
       setIsDepositModalOpen(false);
@@ -287,7 +287,7 @@ export default function Financeiro() {
 
   const handleWithdraw = async () => {
     if (selectedPiggyBank && depositAmount) {
-      const amount = parseFloat(depositAmount);
+      const amount = parseCurrencyToNumber(depositAmount);
       if (amount <= selectedPiggyBank.currentAmount) {
         await updatePiggyBank(selectedPiggyBank.id, {
           currentAmount: selectedPiggyBank.currentAmount - amount,
@@ -1426,12 +1426,11 @@ export default function Financeiro() {
             <div className="space-y-2">
               <Label>Valor (R$)</Label>
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="0,00"
-                min="0"
-                step="0.01"
+                onChange={(e) => setDepositAmount(formatCurrency(e.target.value))}
+                placeholder="R$ 0,00"
               />
             </div>
           </div>
