@@ -141,6 +141,8 @@ export interface Receivable {
   createdAt: Date;
   dueDate?: Date;
   recurringDay?: number; // dia do mês (1-31) para pagamentos recorrentes
+  notes?: string; // observações adicionais
+  receipts?: string[]; // URLs dos comprovantes
 }
 
 export interface PiggyBank {

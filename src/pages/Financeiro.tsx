@@ -36,6 +36,10 @@ import {
   ChevronUp,
   FileBarChart,
   Infinity,
+  FileText,
+  Upload,
+  X,
+  Eye,
 } from 'lucide-react';
 import {
   Dialog,
@@ -59,6 +63,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 
 const formatCurrency = (value: string | number): string => {
   if (typeof value === 'number') {
@@ -136,7 +141,13 @@ export default function Financeiro() {
     dueDateType: 'none' as 'none' | 'single' | 'recurring',
     dueDate: undefined as Date | undefined,
     recurringDay: '1',
+    notes: '',
+    receipts: [] as string[],
   });
+
+  // Ref for file input
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+  const editReceiptInputRef = useRef<HTMLInputElement>(null);
 
   // State for piggy banks
   const [isAddPiggyBankModalOpen, setIsAddPiggyBankModalOpen] = useState(false);
@@ -254,9 +265,11 @@ export default function Financeiro() {
         createdAt: new Date(),
         dueDate: newReceivable.dueDateType === 'single' ? newReceivable.dueDate : undefined,
         recurringDay: newReceivable.dueDateType === 'recurring' ? parseInt(newReceivable.recurringDay) : undefined,
+        notes: newReceivable.notes || undefined,
+        receipts: newReceivable.receipts.length > 0 ? newReceivable.receipts : undefined,
       };
       setReceivables([receivable, ...receivables]);
-      setNewReceivable({ personName: '', description: '', installmentValue: '', installments: '1', isIndefinite: false, dueDateType: 'none', dueDate: undefined, recurringDay: '1' });
+      setNewReceivable({ personName: '', description: '', installmentValue: '', installments: '1', isIndefinite: false, dueDateType: 'none', dueDate: undefined, recurringDay: '1', notes: '', receipts: [] });
       setIsAddReceivableModalOpen(false);
     }
   };
@@ -883,6 +896,30 @@ export default function Financeiro() {
                             Todo dia {receivable.recurringDay}
                           </div>
                         )}
+                        {receivable.notes && (
+                          <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                            <p className="text-xs text-muted-foreground">{receivable.notes}</p>
+                          </div>
+                        )}
+                        {receivable.receipts && receivable.receipts.length > 0 && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <FileText className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {receivable.receipts.length} comprovante{receivable.receipts.length > 1 ? 's' : ''}
+                            </span>
+                            <div className="flex gap-1">
+                              {receivable.receipts.map((receipt, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => window.open(receipt, '_blank')}
+                                  className="text-xs text-primary hover:underline flex items-center gap-0.5"
+                                >
+                                  <Eye className="w-3 h-3" />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex gap-2 mt-auto pt-3 border-t border-border">
@@ -1500,6 +1537,78 @@ export default function Financeiro() {
                 </p>
               </div>
             )}
+            <div className="space-y-2">
+              <Label>Observações (opcional)</Label>
+              <Textarea
+                value={newReceivable.notes}
+                onChange={(e) => setNewReceivable({ ...newReceivable, notes: e.target.value })}
+                placeholder="Adicione observações, detalhes do acordo, etc..."
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Comprovantes (opcional)</Label>
+              <input
+                type="file"
+                ref={receiptInputRef}
+                className="hidden"
+                accept="image/*,.pdf"
+                multiple
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files) {
+                    Array.from(files).forEach(file => {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setNewReceivable(prev => ({
+                          ...prev,
+                          receipts: [...prev.receipts, reader.result as string]
+                        }));
+                      };
+                      reader.readAsDataURL(file);
+                    });
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => receiptInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Enviar comprovantes
+              </Button>
+              {newReceivable.receipts.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {newReceivable.receipts.map((receipt, index) => (
+                    <div key={index} className="relative group">
+                      {receipt.startsWith('data:image') ? (
+                        <img
+                          src={receipt}
+                          alt={`Comprovante ${index + 1}`}
+                          className="w-16 h-16 object-cover rounded-lg border border-border"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 flex items-center justify-center bg-muted rounded-lg border border-border">
+                          <FileText className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => setNewReceivable(prev => ({
+                          ...prev,
+                          receipts: prev.receipts.filter((_, i) => i !== index)
+                        }))}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddReceivableModalOpen(false)}>
@@ -1666,6 +1775,78 @@ export default function Financeiro() {
                   </Select>
                 </div>
               )}
+              <div className="space-y-2">
+                <Label>Observações (opcional)</Label>
+                <Textarea
+                  value={editingReceivable.notes || ''}
+                  onChange={(e) => setEditingReceivable({ ...editingReceivable, notes: e.target.value || undefined })}
+                  placeholder="Adicione observações, detalhes do acordo, etc..."
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Comprovantes</Label>
+                <input
+                  type="file"
+                  ref={editReceiptInputRef}
+                  className="hidden"
+                  accept="image/*,.pdf"
+                  multiple
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files) {
+                      Array.from(files).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setEditingReceivable(prev => prev ? {
+                            ...prev,
+                            receipts: [...(prev.receipts || []), reader.result as string]
+                          } : null);
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => editReceiptInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Enviar comprovantes
+                </Button>
+                {editingReceivable.receipts && editingReceivable.receipts.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {editingReceivable.receipts.map((receipt, index) => (
+                      <div key={index} className="relative group">
+                        {receipt.startsWith('data:image') ? (
+                          <img
+                            src={receipt}
+                            alt={`Comprovante ${index + 1}`}
+                            className="w-16 h-16 object-cover rounded-lg border border-border"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 flex items-center justify-center bg-muted rounded-lg border border-border">
+                            <FileText className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setEditingReceivable(prev => prev ? {
+                            ...prev,
+                            receipts: (prev.receipts || []).filter((_, i) => i !== index)
+                          } : null)}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
           <DialogFooter>
