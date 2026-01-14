@@ -40,6 +40,7 @@ import {
   Upload,
   X,
   Eye,
+  Download,
 } from 'lucide-react';
 import {
   Dialog,
@@ -1955,14 +1956,13 @@ export default function Financeiro() {
                     {viewingReceivable.receipts.map((receipt, index) => (
                       <div 
                         key={index} 
-                        className="relative group cursor-pointer rounded-lg overflow-hidden border border-border"
-                        onClick={() => window.open(receipt, '_blank')}
+                        className="relative group rounded-lg overflow-hidden border border-border"
                       >
                         {receipt.startsWith('data:image') ? (
                           <img
                             src={receipt}
                             alt={`Comprovante ${index + 1}`}
-                            className="w-full aspect-square object-cover hover:scale-105 transition-transform"
+                            className="w-full aspect-square object-cover"
                           />
                         ) : (
                           <div className="w-full aspect-square flex flex-col items-center justify-center bg-muted gap-2">
@@ -1970,8 +1970,30 @@ export default function Financeiro() {
                             <span className="text-xs text-muted-foreground">PDF</span>
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Eye className="w-6 h-6 text-white" />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button
+                            size="icon"
+                            variant="secondary"
+                            className="h-8 w-8"
+                            onClick={() => window.open(receipt, '_blank')}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="secondary"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = receipt;
+                              link.download = `comprovante-${viewingReceivable.personName}-${index + 1}.${receipt.startsWith('data:image') ? 'png' : 'pdf'}`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
