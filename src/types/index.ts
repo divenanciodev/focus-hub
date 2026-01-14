@@ -140,6 +140,7 @@ export interface Receivable {
   paidInstallments: number;
   createdAt: Date;
   dueDate?: Date;
+  recurringDay?: number; // dia do mês (1-31) para pagamentos recorrentes
 }
 
 export interface PiggyBank {
