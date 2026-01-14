@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -18,7 +20,7 @@ import {
   PiggyBank as PiggyBankIcon,
   Bell,
   BellOff,
-  Calendar,
+  Calendar as CalendarIcon,
   ShoppingCart,
   ExternalLink,
   Trash2,
@@ -33,6 +35,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileBarChart,
+  Infinity,
 } from 'lucide-react';
 import {
   Dialog,
@@ -53,6 +56,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 
 const formatCurrency = (value: string | number): string => {
@@ -127,6 +132,8 @@ export default function Financeiro() {
     description: '',
     installmentValue: '',
     installments: '1',
+    isIndefinite: false,
+    dueDate: undefined as Date | undefined,
   });
 
   // State for piggy banks
@@ -234,18 +241,19 @@ export default function Financeiro() {
   const handleAddReceivable = () => {
     if (newReceivable.personName && newReceivable.installmentValue) {
       const installmentValue = parseCurrencyToNumber(newReceivable.installmentValue);
-      const installments = parseInt(newReceivable.installments) || 1;
+      const installments = newReceivable.isIndefinite ? null : (parseInt(newReceivable.installments) || 1);
       const receivable: Receivable = {
         id: Date.now().toString(),
         personName: newReceivable.personName,
         description: newReceivable.description,
-        totalAmount: installmentValue * installments,
+        totalAmount: installments ? installmentValue * installments : installmentValue,
         installments: installments,
         paidInstallments: 0,
         createdAt: new Date(),
+        dueDate: newReceivable.dueDate,
       };
       setReceivables([receivable, ...receivables]);
-      setNewReceivable({ personName: '', description: '', installmentValue: '', installments: '1' });
+      setNewReceivable({ personName: '', description: '', installmentValue: '', installments: '1', isIndefinite: false, dueDate: undefined });
       setIsAddReceivableModalOpen(false);
     }
   };
@@ -253,8 +261,8 @@ export default function Financeiro() {
   const handlePayReceivableInstallment = (id: string) => {
     setReceivables(
       receivables.map((r) =>
-        r.id === id && r.paidInstallments < r.installments
-          ? { ...r, paidInstallments: r.paidInstallments + 1 }
+        r.id === id && (r.installments === null || r.paidInstallments < r.installments)
+          ? { ...r, paidInstallments: r.paidInstallments + 1, totalAmount: r.installments === null ? (r.totalAmount / Math.max(r.paidInstallments, 1)) * (r.paidInstallments + 1) : r.totalAmount }
           : r
       )
     );
@@ -803,9 +811,13 @@ export default function Financeiro() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {receivables.map((receivable) => {
-                const progress = (receivable.paidInstallments / receivable.installments) * 100;
-                const installmentValue = receivable.totalAmount / receivable.installments;
-                const isComplete = receivable.paidInstallments >= receivable.installments;
+                const isIndefinite = receivable.installments === null;
+                const installmentValue = isIndefinite 
+                  ? (receivable.totalAmount / Math.max(receivable.paidInstallments, 1))
+                  : (receivable.totalAmount / receivable.installments);
+                const progress = isIndefinite ? 0 : (receivable.paidInstallments / receivable.installments) * 100;
+                const isComplete = !isIndefinite && receivable.paidInstallments >= receivable.installments;
+                const totalReceived = installmentValue * receivable.paidInstallments;
 
                 return (
                   <Card key={receivable.id} className={cn('flex flex-col', isComplete && 'opacity-60')}>
@@ -826,26 +838,42 @@ export default function Financeiro() {
                             )}
                           </div>
                         </div>
-                        <span className="text-lg font-bold text-foreground">
-                          {formatCurrency(receivable.totalAmount)}
-                        </span>
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-foreground">
+                            {isIndefinite ? formatCurrency(installmentValue) : formatCurrency(receivable.totalAmount)}
+                          </span>
+                          {isIndefinite && (
+                            <p className="text-xs text-muted-foreground">/parcela</p>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col">
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Parcelas pagas</span>
-                          <span className="font-medium text-foreground">
-                            {receivable.paidInstallments}/{receivable.installments}
+                          <span className="font-medium text-foreground flex items-center gap-1">
+                            {receivable.paidInstallments}
+                            {isIndefinite ? (
+                              <Infinity className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <>/{receivable.installments}</>
+                            )}
                           </span>
                         </div>
-                        <ProgressBar value={progress} size="sm" />
+                        {!isIndefinite && <ProgressBar value={progress} size="sm" />}
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>Parcela: {formatCurrency(installmentValue)}</span>
                           <span className="text-emerald-600 font-medium">
-                            Recebido: {formatCurrency(installmentValue * receivable.paidInstallments)}
+                            Recebido: {formatCurrency(totalReceived)}
                           </span>
                         </div>
+                        {receivable.dueDate && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <CalendarIcon className="w-3 h-3" />
+                            Vencimento: {format(new Date(receivable.dueDate), "dd/MM/yyyy")}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex gap-2 mt-auto pt-3 border-t border-border">
@@ -1367,17 +1395,57 @@ export default function Financeiro() {
                 placeholder="R$ 0,00"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Número de parcelas</Label>
-              <Input
-                type="number"
-                value={newReceivable.installments}
-                onChange={(e) => setNewReceivable({ ...newReceivable, installments: e.target.value })}
-                placeholder="1"
-                min="1"
+            <div className="flex items-center gap-3">
+              <Switch
+                id="indefinite"
+                checked={newReceivable.isIndefinite}
+                onCheckedChange={(checked) => setNewReceivable({ ...newReceivable, isIndefinite: checked })}
               />
+              <Label htmlFor="indefinite" className="flex items-center gap-1">
+                <Infinity className="w-4 h-4" />
+                Parcelas indefinidas
+              </Label>
             </div>
-            {newReceivable.installmentValue && parseInt(newReceivable.installments) > 0 && (
+            {!newReceivable.isIndefinite && (
+              <div className="space-y-2">
+                <Label>Número de parcelas</Label>
+                <Input
+                  type="number"
+                  value={newReceivable.installments}
+                  onChange={(e) => setNewReceivable({ ...newReceivable, installments: e.target.value })}
+                  placeholder="1"
+                  min="1"
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Data de vencimento (opcional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !newReceivable.dueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {newReceivable.dueDate ? format(newReceivable.dueDate, "dd/MM/yyyy") : "Selecionar data"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={newReceivable.dueDate}
+                    onSelect={(date) => setNewReceivable({ ...newReceivable, dueDate: date })}
+                    initialFocus
+                    className="pointer-events-auto"
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            {newReceivable.installmentValue && !newReceivable.isIndefinite && parseInt(newReceivable.installments) > 0 && (
               <div className="p-3 bg-secondary/50 rounded-lg text-center">
                 <p className="text-xs text-muted-foreground">Valor total</p>
                 <p className="text-lg font-bold text-foreground">
@@ -1420,35 +1488,90 @@ export default function Financeiro() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Valor total (R$)</Label>
+                <Label>Valor da parcela (R$)</Label>
                 <Input
                   type="text"
                   inputMode="numeric"
-                  value={formatCurrency(editingReceivable.totalAmount)}
-                  onChange={(e) => setEditingReceivable({ ...editingReceivable, totalAmount: parseCurrencyToNumber(e.target.value) })}
+                  value={formatCurrency(editingReceivable.installments ? editingReceivable.totalAmount / editingReceivable.installments : editingReceivable.totalAmount / Math.max(editingReceivable.paidInstallments, 1))}
+                  onChange={(e) => {
+                    const installmentValue = parseCurrencyToNumber(e.target.value);
+                    const installments = editingReceivable.installments || 1;
+                    setEditingReceivable({ ...editingReceivable, totalAmount: installmentValue * installments });
+                  }}
                   placeholder="R$ 0,00"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Total de parcelas</Label>
-                  <Input
-                    type="number"
-                    value={editingReceivable.installments}
-                    onChange={(e) => setEditingReceivable({ ...editingReceivable, installments: parseInt(e.target.value) || 1 })}
-                    min="1"
-                  />
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="edit-indefinite"
+                  checked={editingReceivable.installments === null}
+                  onCheckedChange={(checked) => setEditingReceivable({ ...editingReceivable, installments: checked ? null : 1 })}
+                />
+                <Label htmlFor="edit-indefinite" className="flex items-center gap-1">
+                  <Infinity className="w-4 h-4" />
+                  Parcelas indefinidas
+                </Label>
+              </div>
+              {editingReceivable.installments !== null && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Total de parcelas</Label>
+                    <Input
+                      type="number"
+                      value={editingReceivable.installments}
+                      onChange={(e) => setEditingReceivable({ ...editingReceivable, installments: parseInt(e.target.value) || 1 })}
+                      min="1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Parcelas pagas</Label>
+                    <Input
+                      type="number"
+                      value={editingReceivable.paidInstallments}
+                      onChange={(e) => setEditingReceivable({ ...editingReceivable, paidInstallments: Math.min(parseInt(e.target.value) || 0, editingReceivable.installments || 1) })}
+                      min="0"
+                      max={editingReceivable.installments || undefined}
+                    />
+                  </div>
                 </div>
+              )}
+              {editingReceivable.installments === null && (
                 <div className="space-y-2">
                   <Label>Parcelas pagas</Label>
                   <Input
                     type="number"
                     value={editingReceivable.paidInstallments}
-                    onChange={(e) => setEditingReceivable({ ...editingReceivable, paidInstallments: Math.min(parseInt(e.target.value) || 0, editingReceivable.installments) })}
+                    onChange={(e) => setEditingReceivable({ ...editingReceivable, paidInstallments: parseInt(e.target.value) || 0 })}
                     min="0"
-                    max={editingReceivable.installments}
                   />
                 </div>
+              )}
+              <div className="space-y-2">
+                <Label>Data de vencimento (opcional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !editingReceivable.dueDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editingReceivable.dueDate ? format(new Date(editingReceivable.dueDate), "dd/MM/yyyy") : "Selecionar data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={editingReceivable.dueDate ? new Date(editingReceivable.dueDate) : undefined}
+                      onSelect={(date) => setEditingReceivable({ ...editingReceivable, dueDate: date })}
+                      initialFocus
+                      className="pointer-events-auto"
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           )}
