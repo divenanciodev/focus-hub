@@ -120,6 +120,8 @@ export default function Financeiro() {
   // State for receivables (local for now)
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [isAddReceivableModalOpen, setIsAddReceivableModalOpen] = useState(false);
+  const [isEditReceivableModalOpen, setIsEditReceivableModalOpen] = useState(false);
+  const [editingReceivable, setEditingReceivable] = useState<Receivable | null>(null);
   const [newReceivable, setNewReceivable] = useState({
     personName: '',
     description: '',
@@ -258,6 +260,23 @@ export default function Financeiro() {
 
   const handleDeleteReceivable = (id: string) => {
     setReceivables(receivables.filter((r) => r.id !== id));
+  };
+
+  const handleEditReceivable = (receivable: Receivable) => {
+    setEditingReceivable(receivable);
+    setIsEditReceivableModalOpen(true);
+  };
+
+  const handleUpdateReceivable = () => {
+    if (editingReceivable) {
+      setReceivables(
+        receivables.map((r) =>
+          r.id === editingReceivable.id ? editingReceivable : r
+        )
+      );
+      setIsEditReceivableModalOpen(false);
+      setEditingReceivable(null);
+    }
   };
 
   // Handlers for piggy banks
@@ -838,6 +857,13 @@ export default function Financeiro() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          onClick={() => handleEditReceivable(receivable)}
+                        >
+                          <Edit className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => handleDeleteReceivable(receivable.id)}
                         >
                           <Trash2 className="w-4 h-4 text-muted-foreground" />
@@ -1352,6 +1378,72 @@ export default function Financeiro() {
               Cancelar
             </Button>
             <Button onClick={handleAddReceivable}>Adicionar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Receivable Modal */}
+      <Dialog open={isEditReceivableModalOpen} onOpenChange={setIsEditReceivableModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar A Receber</DialogTitle>
+          </DialogHeader>
+          {editingReceivable && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome da pessoa</Label>
+                <Input
+                  value={editingReceivable.personName}
+                  onChange={(e) => setEditingReceivable({ ...editingReceivable, personName: e.target.value })}
+                  placeholder="Nome de quem deve"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição (opcional)</Label>
+                <Input
+                  value={editingReceivable.description}
+                  onChange={(e) => setEditingReceivable({ ...editingReceivable, description: e.target.value })}
+                  placeholder="Referente a..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Valor total (R$)</Label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={formatCurrency(editingReceivable.totalAmount)}
+                  onChange={(e) => setEditingReceivable({ ...editingReceivable, totalAmount: parseCurrencyToNumber(e.target.value) })}
+                  placeholder="R$ 0,00"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Total de parcelas</Label>
+                  <Input
+                    type="number"
+                    value={editingReceivable.installments}
+                    onChange={(e) => setEditingReceivable({ ...editingReceivable, installments: parseInt(e.target.value) || 1 })}
+                    min="1"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Parcelas pagas</Label>
+                  <Input
+                    type="number"
+                    value={editingReceivable.paidInstallments}
+                    onChange={(e) => setEditingReceivable({ ...editingReceivable, paidInstallments: Math.min(parseInt(e.target.value) || 0, editingReceivable.installments) })}
+                    min="0"
+                    max={editingReceivable.installments}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditReceivableModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateReceivable}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
