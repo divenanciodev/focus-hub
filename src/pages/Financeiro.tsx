@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useFinancial, FinancialEntry, PiggyBank, FixedExpense } from '@/hooks/useFinancial';
 import { EntryAllocationModal } from '@/components/financial/EntryAllocationModal';
 import { FinancialReport } from '@/components/financial/FinancialReport';
-import { Receivable, PurchaseGoal, Consortium } from '@/types';
+import { Receivable, PurchaseGoal, Consortium, InstallmentPayment } from '@/types';
 import {
   Plus,
   TrendingUp,
@@ -41,6 +41,8 @@ import {
   X,
   Eye,
   Download,
+  History,
+  Clock,
 } from 'lucide-react';
 import {
   Dialog,
@@ -151,6 +153,16 @@ export default function Financeiro() {
   // Ref for file input
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const editReceiptInputRef = useRef<HTMLInputElement>(null);
+
+  // State for payment registration modal
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedReceivableForPayment, setSelectedReceivableForPayment] = useState<Receivable | null>(null);
+  const [newPayment, setNewPayment] = useState({
+    date: new Date(),
+    amount: '',
+    notes: '',
+  });
+  const [editingPayment, setEditingPayment] = useState<InstallmentPayment | null>(null);
 
   // State for piggy banks
   const [isAddPiggyBankModalOpen, setIsAddPiggyBankModalOpen] = useState(false);
@@ -277,14 +289,115 @@ export default function Financeiro() {
     }
   };
 
-  const handlePayReceivableInstallment = (id: string) => {
+  const openPaymentModal = (receivable: Receivable) => {
+    const installmentValue = receivable.installments 
+      ? receivable.totalAmount / receivable.installments 
+      : receivable.totalAmount / Math.max(receivable.paidInstallments, 1);
+    setSelectedReceivableForPayment(receivable);
+    setNewPayment({
+      date: new Date(),
+      amount: formatCurrency(installmentValue),
+      notes: '',
+    });
+    setEditingPayment(null);
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleAddPayment = () => {
+    if (!selectedReceivableForPayment || !newPayment.amount) return;
+    
+    const amount = parseCurrencyToNumber(newPayment.amount);
+    const payment: InstallmentPayment = {
+      id: Date.now().toString(),
+      date: newPayment.date,
+      amount,
+      notes: newPayment.notes || undefined,
+    };
+
     setReceivables(
-      receivables.map((r) =>
-        r.id === id && (r.installments === null || r.paidInstallments < r.installments)
-          ? { ...r, paidInstallments: r.paidInstallments + 1, totalAmount: r.installments === null ? (r.totalAmount / Math.max(r.paidInstallments, 1)) * (r.paidInstallments + 1) : r.totalAmount }
-          : r
-      )
+      receivables.map((r) => {
+        if (r.id !== selectedReceivableForPayment.id) return r;
+        
+        const newHistory = [...(r.paymentHistory || []), payment];
+        const newPaidInstallments = r.paidInstallments + 1;
+        const newTotalAmount = r.installments === null 
+          ? (r.totalAmount / Math.max(r.paidInstallments, 1)) * newPaidInstallments 
+          : r.totalAmount;
+        
+        return {
+          ...r,
+          paidInstallments: newPaidInstallments,
+          totalAmount: newTotalAmount,
+          paymentHistory: newHistory,
+        };
+      })
     );
+
+    // Update viewing receivable if open
+    if (viewingReceivable?.id === selectedReceivableForPayment.id) {
+      setViewingReceivable(prev => {
+        if (!prev) return null;
+        const newHistory = [...(prev.paymentHistory || []), payment];
+        return {
+          ...prev,
+          paidInstallments: prev.paidInstallments + 1,
+          paymentHistory: newHistory,
+        };
+      });
+    }
+
+    setIsPaymentModalOpen(false);
+    setSelectedReceivableForPayment(null);
+    setNewPayment({ date: new Date(), amount: '', notes: '' });
+  };
+
+  const handleEditPayment = (payment: InstallmentPayment) => {
+    setEditingPayment(payment);
+    setNewPayment({
+      date: new Date(payment.date),
+      amount: formatCurrency(payment.amount),
+      notes: payment.notes || '',
+    });
+  };
+
+  const handleUpdatePayment = () => {
+    if (!viewingReceivable || !editingPayment) return;
+    
+    const amount = parseCurrencyToNumber(newPayment.amount);
+    const updatedPayment: InstallmentPayment = {
+      ...editingPayment,
+      date: newPayment.date,
+      amount,
+      notes: newPayment.notes || undefined,
+    };
+
+    const updatedReceivable = {
+      ...viewingReceivable,
+      paymentHistory: (viewingReceivable.paymentHistory || []).map((p) =>
+        p.id === editingPayment.id ? updatedPayment : p
+      ),
+    };
+
+    setReceivables(receivables.map((r) => r.id === viewingReceivable.id ? updatedReceivable : r));
+    setViewingReceivable(updatedReceivable);
+    setEditingPayment(null);
+    setNewPayment({ date: new Date(), amount: '', notes: '' });
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    if (!viewingReceivable) return;
+
+    const paymentToDelete = viewingReceivable.paymentHistory?.find(p => p.id === paymentId);
+    if (!paymentToDelete) return;
+
+    const updatedReceivable = {
+      ...viewingReceivable,
+      paidInstallments: Math.max(0, viewingReceivable.paidInstallments - 1),
+      paymentHistory: (viewingReceivable.paymentHistory || []).filter((p) => p.id !== paymentId),
+    };
+
+    setReceivables(receivables.map((r) => r.id === viewingReceivable.id ? updatedReceivable : r));
+    setViewingReceivable(updatedReceivable);
   };
 
   const handleDeleteReceivable = (id: string) => {
@@ -940,7 +1053,7 @@ export default function Financeiro() {
                           disabled={isComplete}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handlePayReceivableInstallment(receivable.id);
+                            openPaymentModal(receivable);
                           }}
                         >
                           <Check className="w-4 h-4 mr-1" />
@@ -1932,6 +2045,150 @@ export default function Financeiro() {
                 )}
               </div>
 
+              {/* Payment History Section */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <History className="w-4 h-4" />
+                    Histórico de Pagamentos ({viewingReceivable.paymentHistory?.length || 0})
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      openPaymentModal(viewingReceivable);
+                    }}
+                    disabled={viewingReceivable.installments !== null && viewingReceivable.paidInstallments >= viewingReceivable.installments}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Registrar
+                  </Button>
+                </div>
+                
+                {viewingReceivable.paymentHistory && viewingReceivable.paymentHistory.length > 0 ? (
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {[...viewingReceivable.paymentHistory]
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((payment, index) => (
+                        <div
+                          key={payment.id}
+                          className={cn(
+                            'p-3 rounded-lg border border-border bg-muted/30',
+                            editingPayment?.id === payment.id && 'ring-2 ring-primary'
+                          )}
+                        >
+                          {editingPayment?.id === payment.id ? (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Data</Label>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full justify-start text-left font-normal"
+                                      >
+                                        <CalendarIcon className="w-3 h-3 mr-1" />
+                                        {format(newPayment.date, "dd/MM/yyyy")}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                      <Calendar
+                                        mode="single"
+                                        selected={newPayment.date}
+                                        onSelect={(date) => date && setNewPayment({ ...newPayment, date })}
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Valor</Label>
+                                  <Input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={newPayment.amount}
+                                    onChange={(e) => setNewPayment({ ...newPayment, amount: formatCurrency(e.target.value) })}
+                                    className="h-8"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <Label className="text-xs">Observação</Label>
+                                <Input
+                                  value={newPayment.notes}
+                                  onChange={(e) => setNewPayment({ ...newPayment, notes: e.target.value })}
+                                  placeholder="Opcional"
+                                  className="h-8"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={handleUpdatePayment} className="flex-1">
+                                  Salvar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingPayment(null);
+                                    setNewPayment({ date: new Date(), amount: '', notes: '' });
+                                  }}
+                                >
+                                  Cancelar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/10">
+                                  <Check className="w-4 h-4 text-emerald-500" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">
+                                    {formatCurrency(payment.amount)}
+                                  </p>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Clock className="w-3 h-3" />
+                                    {format(new Date(payment.date), "dd/MM/yyyy")}
+                                    {payment.notes && (
+                                      <span className="truncate max-w-[100px]">• {payment.notes}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={() => handleEditPayment(payment)}
+                                >
+                                  <Edit className="w-3 h-3 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={() => handleDeletePayment(payment.id)}
+                                >
+                                  <Trash2 className="w-3 h-3 text-muted-foreground" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground bg-muted/30 rounded-lg">
+                    <History className="w-6 h-6 mx-auto mb-1 opacity-50" />
+                    <p className="text-xs">Nenhum pagamento registrado</p>
+                  </div>
+                )}
+              </div>
+
               {/* Notes Section */}
               {viewingReceivable.notes && (
                 <div>
@@ -2000,14 +2257,6 @@ export default function Financeiro() {
                   </div>
                 </div>
               )}
-
-              {/* Empty state for receipts */}
-              {(!viewingReceivable.receipts || viewingReceivable.receipts.length === 0) && !viewingReceivable.notes && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nenhuma observação ou comprovante adicionado.</p>
-                </div>
-              )}
             </div>
           )}
           <DialogFooter>
@@ -2024,6 +2273,87 @@ export default function Financeiro() {
               Editar
             </Button>
             <Button onClick={() => setIsViewReceivableModalOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Register Payment Modal */}
+      <Dialog open={isPaymentModalOpen} onOpenChange={(open) => {
+        setIsPaymentModalOpen(open);
+        if (!open) {
+          setSelectedReceivableForPayment(null);
+          setNewPayment({ date: new Date(), amount: '', notes: '' });
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Check className="w-5 h-5 text-emerald-500" />
+              Registrar Pagamento
+            </DialogTitle>
+          </DialogHeader>
+          {selectedReceivableForPayment && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">Recebível</p>
+                <p className="font-medium text-foreground">{selectedReceivableForPayment.personName}</p>
+                {selectedReceivableForPayment.description && (
+                  <p className="text-xs text-muted-foreground">{selectedReceivableForPayment.description}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Data do recebimento</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="w-4 h-4 mr-2" />
+                      {format(newPayment.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={newPayment.date}
+                      onSelect={(date) => date && setNewPayment({ ...newPayment, date })}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Valor recebido (R$)</Label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={newPayment.amount}
+                  onChange={(e) => setNewPayment({ ...newPayment, amount: formatCurrency(e.target.value) })}
+                  placeholder="R$ 0,00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Observação (opcional)</Label>
+                <Input
+                  value={newPayment.notes}
+                  onChange={(e) => setNewPayment({ ...newPayment, notes: e.target.value })}
+                  placeholder="Ex: Pagamento via PIX"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddPayment} disabled={!newPayment.amount}>
+              <Check className="w-4 h-4 mr-2" />
+              Registrar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -131,6 +131,13 @@ export interface FinancialEntry {
   category: string;
 }
 
+export interface InstallmentPayment {
+  id: string;
+  date: Date;
+  amount: number;
+  notes?: string;
+}
+
 export interface Receivable {
   id: string;
   personName: string;
@@ -143,6 +150,7 @@ export interface Receivable {
   recurringDay?: number; // dia do mês (1-31) para pagamentos recorrentes
   notes?: string; // observações adicionais
   receipts?: string[]; // URLs dos comprovantes
+  paymentHistory?: InstallmentPayment[]; // histórico de pagamentos
 }
 
 export interface PiggyBank {
