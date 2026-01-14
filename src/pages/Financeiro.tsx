@@ -235,7 +235,7 @@ export default function Financeiro() {
         id: Date.now().toString(),
         personName: newReceivable.personName,
         description: newReceivable.description,
-        totalAmount: parseFloat(newReceivable.totalAmount),
+        totalAmount: parseCurrencyToNumber(newReceivable.totalAmount),
         installments: parseInt(newReceivable.installments) || 1,
         paidInstallments: 0,
         createdAt: new Date(),
@@ -1329,12 +1329,11 @@ export default function Financeiro() {
             <div className="space-y-2">
               <Label>Valor total (R$)</Label>
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={newReceivable.totalAmount}
-                onChange={(e) => setNewReceivable({ ...newReceivable, totalAmount: e.target.value })}
-                placeholder="0,00"
-                min="0"
-                step="0.01"
+                onChange={(e) => setNewReceivable({ ...newReceivable, totalAmount: formatCurrency(e.target.value) })}
+                placeholder="R$ 0,00"
               />
             </div>
             <div className="space-y-2">
