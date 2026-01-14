@@ -131,6 +131,8 @@ export default function Financeiro() {
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [isAddReceivableModalOpen, setIsAddReceivableModalOpen] = useState(false);
   const [isEditReceivableModalOpen, setIsEditReceivableModalOpen] = useState(false);
+  const [isViewReceivableModalOpen, setIsViewReceivableModalOpen] = useState(false);
+  const [viewingReceivable, setViewingReceivable] = useState<Receivable | null>(null);
   const [editingReceivable, setEditingReceivable] = useState<Receivable | null>(null);
   const [newReceivable, setNewReceivable] = useState({
     personName: '',
@@ -836,7 +838,14 @@ export default function Financeiro() {
                 const totalReceived = installmentValue * receivable.paidInstallments;
 
                 return (
-                  <Card key={receivable.id} className={cn('flex flex-col', isComplete && 'opacity-60')}>
+                  <Card 
+                    key={receivable.id} 
+                    className={cn('flex flex-col cursor-pointer hover:border-foreground/20 transition-colors', isComplete && 'opacity-60')}
+                    onClick={() => {
+                      setViewingReceivable(receivable);
+                      setIsViewReceivableModalOpen(true);
+                    }}
+                  >
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -922,13 +931,16 @@ export default function Financeiro() {
                         )}
                       </div>
 
-                      <div className="flex gap-2 mt-auto pt-3 border-t border-border">
+                      <div className="flex gap-2 mt-auto pt-3 border-t border-border" onClick={(e) => e.stopPropagation()}>
                         <Button
                           size="sm"
                           variant="outline"
                           className="flex-1"
                           disabled={isComplete}
-                          onClick={() => handlePayReceivableInstallment(receivable.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePayReceivableInstallment(receivable.id);
+                          }}
                         >
                           <Check className="w-4 h-4 mr-1" />
                           Receber parcela
@@ -936,14 +948,20 @@ export default function Financeiro() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleEditReceivable(receivable)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditReceivable(receivable);
+                          }}
                         >
                           <Edit className="w-4 h-4 text-muted-foreground" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleDeleteReceivable(receivable.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteReceivable(receivable.id);
+                          }}
                         >
                           <Trash2 className="w-4 h-4 text-muted-foreground" />
                         </Button>
@@ -1854,6 +1872,136 @@ export default function Financeiro() {
               Cancelar
             </Button>
             <Button onClick={handleUpdateReceivable}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Receivable Modal - Library */}
+      <Dialog open={isViewReceivableModalOpen} onOpenChange={setIsViewReceivableModalOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              {viewingReceivable?.personName}
+            </DialogTitle>
+          </DialogHeader>
+          {viewingReceivable && (
+            <div className="space-y-6">
+              {/* Info Section */}
+              <div className="space-y-3">
+                {viewingReceivable.description && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Descrição</p>
+                    <p className="text-foreground">{viewingReceivable.description}</p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Valor da parcela</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {formatCurrency(viewingReceivable.installments 
+                        ? viewingReceivable.totalAmount / viewingReceivable.installments 
+                        : viewingReceivable.totalAmount / Math.max(viewingReceivable.paidInstallments, 1))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Parcelas</p>
+                    <p className="text-lg font-bold text-foreground flex items-center gap-1">
+                      {viewingReceivable.paidInstallments}
+                      {viewingReceivable.installments === null ? (
+                        <Infinity className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <>/{viewingReceivable.installments}</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {(viewingReceivable.dueDate || viewingReceivable.recurringDay) && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Vencimento</p>
+                    <p className="text-foreground flex items-center gap-1">
+                      <CalendarIcon className="w-4 h-4" />
+                      {viewingReceivable.dueDate 
+                        ? format(new Date(viewingReceivable.dueDate), "dd/MM/yyyy")
+                        : `Todo dia ${viewingReceivable.recurringDay}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Notes Section */}
+              {viewingReceivable.notes && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                    <FileText className="w-4 h-4" />
+                    Observações
+                  </p>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-foreground whitespace-pre-wrap">{viewingReceivable.notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Receipts Gallery */}
+              {viewingReceivable.receipts && viewingReceivable.receipts.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                    <Image className="w-4 h-4" />
+                    Comprovantes ({viewingReceivable.receipts.length})
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {viewingReceivable.receipts.map((receipt, index) => (
+                      <div 
+                        key={index} 
+                        className="relative group cursor-pointer rounded-lg overflow-hidden border border-border"
+                        onClick={() => window.open(receipt, '_blank')}
+                      >
+                        {receipt.startsWith('data:image') ? (
+                          <img
+                            src={receipt}
+                            alt={`Comprovante ${index + 1}`}
+                            className="w-full aspect-square object-cover hover:scale-105 transition-transform"
+                          />
+                        ) : (
+                          <div className="w-full aspect-square flex flex-col items-center justify-center bg-muted gap-2">
+                            <FileText className="w-10 h-10 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">PDF</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Eye className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state for receipts */}
+              {(!viewingReceivable.receipts || viewingReceivable.receipts.length === 0) && !viewingReceivable.notes && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Nenhuma observação ou comprovante adicionado.</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsViewReceivableModalOpen(false);
+                if (viewingReceivable) {
+                  handleEditReceivable(viewingReceivable);
+                }
+              }}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Editar
+            </Button>
+            <Button onClick={() => setIsViewReceivableModalOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
