@@ -125,7 +125,7 @@ export default function Financeiro() {
   const [newReceivable, setNewReceivable] = useState({
     personName: '',
     description: '',
-    totalAmount: '',
+    installmentValue: '',
     installments: '1',
   });
 
@@ -232,18 +232,20 @@ export default function Financeiro() {
 
   // Handlers for receivables (local)
   const handleAddReceivable = () => {
-    if (newReceivable.personName && newReceivable.totalAmount) {
+    if (newReceivable.personName && newReceivable.installmentValue) {
+      const installmentValue = parseCurrencyToNumber(newReceivable.installmentValue);
+      const installments = parseInt(newReceivable.installments) || 1;
       const receivable: Receivable = {
         id: Date.now().toString(),
         personName: newReceivable.personName,
         description: newReceivable.description,
-        totalAmount: parseCurrencyToNumber(newReceivable.totalAmount),
-        installments: parseInt(newReceivable.installments) || 1,
+        totalAmount: installmentValue * installments,
+        installments: installments,
         paidInstallments: 0,
         createdAt: new Date(),
       };
       setReceivables([receivable, ...receivables]);
-      setNewReceivable({ personName: '', description: '', totalAmount: '', installments: '1' });
+      setNewReceivable({ personName: '', description: '', installmentValue: '', installments: '1' });
       setIsAddReceivableModalOpen(false);
     }
   };
@@ -838,9 +840,12 @@ export default function Financeiro() {
                           </span>
                         </div>
                         <ProgressBar value={progress} size="sm" />
-                        <p className="text-xs text-muted-foreground">
-                          Parcela: {formatCurrency(installmentValue)}
-                        </p>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Parcela: {formatCurrency(installmentValue)}</span>
+                          <span className="text-emerald-600 font-medium">
+                            Recebido: {formatCurrency(installmentValue * receivable.paidInstallments)}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="flex gap-2 mt-auto pt-3 border-t border-border">
@@ -1353,12 +1358,12 @@ export default function Financeiro() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Valor total (R$)</Label>
+              <Label>Valor da parcela (R$)</Label>
               <Input
                 type="text"
                 inputMode="numeric"
-                value={newReceivable.totalAmount}
-                onChange={(e) => setNewReceivable({ ...newReceivable, totalAmount: formatCurrency(e.target.value) })}
+                value={newReceivable.installmentValue}
+                onChange={(e) => setNewReceivable({ ...newReceivable, installmentValue: formatCurrency(e.target.value) })}
                 placeholder="R$ 0,00"
               />
             </div>
@@ -1372,6 +1377,14 @@ export default function Financeiro() {
                 min="1"
               />
             </div>
+            {newReceivable.installmentValue && parseInt(newReceivable.installments) > 0 && (
+              <div className="p-3 bg-secondary/50 rounded-lg text-center">
+                <p className="text-xs text-muted-foreground">Valor total</p>
+                <p className="text-lg font-bold text-foreground">
+                  {formatCurrency(parseCurrencyToNumber(newReceivable.installmentValue) * (parseInt(newReceivable.installments) || 1))}
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddReceivableModalOpen(false)}>
