@@ -133,7 +133,9 @@ export default function Financeiro() {
     installmentValue: '',
     installments: '1',
     isIndefinite: false,
+    dueDateType: 'none' as 'none' | 'single' | 'recurring',
     dueDate: undefined as Date | undefined,
+    recurringDay: '1',
   });
 
   // State for piggy banks
@@ -250,10 +252,11 @@ export default function Financeiro() {
         installments: installments,
         paidInstallments: 0,
         createdAt: new Date(),
-        dueDate: newReceivable.dueDate,
+        dueDate: newReceivable.dueDateType === 'single' ? newReceivable.dueDate : undefined,
+        recurringDay: newReceivable.dueDateType === 'recurring' ? parseInt(newReceivable.recurringDay) : undefined,
       };
       setReceivables([receivable, ...receivables]);
-      setNewReceivable({ personName: '', description: '', installmentValue: '', installments: '1', isIndefinite: false, dueDate: undefined });
+      setNewReceivable({ personName: '', description: '', installmentValue: '', installments: '1', isIndefinite: false, dueDateType: 'none', dueDate: undefined, recurringDay: '1' });
       setIsAddReceivableModalOpen(false);
     }
   };
@@ -874,6 +877,12 @@ export default function Financeiro() {
                             Vencimento: {format(new Date(receivable.dueDate), "dd/MM/yyyy")}
                           </div>
                         )}
+                        {receivable.recurringDay && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <CalendarIcon className="w-3 h-3" />
+                            Todo dia {receivable.recurringDay}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex gap-2 mt-auto pt-3 border-t border-border">
@@ -1419,32 +1428,70 @@ export default function Financeiro() {
               </div>
             )}
             <div className="space-y-2">
-              <Label>Data de vencimento (opcional)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !newReceivable.dueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {newReceivable.dueDate ? format(newReceivable.dueDate, "dd/MM/yyyy") : "Selecionar data"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={newReceivable.dueDate}
-                    onSelect={(date) => setNewReceivable({ ...newReceivable, dueDate: date })}
-                    initialFocus
-                    className="pointer-events-auto"
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label>Vencimento</Label>
+              <Select
+                value={newReceivable.dueDateType}
+                onValueChange={(value: 'none' | 'single' | 'recurring') => setNewReceivable({ ...newReceivable, dueDateType: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem vencimento</SelectItem>
+                  <SelectItem value="single">Data específica</SelectItem>
+                  <SelectItem value="recurring">Todo mês (dia fixo)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {newReceivable.dueDateType === 'single' && (
+              <div className="space-y-2">
+                <Label>Data de vencimento</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newReceivable.dueDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newReceivable.dueDate ? format(newReceivable.dueDate, "dd/MM/yyyy") : "Selecionar data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={newReceivable.dueDate}
+                      onSelect={(date) => setNewReceivable({ ...newReceivable, dueDate: date })}
+                      initialFocus
+                      className="pointer-events-auto"
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+            {newReceivable.dueDateType === 'recurring' && (
+              <div className="space-y-2">
+                <Label>Dia do mês</Label>
+                <Select
+                  value={newReceivable.recurringDay}
+                  onValueChange={(value) => setNewReceivable({ ...newReceivable, recurringDay: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar dia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                      <SelectItem key={day} value={day.toString()}>
+                        Dia {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {newReceivable.installmentValue && !newReceivable.isIndefinite && parseInt(newReceivable.installments) > 0 && (
               <div className="p-3 bg-secondary/50 rounded-lg text-center">
                 <p className="text-xs text-muted-foreground">Valor total</p>
@@ -1547,32 +1594,78 @@ export default function Financeiro() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label>Data de vencimento (opcional)</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !editingReceivable.dueDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {editingReceivable.dueDate ? format(new Date(editingReceivable.dueDate), "dd/MM/yyyy") : "Selecionar data"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={editingReceivable.dueDate ? new Date(editingReceivable.dueDate) : undefined}
-                      onSelect={(date) => setEditingReceivable({ ...editingReceivable, dueDate: date })}
-                      initialFocus
-                      className="pointer-events-auto"
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Label>Vencimento</Label>
+                <Select
+                  value={editingReceivable.recurringDay ? 'recurring' : editingReceivable.dueDate ? 'single' : 'none'}
+                  onValueChange={(value: 'none' | 'single' | 'recurring') => {
+                    if (value === 'none') {
+                      setEditingReceivable({ ...editingReceivable, dueDate: undefined, recurringDay: undefined });
+                    } else if (value === 'single') {
+                      setEditingReceivable({ ...editingReceivable, recurringDay: undefined });
+                    } else {
+                      setEditingReceivable({ ...editingReceivable, dueDate: undefined, recurringDay: editingReceivable.recurringDay || 1 });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem vencimento</SelectItem>
+                    <SelectItem value="single">Data específica</SelectItem>
+                    <SelectItem value="recurring">Todo mês (dia fixo)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+              {editingReceivable.dueDate !== undefined && !editingReceivable.recurringDay && (
+                <div className="space-y-2">
+                  <Label>Data de vencimento</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !editingReceivable.dueDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {editingReceivable.dueDate ? format(new Date(editingReceivable.dueDate), "dd/MM/yyyy") : "Selecionar data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={editingReceivable.dueDate ? new Date(editingReceivable.dueDate) : undefined}
+                        onSelect={(date) => setEditingReceivable({ ...editingReceivable, dueDate: date })}
+                        initialFocus
+                        className="pointer-events-auto"
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+              {editingReceivable.recurringDay && (
+                <div className="space-y-2">
+                  <Label>Dia do mês</Label>
+                  <Select
+                    value={editingReceivable.recurringDay.toString()}
+                    onValueChange={(value) => setEditingReceivable({ ...editingReceivable, recurringDay: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar dia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                        <SelectItem key={day} value={day.toString()}>
+                          Dia {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
