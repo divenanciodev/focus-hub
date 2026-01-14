@@ -136,9 +136,10 @@ export interface Receivable {
   personName: string;
   description: string;
   totalAmount: number;
-  installments: number;
+  installments: number | null; // null = indefinido
   paidInstallments: number;
   createdAt: Date;
+  dueDate?: Date;
 }
 
 export interface PiggyBank {
