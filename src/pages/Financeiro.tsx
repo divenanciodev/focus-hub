@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -54,6 +54,25 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+
+const formatCurrency = (value: string | number): string => {
+  if (typeof value === 'number') {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  const numbers = value.replace(/\D/g, '');
+  if (!numbers) return '';
+  const amount = parseInt(numbers, 10);
+  return (amount / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+};
+
+const parseCurrencyToNumber = (value: string): number => {
+  const numbers = value.replace(/\D/g, '');
+  if (!numbers) return 0;
+  return parseInt(numbers, 10) / 100;
+};
 
 export default function Financeiro() {
   const {
@@ -113,7 +132,7 @@ export default function Financeiro() {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [selectedPiggyBank, setSelectedPiggyBank] = useState<PiggyBank | null>(null);
   const [depositAmount, setDepositAmount] = useState('');
-  const [newPiggyBank, setNewPiggyBank] = useState({
+  const [newPiggyBank, setNewPiggyBank] = useState<{ name: string; targetAmount: string; color: string }>({
     name: '',
     targetAmount: '',
     color: '#8B5CF6',
@@ -161,9 +180,6 @@ export default function Financeiro() {
   const totalSaved = piggyBanks.reduce((acc, p) => acc + p.currentAmount, 0) + allocatedSaved;
   const balance = totalIncome - totalVariableExpenses - totalFixedExpenses;
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  };
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('pt-BR', {
@@ -249,7 +265,7 @@ export default function Financeiro() {
     if (newPiggyBank.name && newPiggyBank.targetAmount) {
       await addPiggyBank({
         name: newPiggyBank.name,
-        targetAmount: parseFloat(newPiggyBank.targetAmount),
+        targetAmount: parseCurrencyToNumber(newPiggyBank.targetAmount),
         currentAmount: 0,
         color: newPiggyBank.color,
       });
@@ -1359,12 +1375,11 @@ export default function Financeiro() {
             <div className="space-y-2">
               <Label>Meta (R$)</Label>
               <Input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={newPiggyBank.targetAmount}
-                onChange={(e) => setNewPiggyBank({ ...newPiggyBank, targetAmount: e.target.value })}
-                placeholder="0,00"
-                min="0"
-                step="0.01"
+                onChange={(e) => setNewPiggyBank({ ...newPiggyBank, targetAmount: formatCurrency(e.target.value) })}
+                placeholder="R$ 0,00"
               />
             </div>
             <div className="space-y-2">
