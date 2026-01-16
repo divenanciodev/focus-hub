@@ -30,6 +30,8 @@ import {
   Wallet,
   FileText,
   Copy,
+  Minimize2,
+  Maximize2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -102,6 +104,20 @@ export function BudgetDraft() {
   const [selectedDraft, setSelectedDraft] = useState<BudgetDraft | null>(null);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<DraftExpense | null>(null);
+  const [minimizedDrafts, setMinimizedDrafts] = useState<Set<string>>(new Set());
+
+  const toggleMinimize = (draftId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMinimizedDrafts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(draftId)) {
+        newSet.delete(draftId);
+      } else {
+        newSet.add(draftId);
+      }
+      return newSet;
+    });
+  };
 
   const currentYear = new Date().getFullYear();
   const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
@@ -282,25 +298,53 @@ export function BudgetDraft() {
               const totalExpenses = calculateTotalExpenses(draft.expenses);
               const remaining = calculateRemaining(draft.totalIncome, draft.expenses);
               const isSelected = selectedDraft?.id === draft.id;
+              const isMinimized = minimizedDrafts.has(draft.id);
 
               return (
                 <Card
                   key={draft.id}
                   className={cn(
-                    'cursor-pointer transition-colors hover:border-foreground/20',
+                    'cursor-pointer transition-all hover:border-foreground/20',
                     isSelected && 'border-primary bg-primary/5'
                   )}
                   onClick={() => setSelectedDraft(draft)}
                 >
-                  <CardHeader className="pb-2">
+                  <CardHeader className={cn('pb-2', isMinimized && 'pb-3')}>
                     <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base">{draft.name}</CardTitle>
-                        <Badge variant="secondary" className="mt-1">
-                          {getMonthLabel(draft.month)}
-                        </Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={(e) => toggleMinimize(draft.id, e)}
+                          title={isMinimized ? 'Expandir' : 'Minimizar'}
+                        >
+                          {isMinimized ? (
+                            <Maximize2 className="w-3 h-3" />
+                          ) : (
+                            <Minimize2 className="w-3 h-3" />
+                          )}
+                        </Button>
+                        <div>
+                          <CardTitle className="text-base">{draft.name}</CardTitle>
+                          {!isMinimized && (
+                            <Badge variant="secondary" className="mt-1">
+                              {getMonthLabel(draft.month)}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        {isMinimized && (
+                          <span
+                            className={cn(
+                              'text-xs font-semibold mr-2',
+                              remaining >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                            )}
+                          >
+                            {formatCurrency(remaining)}
+                          </span>
+                        )}
                         <Button
                           size="icon"
                           variant="ghost"
@@ -321,33 +365,35 @@ export function BudgetDraft() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-2">
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Receita:</span>
-                        <span className="font-medium text-emerald-600">
-                          {formatCurrency(draft.totalIncome)}
-                        </span>
+                  {!isMinimized && (
+                    <CardContent className="pt-2">
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Receita:</span>
+                          <span className="font-medium text-emerald-600">
+                            {formatCurrency(draft.totalIncome)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Despesas:</span>
+                          <span className="font-medium text-rose-600">
+                            {formatCurrency(totalExpenses)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between pt-1 border-t border-border">
+                          <span className="text-muted-foreground">Sobra:</span>
+                          <span
+                            className={cn(
+                              'font-bold',
+                              remaining >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                            )}
+                          >
+                            {formatCurrency(remaining)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Despesas:</span>
-                        <span className="font-medium text-rose-600">
-                          {formatCurrency(totalExpenses)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between pt-1 border-t border-border">
-                        <span className="text-muted-foreground">Sobra:</span>
-                        <span
-                          className={cn(
-                            'font-bold',
-                            remaining >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                          )}
-                        >
-                          {formatCurrency(remaining)}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
+                    </CardContent>
+                  )}
                 </Card>
               );
             })}
