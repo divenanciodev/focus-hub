@@ -40,6 +40,7 @@ import {
   Upload,
   X,
   Eye,
+  EyeOff,
   Download,
   History,
   Clock,
@@ -131,6 +132,21 @@ export default function Financeiro() {
   
   // Expanded expenses card state
   const [isExpensesCardExpanded, setIsExpensesCardExpanded] = useState(false);
+  
+  // Hidden values state
+  const [hiddenCards, setHiddenCards] = useState<Set<string>>(new Set());
+  
+  const toggleCardVisibility = (cardId: string) => {
+    setHiddenCards((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(cardId)) {
+        newSet.delete(cardId);
+      } else {
+        newSet.add(cardId);
+      }
+      return newSet;
+    });
+  };
 
   // State for receivables (local for now)
   const [receivables, setReceivables] = useState<Receivable[]>([]);
@@ -616,7 +632,10 @@ export default function Financeiro() {
           title="Renda total" 
           value={formatCurrency(totalIncome)} 
           icon={TrendingUp} 
-          iconBgClassName="bg-emerald-500/20" 
+          iconBgClassName="bg-emerald-500/20"
+          hideable
+          isHidden={hiddenCards.has('income')}
+          onToggleHidden={() => toggleCardVisibility('income')}
         />
         
         {/* Expandable Expenses Card */}
@@ -628,13 +647,34 @@ export default function Financeiro() {
               isExpensesCardExpanded && 'border-rose-500/50'
             )}
           >
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-rose-500/20 mb-3">
-              <TrendingDown className="w-5 h-5 text-rose-600" />
+            <div className="flex items-start justify-between">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-rose-500/20 mb-3">
+                <TrendingDown className="w-5 h-5 text-rose-600" />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 -mt-1 -mr-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleCardVisibility('expenses');
+                }}
+                title={hiddenCards.has('expenses') ? 'Mostrar valor' : 'Ocultar valor'}
+              >
+                {hiddenCards.has('expenses') ? (
+                  <EyeOff className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                )}
+              </Button>
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">Despesas totais</p>
-                <p className="text-2xl font-bold text-foreground">
+                <p className={cn(
+                  "text-2xl font-bold text-foreground transition-all",
+                  hiddenCards.has('expenses') && "blur-md select-none"
+                )}>
                   {formatCurrency(totalFixedExpenses + totalVariableExpenses)}
                 </p>
               </div>
@@ -653,14 +693,24 @@ export default function Financeiro() {
                     <div className="w-2 h-2 rounded-full bg-rose-600" />
                     <span className="text-sm text-muted-foreground">Fixas</span>
                   </div>
-                  <span className="text-sm font-semibold">{formatCurrency(totalFixedExpenses)}</span>
+                  <span className={cn(
+                    "text-sm font-semibold transition-all",
+                    hiddenCards.has('expenses') && "blur-md select-none"
+                  )}>
+                    {formatCurrency(totalFixedExpenses)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-orange-500" />
                     <span className="text-sm text-muted-foreground">Variáveis</span>
                   </div>
-                  <span className="text-sm font-semibold">{formatCurrency(totalVariableExpenses)}</span>
+                  <span className={cn(
+                    "text-sm font-semibold transition-all",
+                    hiddenCards.has('expenses') && "blur-md select-none"
+                  )}>
+                    {formatCurrency(totalVariableExpenses)}
+                  </span>
                 </div>
               </div>
             )}
@@ -671,13 +721,19 @@ export default function Financeiro() {
           title="A receber" 
           value={formatCurrency(totalReceivables)} 
           icon={Users} 
-          iconBgClassName="bg-amber-500/20" 
+          iconBgClassName="bg-amber-500/20"
+          hideable
+          isHidden={hiddenCards.has('receivables')}
+          onToggleHidden={() => toggleCardVisibility('receivables')}
         />
         <StatCard 
           title="Guardado" 
           value={formatCurrency(totalSaved)} 
           icon={PiggyBankIcon} 
-          iconBgClassName="bg-sky-500/20" 
+          iconBgClassName="bg-sky-500/20"
+          hideable
+          isHidden={hiddenCards.has('saved')}
+          onToggleHidden={() => toggleCardVisibility('saved')}
         />
       </div>
 
