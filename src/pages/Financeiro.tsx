@@ -670,12 +670,12 @@ export default function Financeiro() {
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground font-medium">Despesas totais</p>
+                <p className="text-sm text-muted-foreground font-medium">Despesas fixas</p>
                 <p className={cn(
                   "text-2xl font-bold text-foreground transition-all",
                   hiddenCards.has('expenses') && "blur-md select-none"
                 )}>
-                  {formatCurrency(totalFixedExpenses + totalVariableExpenses)}
+                  {formatCurrency(totalFixedExpenses)}
                 </p>
               </div>
               {isExpensesCardExpanded ? (
@@ -710,6 +710,15 @@ export default function Financeiro() {
                     hiddenCards.has('expenses') && "blur-md select-none"
                   )}>
                     {formatCurrency(totalVariableExpenses)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                  <span className="text-sm font-medium text-muted-foreground">Total</span>
+                  <span className={cn(
+                    "text-sm font-bold text-foreground transition-all",
+                    hiddenCards.has('expenses') && "blur-md select-none"
+                  )}>
+                    {formatCurrency(totalFixedExpenses + totalVariableExpenses)}
                   </span>
                 </div>
               </div>
