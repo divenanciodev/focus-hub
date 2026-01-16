@@ -1277,7 +1277,7 @@ export default function Financeiro() {
                         'flex items-center justify-center w-10 h-10 rounded-full',
                         isOverdue ? 'bg-destructive/10' : isDueSoon ? 'bg-warning/10' : 'bg-muted'
                       )}>
-                        <Calendar className={cn(
+                        <CalendarIcon className={cn(
                           'w-4 h-4',
                           isOverdue ? 'text-destructive' : isDueSoon ? 'text-warning' : 'text-foreground'
                         )} />
