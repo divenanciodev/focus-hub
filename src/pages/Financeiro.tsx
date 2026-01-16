@@ -43,7 +43,9 @@ import {
   Download,
   History,
   Clock,
+  Calculator,
 } from 'lucide-react';
+import { BudgetDraft } from '@/components/financial/BudgetDraft';
 import {
   Dialog,
   DialogContent,
@@ -688,6 +690,10 @@ export default function Financeiro() {
           <TabsTrigger value="variaveis">Despesas Variáveis</TabsTrigger>
           <TabsTrigger value="compras">Compras</TabsTrigger>
           <TabsTrigger value="consorcio">Consórcio</TabsTrigger>
+          <TabsTrigger value="rascunho" className="gap-1.5">
+            <Calculator className="w-4 h-4" />
+            Rascunho
+          </TabsTrigger>
           <TabsTrigger value="relatorios" className="gap-1.5">
             <FileBarChart className="w-4 h-4" />
             Relatórios
@@ -1464,6 +1470,11 @@ export default function Financeiro() {
               })}
             </div>
           )}
+        </TabsContent>
+
+        {/* Rascunho */}
+        <TabsContent value="rascunho" className="mt-0">
+          <BudgetDraft />
         </TabsContent>
 
         {/* Relatórios */}
