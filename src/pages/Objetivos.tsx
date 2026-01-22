@@ -258,7 +258,7 @@ export default function Objetivos() {
           onAction={() => setIsCreateModalOpen(true)}
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {objectives.map((objective) => {
             const completedSteps = objective.steps.filter((s) => s.completed).length;
             const progress = objective.steps.length > 0 ? (completedSteps / objective.steps.length) * 100 : 0;
@@ -268,27 +268,17 @@ export default function Objetivos() {
               <div
                 key={objective.id}
                 className={cn(
-                  'bg-card border border-border rounded-xl overflow-hidden border-l-4 flex flex-col',
+                  'bg-card border border-border rounded-lg overflow-hidden border-l-4 flex flex-col hover:border-foreground/20 hover:shadow-md transition-all duration-200',
                   getPriorityColor(objective.priority)
                 )}
               >
                 {/* Header */}
-                <div className="p-4 flex-1">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-secondary">
-                        <Target className="w-5 h-5 text-foreground" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">{objective.title}</h3>
-                        <span className="text-xs text-muted-foreground">
-                          Prioridade: {getPriorityLabel(objective.priority)}
-                        </span>
-                      </div>
-                    </div>
+                <div className="p-3 flex-1">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-medium text-sm text-foreground line-clamp-2">{objective.title}</h3>
                     <span
                       className={cn(
-                        'text-xs px-2 py-1 rounded font-medium whitespace-nowrap',
+                        'text-xs px-1.5 py-0.5 rounded font-medium whitespace-nowrap ml-2',
                         getStatusColor(objective.status)
                       )}
                     >
@@ -296,39 +286,40 @@ export default function Objetivos() {
                     </span>
                   </div>
 
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {getPriorityLabel(objective.priority)}
+                  </p>
+
                   {objective.description && (
-                    <p className="text-sm text-muted-foreground mb-3">
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                       {objective.description}
                     </p>
                   )}
 
                   {/* Requirements */}
                   {objective.requiresMoney && objective.estimatedCost && (
-                    <div className="flex items-center gap-2 mb-3 p-2 bg-secondary/50 rounded-lg">
-                      <DollarSign className="w-4 h-4 text-success" />
-                      <span className="text-sm text-foreground">
-                        Custo estimado: <strong>{formatCurrency(objective.estimatedCost)}</strong>
+                    <div className="flex items-center gap-1.5 mb-2 text-xs">
+                      <DollarSign className="w-3 h-3 text-success" />
+                      <span className="text-muted-foreground">
+                        {formatCurrency(objective.estimatedCost)}
                       </span>
                     </div>
                   )}
 
                   {/* Progress */}
                   {objective.steps.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Progresso</span>
-                        <span className="font-medium text-foreground">
-                          {completedSteps}/{objective.steps.length} etapas
-                        </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{completedSteps}/{objective.steps.length} etapas</span>
                       </div>
                       <ProgressBar value={progress} size="sm" />
                     </div>
                   )}
 
                   {objective.steps.length === 0 && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <AlertCircle className="w-4 h-4" />
-                      <span>Sem etapas definidas</span>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>Sem etapas</span>
                     </div>
                   )}
                 </div>
