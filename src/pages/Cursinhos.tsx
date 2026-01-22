@@ -345,6 +345,19 @@ export default function Cursinhos() {
                   key={course.id}
                   className="bg-card border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
                 >
+                  {course.imageUrl ? (
+                    <div className="h-28 bg-muted">
+                      <img
+                        src={course.imageUrl}
+                        alt={course.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <Image className="w-8 h-8 text-primary/40" />
+                    </div>
+                  )}
                   <div className="p-3 flex flex-col flex-1">
                     <h3 className="font-medium text-sm text-foreground mb-0.5 line-clamp-2">{course.name}</h3>
                     <p className="text-xs text-muted-foreground mb-2">{course.theme}</p>
@@ -362,7 +375,6 @@ export default function Cursinhos() {
 
                     <div className="text-xs text-muted-foreground mb-2">
                       <span>{course.curriculum.length} itens na grade</span>
-                      {course.imageUrl && <span className="ml-2">• Imagem ✓</span>}
                     </div>
 
                     <div className="flex-1" />
