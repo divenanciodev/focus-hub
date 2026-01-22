@@ -139,12 +139,32 @@ export function useLinkBank() {
 
   const deleteFolder = async (id: string) => {
     try {
+      // Get all subfolders of this folder to unassign their links
+      const folderSubfolderIds = subfolders.filter((s) => s.folderId === id).map((s) => s.id);
+      
+      // Unassign all links from these subfolders (set subfolder_id to null)
+      if (folderSubfolderIds.length > 0) {
+        const { error: linksError } = await supabase
+          .from('links')
+          .update({ subfolder_id: null })
+          .in('subfolder_id', folderSubfolderIds);
+        
+        if (linksError) throw linksError;
+      }
+
       const { error } = await supabase.from('link_folders').delete().eq('id', id);
       if (error) throw error;
 
+      // Update local state: remove folder, subfolders, and unassign links
       setFolders((prev) => prev.filter((f) => f.id !== id));
       setSubfolders((prev) => prev.filter((s) => s.folderId !== id));
-      toast.success('Pasta excluída!');
+      setLinks((prev) => prev.map((l) => 
+        folderSubfolderIds.includes(l.subfolderId || '') 
+          ? { ...l, subfolderId: undefined } 
+          : l
+      ));
+      
+      toast.success('Pasta excluída! Os links foram movidos para "Meus Links".');
       return true;
     } catch (error) {
       console.error('Error deleting folder:', error);
@@ -206,12 +226,24 @@ export function useLinkBank() {
 
   const deleteSubfolder = async (id: string) => {
     try {
+      // Unassign all links from this subfolder (set subfolder_id to null)
+      const { error: linksError } = await supabase
+        .from('links')
+        .update({ subfolder_id: null })
+        .eq('subfolder_id', id);
+      
+      if (linksError) throw linksError;
+
       const { error } = await supabase.from('link_subfolders').delete().eq('id', id);
       if (error) throw error;
 
+      // Update local state: remove subfolder and unassign its links
       setSubfolders((prev) => prev.filter((s) => s.id !== id));
-      setLinks((prev) => prev.filter((l) => l.subfolderId !== id));
-      toast.success('Subpasta excluída!');
+      setLinks((prev) => prev.map((l) => 
+        l.subfolderId === id ? { ...l, subfolderId: undefined } : l
+      ));
+      
+      toast.success('Subpasta excluída! Os links foram movidos para "Meus Links".');
       return true;
     } catch (error) {
       console.error('Error deleting subfolder:', error);
