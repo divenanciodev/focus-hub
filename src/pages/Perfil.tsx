@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { TrashSection } from '@/components/profile/TrashSection';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsers, UserWithRole } from '@/hooks/useUsers';
 import { Button } from '@/components/ui/button';
@@ -582,6 +583,9 @@ export default function Perfil() {
               )}
             </div>
           )}
+
+          {/* Trash Section */}
+          <TrashSection />
 
           {/* Save All Settings */}
           <Button onClick={handleSaveSettings} size="lg" className="w-full">
