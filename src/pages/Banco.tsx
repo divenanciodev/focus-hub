@@ -7,6 +7,8 @@ import {
   Search, 
   Plus, 
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   FolderPlus,
   Link as LinkIcon,
   Loader2,
@@ -15,6 +17,7 @@ import {
   FolderInput,
   Copy,
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { useLinkBank, BankFolder, BankSubfolder, BankLink } from '@/hooks/useLinkBank';
 import { FolderCard } from '@/components/banco/FolderCard';
@@ -61,6 +64,7 @@ export default function Banco() {
   } = useLinkBank();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [organizedLinksOpen, setOrganizedLinksOpen] = useState(true);
   
   // Navigation state for library tab
   const [currentFolder, setCurrentFolder] = useState<BankFolder | null>(null);
@@ -350,84 +354,97 @@ export default function Banco() {
                   </div>
                 )}
 
-                {/* Assigned links section */}
+                {/* Assigned links section - Collapsible */}
                 {links.filter(l => l.subfolderId).length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                      Links organizados ({links.filter(l => l.subfolderId).length})
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {links.filter(l => l.subfolderId && (
-                        !searchTerm || 
-                        l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        l.description?.toLowerCase().includes(searchTerm.toLowerCase())
-                      )).map((link) => {
-                        const subfolder = subfolders.find(sf => sf.id === link.subfolderId);
-                        const folder = subfolder ? folders.find(f => f.id === subfolder.folderId) : null;
-                        
-                        return (
-                          <div
-                            key={link.id}
-                            className="bg-card border border-border rounded-lg p-4 hover:border-foreground/20 transition-all"
-                          >
-                            <div className="flex items-start gap-3">
-                              {link.imageUrl ? (
-                                <img src={link.imageUrl} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" />
-                              ) : (
-                                <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                  <LinkIcon className="w-5 h-5 text-primary" />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm truncate">{link.name}</h4>
-                                {folder && subfolder && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {folder.name} / {subfolder.name}
-                                  </p>
+                  <Collapsible open={organizedLinksOpen} onOpenChange={setOrganizedLinksOpen}>
+                    <CollapsibleTrigger asChild>
+                      <button className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3 hover:text-foreground transition-colors w-full">
+                        {organizedLinksOpen ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronUp className="w-4 h-4" />
+                        )}
+                        Links organizados ({links.filter(l => l.subfolderId).length})
+                        {!organizedLinksOpen && (
+                          <span className="text-xs text-muted-foreground/70 ml-auto">Clique para expandir</span>
+                        )}
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {links.filter(l => l.subfolderId && (
+                          !searchTerm || 
+                          l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          l.description?.toLowerCase().includes(searchTerm.toLowerCase())
+                        )).map((link) => {
+                          const subfolder = subfolders.find(sf => sf.id === link.subfolderId);
+                          const folder = subfolder ? folders.find(f => f.id === subfolder.folderId) : null;
+                          
+                          return (
+                            <div
+                              key={link.id}
+                              className="bg-card border border-border rounded-lg p-4 hover:border-foreground/20 transition-all"
+                            >
+                              <div className="flex items-start gap-3">
+                                {link.imageUrl ? (
+                                  <img src={link.imageUrl} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <LinkIcon className="w-5 h-5 text-primary" />
+                                  </div>
                                 )}
-                                <button 
-                                  onClick={async () => {
-                                    await navigator.clipboard.writeText(link.url);
-                                    toast.success('Link copiado!');
-                                  }}
-                                  className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium text-sm truncate">{link.name}</h4>
+                                  {folder && subfolder && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {folder.name} / {subfolder.name}
+                                    </p>
+                                  )}
+                                  <button 
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      await navigator.clipboard.writeText(link.url);
+                                      toast.success('Link copiado!');
+                                    }}
+                                    className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                    Copiar link
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex gap-1 mt-3 pt-3 border-t border-border">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 h-7 text-xs"
+                                  onClick={() => handleRemoveFromFolder(link.id)}
                                 >
-                                  <Copy className="w-3 h-3" />
-                                  Copiar link
-                                </button>
+                                  Remover da pasta
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2"
+                                  onClick={() => { setEditingLink(link); setLinkModalOpen(true); }}
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-destructive hover:text-destructive"
+                                  onClick={() => handleDeleteLink(link.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex gap-1 mt-3 pt-3 border-t border-border">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 h-7 text-xs"
-                                onClick={() => handleRemoveFromFolder(link.id)}
-                              >
-                                Remover da pasta
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2"
-                                onClick={() => { setEditingLink(link); setLinkModalOpen(true); }}
-                              >
-                                <Pencil className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 px-2 text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteLink(link.id)}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                          );
+                        })}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
               </div>
             </>
