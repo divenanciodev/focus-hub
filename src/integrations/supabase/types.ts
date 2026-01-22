@@ -20,6 +20,7 @@ export type Database = {
           cargos: string | null
           carreiras: string | null
           created_at: string | null
+          deleted_at: string | null
           edital_url: string | null
           escolaridade: string | null
           evaluation_criteria: Json | null
@@ -45,6 +46,7 @@ export type Database = {
           cargos?: string | null
           carreiras?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           edital_url?: string | null
           escolaridade?: string | null
           evaluation_criteria?: Json | null
@@ -70,6 +72,7 @@ export type Database = {
           cargos?: string | null
           carreiras?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           edital_url?: string | null
           escolaridade?: string | null
           evaluation_criteria?: Json | null
@@ -97,6 +100,7 @@ export type Database = {
           created_at: string | null
           curriculum: Json | null
           deadline: string | null
+          deleted_at: string | null
           id: string
           image_url: string | null
           is_from_bank: boolean | null
@@ -113,6 +117,7 @@ export type Database = {
           created_at?: string | null
           curriculum?: Json | null
           deadline?: string | null
+          deleted_at?: string | null
           id?: string
           image_url?: string | null
           is_from_bank?: boolean | null
@@ -129,6 +134,7 @@ export type Database = {
           created_at?: string | null
           curriculum?: Json | null
           deadline?: string | null
+          deleted_at?: string | null
           id?: string
           image_url?: string | null
           is_from_bank?: boolean | null
@@ -148,6 +154,7 @@ export type Database = {
           color: string | null
           cover_image: string | null
           created_at: string | null
+          deleted_at: string | null
           grade: string | null
           hours_studied: number | null
           id: string
@@ -164,6 +171,7 @@ export type Database = {
           color?: string | null
           cover_image?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           grade?: string | null
           hours_studied?: number | null
           id?: string
@@ -180,6 +188,7 @@ export type Database = {
           color?: string | null
           cover_image?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           grade?: string | null
           hours_studied?: number | null
           id?: string
@@ -311,6 +320,7 @@ export type Database = {
         Row: {
           cards: Json | null
           created_at: string | null
+          deleted_at: string | null
           id: string
           last_studied: string | null
           name: string
@@ -320,6 +330,7 @@ export type Database = {
         Insert: {
           cards?: Json | null
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           last_studied?: string | null
           name: string
@@ -329,6 +340,7 @@ export type Database = {
         Update: {
           cards?: Json | null
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           last_studied?: string | null
           name?: string
@@ -498,6 +510,7 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string | null
+          deleted_at: string | null
           icon: string | null
           id: string
           is_active: boolean | null
@@ -508,6 +521,7 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
@@ -518,6 +532,7 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
@@ -579,6 +594,7 @@ export type Database = {
           category: string | null
           color: string | null
           created_at: string | null
+          deleted_at: string | null
           icon: string | null
           id: string
           is_active: boolean | null
@@ -592,6 +608,7 @@ export type Database = {
           category?: string | null
           color?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
@@ -605,6 +622,7 @@ export type Database = {
           category?: string | null
           color?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
@@ -620,6 +638,7 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string | null
+          deleted_at: string | null
           description: string | null
           id: string
           name: string
@@ -629,6 +648,7 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name: string
@@ -638,6 +658,7 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -649,6 +670,7 @@ export type Database = {
       link_subfolders: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
           description: string | null
           folder_id: string | null
           id: string
@@ -658,6 +680,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           folder_id?: string | null
           id?: string
@@ -667,6 +690,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           folder_id?: string | null
           id?: string
@@ -687,6 +711,7 @@ export type Database = {
       links: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
           description: string | null
           id: string
           image_url: string | null
@@ -698,6 +723,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -709,6 +735,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -731,6 +758,7 @@ export type Database = {
       objectives: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
           description: string | null
           estimated_cost: number | null
           id: string
@@ -744,6 +772,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           estimated_cost?: number | null
           id?: string
@@ -757,6 +786,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
           description?: string | null
           estimated_cost?: number | null
           id?: string
@@ -832,6 +862,7 @@ export type Database = {
           block_duration: number | null
           blocks: Json | null
           created_at: string | null
+          deleted_at: string | null
           end_time: string | null
           hours_per_day: number | null
           id: string
@@ -846,6 +877,7 @@ export type Database = {
           block_duration?: number | null
           blocks?: Json | null
           created_at?: string | null
+          deleted_at?: string | null
           end_time?: string | null
           hours_per_day?: number | null
           id?: string
@@ -860,6 +892,7 @@ export type Database = {
           block_duration?: number | null
           blocks?: Json | null
           created_at?: string | null
+          deleted_at?: string | null
           end_time?: string | null
           hours_per_day?: number | null
           id?: string
@@ -875,6 +908,7 @@ export type Database = {
       simulados: {
         Row: {
           created_at: string | null
+          deleted_at: string | null
           difficulty: string | null
           discipline: string | null
           id: string
@@ -889,6 +923,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deleted_at?: string | null
           difficulty?: string | null
           discipline?: string | null
           id?: string
@@ -903,6 +938,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deleted_at?: string | null
           difficulty?: string | null
           discipline?: string | null
           id?: string

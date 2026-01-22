@@ -37,9 +37,9 @@ export function useLinkBank() {
   const fetchAll = async () => {
     try {
       const [foldersRes, subfoldersRes, linksRes] = await Promise.all([
-        supabase.from('link_folders').select('*').order('created_at', { ascending: false }),
-        supabase.from('link_subfolders').select('*').order('created_at', { ascending: false }),
-        supabase.from('links').select('*').order('created_at', { ascending: false }),
+        supabase.from('link_folders').select('*').is('deleted_at', null).order('created_at', { ascending: false }),
+        supabase.from('link_subfolders').select('*').is('deleted_at', null).order('created_at', { ascending: false }),
+        supabase.from('links').select('*').is('deleted_at', null).order('created_at', { ascending: false }),
       ]);
 
       if (foldersRes.error) throw foldersRes.error;
@@ -139,7 +139,7 @@ export function useLinkBank() {
 
   const deleteFolder = async (id: string) => {
     try {
-      // Get all subfolders of this folder to unassign their links
+      // Get all subfolders of this folder to soft-delete them and unassign their links
       const folderSubfolderIds = subfolders.filter((s) => s.folderId === id).map((s) => s.id);
       
       // Unassign all links from these subfolders (set subfolder_id to null)
@@ -150,9 +150,21 @@ export function useLinkBank() {
           .in('subfolder_id', folderSubfolderIds);
         
         if (linksError) throw linksError;
+
+        // Soft-delete all subfolders
+        const { error: subfoldersError } = await supabase
+          .from('link_subfolders')
+          .update({ deleted_at: new Date().toISOString() } as Record<string, unknown>)
+          .in('id', folderSubfolderIds);
+        
+        if (subfoldersError) throw subfoldersError;
       }
 
-      const { error } = await supabase.from('link_folders').delete().eq('id', id);
+      // Soft-delete the folder
+      const { error } = await supabase
+        .from('link_folders')
+        .update({ deleted_at: new Date().toISOString() } as Record<string, unknown>)
+        .eq('id', id);
       if (error) throw error;
 
       // Update local state: remove folder, subfolders, and unassign links
@@ -164,7 +176,7 @@ export function useLinkBank() {
           : l
       ));
       
-      toast.success('Pasta excluída! Os links foram movidos para "Meus Links".');
+      toast.success('Pasta movida para a lixeira! Os links foram movidos para "Meus Links".');
       return true;
     } catch (error) {
       console.error('Error deleting folder:', error);
@@ -234,7 +246,11 @@ export function useLinkBank() {
       
       if (linksError) throw linksError;
 
-      const { error } = await supabase.from('link_subfolders').delete().eq('id', id);
+      // Soft-delete the subfolder
+      const { error } = await supabase
+        .from('link_subfolders')
+        .update({ deleted_at: new Date().toISOString() } as Record<string, unknown>)
+        .eq('id', id);
       if (error) throw error;
 
       // Update local state: remove subfolder and unassign its links
@@ -243,7 +259,7 @@ export function useLinkBank() {
         l.subfolderId === id ? { ...l, subfolderId: undefined } : l
       ));
       
-      toast.success('Subpasta excluída! Os links foram movidos para "Meus Links".');
+      toast.success('Subpasta movida para a lixeira! Os links foram movidos para "Meus Links".');
       return true;
     } catch (error) {
       console.error('Error deleting subfolder:', error);
@@ -333,11 +349,15 @@ export function useLinkBank() {
 
   const deleteLink = async (id: string) => {
     try {
-      const { error } = await supabase.from('links').delete().eq('id', id);
+      // Soft-delete the link
+      const { error } = await supabase
+        .from('links')
+        .update({ deleted_at: new Date().toISOString() } as Record<string, unknown>)
+        .eq('id', id);
       if (error) throw error;
 
       setLinks((prev) => prev.filter((l) => l.id !== id));
-      toast.success('Link excluído!');
+      toast.success('Link movido para a lixeira!');
       return true;
     } catch (error) {
       console.error('Error deleting link:', error);
