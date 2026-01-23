@@ -209,52 +209,52 @@ export default function Estudos() {
                 borderColor: discipline.color || 'var(--border)',
               }}
             >
-              {/* Image / Placeholder */}
-              {discipline.coverImage ? (
-                <div className="h-32 w-full overflow-hidden">
-                  <img
-                    src={discipline.coverImage}
-                    alt={discipline.name}
-                    className="w-full h-full object-cover"
-                  />
+              {/* Image / Placeholder with action buttons */}
+              <div className="relative">
+                {discipline.coverImage ? (
+                  <div className="h-32 w-full overflow-hidden">
+                    <img
+                      src={discipline.coverImage}
+                      alt={discipline.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div 
+                    className="h-32 w-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: discipline.color ? `${discipline.color}15` : 'hsl(var(--secondary))',
+                    }}
+                  >
+                    <BookOpen 
+                      className="w-12 h-12 opacity-30" 
+                      style={{ color: discipline.color || 'currentColor' }}
+                    />
+                  </div>
+                )}
+                
+                {/* Edit/Delete buttons - top right corner */}
+                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => handleEditClick(e, discipline)}
+                    className="p-1.5 rounded-md bg-background/80 backdrop-blur-sm hover:bg-background text-muted-foreground hover:text-foreground transition-colors"
+                    title="Editar"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => handleDeleteClick(e, discipline)}
+                    className="p-1.5 rounded-md bg-background/80 backdrop-blur-sm hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                    title="Excluir"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-              ) : (
-                <div 
-                  className="h-32 w-full flex items-center justify-center"
-                  style={{
-                    backgroundColor: discipline.color ? `${discipline.color}15` : 'hsl(var(--secondary))',
-                  }}
-                >
-                  <BookOpen 
-                    className="w-12 h-12 opacity-30" 
-                    style={{ color: discipline.color || 'currentColor' }}
-                  />
-                </div>
-              )}
+              </div>
 
               <div className="p-4 flex flex-col flex-1">
-                {/* Header with name and actions */}
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-foreground line-clamp-2">{discipline.name}</h3>
-                  
-                  {/* Edit/Delete buttons - visible on hover */}
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
-                    <button
-                      onClick={(e) => handleEditClick(e, discipline)}
-                      className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                      title="Editar"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteClick(e, discipline)}
-                      className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                      title="Excluir"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+                {/* Header with name */}
+                <h3 className="font-semibold text-foreground line-clamp-2 mb-2">{discipline.name}</h3>
 
                 {/* Subject info */}
                 {discipline.subject && (
