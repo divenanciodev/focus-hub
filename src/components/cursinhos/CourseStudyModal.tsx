@@ -17,8 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Course, CurriculumItem } from '@/hooks/useCourses';
 import { useCourseStudySessions, CourseStudySession, StudyType } from '@/hooks/useCourseStudySessions';
+import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
 import { 
   Clock, 
   Plus, 
@@ -29,10 +35,13 @@ import {
   FileText,
   ListChecks,
   BookMarked,
-  HelpCircle
+  HelpCircle,
+  Timer,
+  ChevronDown
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 interface CourseStudyModalProps {
   course: Course | null;
@@ -62,6 +71,29 @@ export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModa
     readingMinutes: 30,
   });
   const [newTag, setNewTag] = useState('');
+  const [pomodoroOpen, setPomodoroOpen] = useState(false);
+  const [pomodoroMinutes, setPomodoroMinutes] = useState(0);
+
+  const handlePomodoroComplete = (minutes: number) => {
+    setPomodoroMinutes((prev) => prev + minutes);
+    toast.success(`Sessão Pomodoro concluída! +${minutes} minutos`, {
+      description: 'O tempo será adicionado ao registro de estudo.',
+    });
+    
+    // Auto-fill the time based on study type
+    setNewStudy((prev) => {
+      switch (prev.studyType) {
+        case 'resumo':
+          return { ...prev, summaryMinutes: prev.summaryMinutes + minutes };
+        case 'exercicios':
+          return { ...prev, exerciseMinutes: prev.exerciseMinutes + minutes };
+        case 'leitura':
+          return { ...prev, readingMinutes: prev.readingMinutes + minutes };
+        default:
+          return prev;
+      }
+    });
+  };
 
   const handleAddTag = () => {
     if (newTag.trim() && !newStudy.tags.includes(newTag.trim())) {
@@ -173,6 +205,27 @@ export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModa
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden flex flex-col gap-4">
+          {/* Timer Pomodoro */}
+          <Collapsible open={pomodoroOpen} onOpenChange={setPomodoroOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <div className="flex items-center gap-2">
+                  <Timer className="w-4 h-4 text-primary" />
+                  <span>Timer Pomodoro</span>
+                  {pomodoroMinutes > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      +{pomodoroMinutes}min acumulados
+                    </Badge>
+                  )}
+                </div>
+                <ChevronDown className={`w-4 h-4 transition-transform ${pomodoroOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2">
+              <PomodoroTimer compact onComplete={handlePomodoroComplete} />
+            </CollapsibleContent>
+          </Collapsible>
+
           {/* Formulário de Registro */}
           <div className="p-4 bg-secondary/30 rounded-lg space-y-3">
             <Label className="text-sm font-medium">Registrar Estudo</Label>
