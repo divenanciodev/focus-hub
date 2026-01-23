@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { subjectColors, weekDays } from '@/types/schedule';
 import { StudyPlan, Discipline } from '@/types';
-import { X, Plus, Upload, Image as ImageIcon, RefreshCw } from 'lucide-react';
+import { X, Plus, Image as ImageIcon, Link } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -113,32 +113,15 @@ export function CreateDisciplineModalEnhanced({
       setCoverImage(initialData.coverImage);
     } else if (open && !initialData) {
       resetForm();
-      // Set a random default image for new disciplines
-      setCoverImage(getRandomDefaultImage());
     }
   }, [open, initialData]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('A imagem deve ter no máximo 5MB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageUrlChange = (url: string) => {
+    setCoverImage(url.trim() || undefined);
   };
 
   const handleRemoveImage = () => {
-    setCoverImage(getRandomDefaultImage());
-  };
-
-  const handleRandomizeImage = () => {
-    setCoverImage(getRandomDefaultImage());
+    setCoverImage(undefined);
   };
 
   const handleAddTag = () => {
@@ -217,13 +200,16 @@ export function CreateDisciplineModalEnhanced({
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground border-b pb-2">🖼️ Imagem de Capa</h3>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-start gap-4">
               {coverImage ? (
-                <div className="relative group">
+                <div className="relative group flex-shrink-0">
                   <img
                     src={coverImage}
                     alt="Capa"
                     className="w-24 h-24 object-cover rounded-lg border-2 border-border"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&q=80';
+                    }}
                   />
                   <button
                     type="button"
@@ -234,39 +220,25 @@ export function CreateDisciplineModalEnhanced({
                   </button>
                 </div>
               ) : (
-                <div className="w-24 h-24 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-secondary/50">
+                <div className="w-24 h-24 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-secondary/50 flex-shrink-0">
                   <ImageIcon className="w-8 h-8 text-muted-foreground" />
                 </div>
               )}
               
               <div className="flex-1 space-y-2">
-                <div className="flex gap-2">
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                    <div className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg hover:bg-secondary transition-colors">
-                      <Upload className="w-4 h-4" />
-                      <span className="text-sm">{coverImage ? 'Trocar' : 'Enviar'}</span>
-                    </div>
-                  </label>
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRandomizeImage}
-                    className="flex items-center gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    <span>Sortear outra</span>
-                  </Button>
-                </div>
+                <Label htmlFor="cover-url" className="flex items-center gap-2">
+                  <Link className="w-4 h-4" />
+                  Endereço da imagem
+                </Label>
+                <Input
+                  id="cover-url"
+                  type="url"
+                  value={coverImage || ''}
+                  onChange={(e) => handleImageUrlChange(e.target.value)}
+                  placeholder="https://exemplo.com/imagem.jpg"
+                />
                 <p className="text-xs text-muted-foreground">
-                  Envie sua imagem ou sorteie uma das nossas sugestões
+                  Cole a URL de uma imagem para usar como capa
                 </p>
               </div>
             </div>
