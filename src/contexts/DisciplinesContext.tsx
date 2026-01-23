@@ -13,6 +13,7 @@ interface DisciplinesContextType {
     color: string;
     studyPlan?: Discipline['studyPlan'];
     coverImage?: string;
+    subtopics?: string[];
   }) => Promise<Discipline | null>;
   updateDiscipline: (id: string, data: Partial<Discipline>) => Promise<boolean>;
   deleteDiscipline: (id: string) => Promise<boolean>;

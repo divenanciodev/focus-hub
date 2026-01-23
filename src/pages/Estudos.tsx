@@ -51,11 +51,13 @@ export default function Estudos() {
     color: string;
     studyPlan: Discipline['studyPlan'];
     coverImage?: string;
+    subtopics?: string[];
   }) => {
     await addDiscipline({
       ...data,
       specificSubject: data.specificSubject || undefined,
       grade: data.grade || undefined,
+      subtopics: data.subtopics || [],
     });
     setIsCreateModalOpen(false);
   };
@@ -69,12 +71,14 @@ export default function Estudos() {
     color: string;
     studyPlan: Discipline['studyPlan'];
     coverImage?: string;
+    subtopics?: string[];
   }) => {
     if (editingDiscipline) {
       const success = await updateDiscipline(editingDiscipline.id, {
         ...data,
         specificSubject: data.specificSubject || undefined,
         grade: data.grade || undefined,
+        subtopics: data.subtopics || [],
       });
       if (success) {
         toast.success('Disciplina atualizada com sucesso!');
@@ -229,7 +233,7 @@ export default function Estudos() {
 
               <div className="p-4 flex flex-col flex-1">
                 {/* Header with name and actions */}
-                <div className="flex items-start justify-between mb-3 flex-1">
+                <div className="flex items-start justify-between mb-2">
                   <h3 className="font-semibold text-foreground line-clamp-2">{discipline.name}</h3>
                   
                   {/* Edit/Delete buttons - visible on hover */}
@@ -250,6 +254,33 @@ export default function Estudos() {
                     </button>
                   </div>
                 </div>
+
+                {/* Subject info */}
+                {discipline.subject && (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {discipline.subject}
+                    {discipline.specificSubject && ` › ${discipline.specificSubject}`}
+                  </p>
+                )}
+
+                {/* Subtopics preview */}
+                {discipline.subtopics && discipline.subtopics.length > 0 && (
+                  <div className="mb-3 flex-1">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Grade de Assuntos:</p>
+                    <div className="space-y-0.5 max-h-20 overflow-hidden">
+                      {discipline.subtopics.slice(0, 3).map((subtopic, idx) => (
+                        <p key={idx} className="text-xs text-muted-foreground truncate">
+                          • {subtopic}
+                        </p>
+                      ))}
+                      {discipline.subtopics.length > 3 && (
+                        <p className="text-xs text-muted-foreground/60">
+                          +{discipline.subtopics.length - 3} mais...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Progress - always at bottom */}
                 <div className="mt-auto">
