@@ -29,7 +29,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { CurriculumItemEditor } from '@/components/cursinhos/CurriculumItemEditor';
-import { CourseContentModal } from '@/components/cursinhos/CourseContentModal';
+import { CourseStudyModal } from '@/components/cursinhos/CourseStudyModal';
 
 export default function Cursinhos() {
   const { courses, loading, addCourse, updateCourse, deleteCourse, toggleCurriculumItem } = useCourses();
@@ -1011,8 +1011,8 @@ export default function Cursinhos() {
         </DialogContent>
       </Dialog>
 
-      {/* Course Content Modal - Resumos e Flashcards */}
-      <CourseContentModal
+      {/* Course Study Modal - Registro de Estudos */}
+      <CourseStudyModal
         course={contentCourse}
         open={!!contentCourse}
         onOpenChange={(open) => !open && setContentCourse(null)}
