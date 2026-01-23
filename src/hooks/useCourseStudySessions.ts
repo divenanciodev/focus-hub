@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export type StudyType = 'resumo' | 'exercicios' | 'leitura';
+
 export interface CourseStudySession {
   id: string;
   courseId: string;
@@ -10,6 +12,14 @@ export interface CourseStudySession {
   tags: string[];
   studyMinutes: number;
   createdAt: Date;
+  // New fields
+  curriculumItemId?: string;
+  curriculumItemTitle?: string;
+  studyType: StudyType;
+  questionsCount: number;
+  readingMinutes: number;
+  exerciseMinutes: number;
+  summaryMinutes: number;
 }
 
 export function useCourseStudySessions(courseId?: string) {
@@ -39,6 +49,13 @@ export function useCourseStudySessions(courseId?: string) {
         tags: s.tags || [],
         studyMinutes: s.study_minutes || 0,
         createdAt: new Date(s.created_at),
+        curriculumItemId: s.curriculum_item_id || undefined,
+        curriculumItemTitle: s.curriculum_item_title || undefined,
+        studyType: (s.study_type || 'resumo') as StudyType,
+        questionsCount: s.questions_count || 0,
+        readingMinutes: s.reading_minutes || 0,
+        exerciseMinutes: s.exercise_minutes || 0,
+        summaryMinutes: s.summary_minutes || 0,
       }));
 
       setSessions(mapped);
@@ -66,6 +83,13 @@ export function useCourseStudySessions(courseId?: string) {
           description: data.description,
           tags: data.tags,
           study_minutes: data.studyMinutes,
+          curriculum_item_id: data.curriculumItemId,
+          curriculum_item_title: data.curriculumItemTitle,
+          study_type: data.studyType,
+          questions_count: data.questionsCount,
+          reading_minutes: data.readingMinutes,
+          exercise_minutes: data.exerciseMinutes,
+          summary_minutes: data.summaryMinutes,
         }])
         .select()
         .single();
@@ -80,6 +104,13 @@ export function useCourseStudySessions(courseId?: string) {
         tags: newData.tags || [],
         studyMinutes: newData.study_minutes || 0,
         createdAt: new Date(newData.created_at),
+        curriculumItemId: newData.curriculum_item_id || undefined,
+        curriculumItemTitle: newData.curriculum_item_title || undefined,
+        studyType: (newData.study_type || 'resumo') as StudyType,
+        questionsCount: newData.questions_count || 0,
+        readingMinutes: newData.reading_minutes || 0,
+        exerciseMinutes: newData.exercise_minutes || 0,
+        summaryMinutes: newData.summary_minutes || 0,
       };
 
       setSessions((prev) => [mapped, ...prev]);
@@ -119,6 +150,10 @@ export function useCourseStudySessions(courseId?: string) {
     return Math.round((getTotalStudyMinutes() / 60) * 10) / 10;
   };
 
+  const getTotalQuestions = () => {
+    return sessions.reduce((acc, s) => acc + s.questionsCount, 0);
+  };
+
   useEffect(() => {
     fetchSessions();
   }, [courseId]);
@@ -130,6 +165,7 @@ export function useCourseStudySessions(courseId?: string) {
     deleteSession,
     getTotalStudyMinutes,
     getTotalStudyHours,
+    getTotalQuestions,
     refetch: fetchSessions,
   };
 }
