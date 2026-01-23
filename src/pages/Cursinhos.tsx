@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { useCourses, Course, CurriculumItem, CurriculumSubtopic } from '@/hooks/useCourses';
@@ -329,224 +329,159 @@ export default function Cursinhos() {
         <p className="text-muted-foreground mt-0.5 text-sm">Gerencie seus cursos e acompanhe seu progresso</p>
       </div>
 
-      <Tabs defaultValue="meus" className="w-full">
-        <div className="flex items-center gap-3 mb-3">
-          <TabsList>
-            <TabsTrigger value="meus">Meus Cursinhos</TabsTrigger>
-            <TabsTrigger value="banco">Biblioteca</TabsTrigger>
-          </TabsList>
-          <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="px-3 py-1.5 bg-muted rounded-md text-sm font-medium">Biblioteca</div>
+        <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Criar cursinho
+        </Button>
+      </div>
+
+      {/* Biblioteca de Cursinhos */}
+      {courses.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Nenhum cursinho na biblioteca ainda.</p>
+          <Button onClick={() => setIsCreateModalOpen(true)} className="mt-4">
             <Plus className="w-4 h-4 mr-2" />
-            Criar cursinho
+            Criar seu primeiro cursinho
           </Button>
         </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {courses.map((course) => (
+            <div
+              key={course.id}
+              className="bg-card border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col cursor-pointer"
+              onClick={() => navigate(`/cursinhos/${course.id}`)}
+            >
+              {course.imageUrl ? (
+                <div className="h-28 bg-muted">
+                  <img
+                    src={course.imageUrl}
+                    alt={course.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                  <Image className="w-8 h-8 text-primary/40" />
+                </div>
+              )}
+              <div className="p-3 flex flex-col flex-1">
+                <h3 className="font-medium text-sm text-foreground mb-0.5 line-clamp-2">{course.name}</h3>
+                <p className="text-xs text-muted-foreground mb-2">{course.theme}</p>
 
-        {/* Meus Cursinhos - Área de Edição e Gestão */}
-        <TabsContent value="meus" className="mt-0">
-          {courses.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">Nenhum cursinho criado ainda.</p>
-              <Button onClick={() => setIsCreateModalOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Criar seu primeiro cursinho
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {courses.map((course) => (
-                <div
-                  key={course.id}
-                  className="bg-card border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col"
-                >
-                  {course.imageUrl ? (
-                    <div className="h-28 bg-muted">
-                      <img
-                        src={course.imageUrl}
-                        alt={course.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                      <Image className="w-8 h-8 text-primary/40" />
-                    </div>
-                  )}
-                  <div className="p-3 flex flex-col flex-1">
-                    <h3 className="font-medium text-sm text-foreground mb-0.5 line-clamp-2">{course.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-2">{course.theme}</p>
-
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{course.workload}h</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>{formatDate(course.deadline)}</span>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-muted-foreground mb-2">
-                      <span>{course.curriculum.length} itens na grade</span>
-                    </div>
-
-                    <div className="flex-1" />
-
-                    <div className="flex gap-2 pt-2 border-t border-border">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-7 text-xs"
-                        onClick={() => handleEditCourse(course)}
-                      >
-                        <Pencil className="w-3 h-3 mr-1" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-7 text-xs text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteCourse(course.id)}
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        Excluir
-                      </Button>
-                    </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>{course.workload}h</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>{formatDate(course.deadline)}</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
 
-        {/* Cursinhos do Banco - Biblioteca de Visualização */}
-        <TabsContent value="banco" className="mt-0">
-          {courses.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhum cursinho na biblioteca ainda.</p>
-              <p className="text-sm text-muted-foreground mt-2">Crie cursinhos em "Meus Cursinhos" para visualizá-los aqui.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {courses.map((course) => (
-                <div
-                  key={course.id}
-                  className="bg-card border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col cursor-pointer"
-                  onClick={() => navigate(`/cursinhos/${course.id}`)}
-                >
-                  {course.imageUrl ? (
-                    <div className="h-28 bg-muted">
-                      <img
-                        src={course.imageUrl}
-                        alt={course.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-28 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                      <Image className="w-8 h-8 text-primary/40" />
-                    </div>
-                  )}
-                  <div className="p-3 flex flex-col flex-1">
-                    <h3 className="font-medium text-sm text-foreground mb-0.5 line-clamp-2">{course.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-2">{course.theme}</p>
+                <ProgressBar value={course.progress} showLabel className="mb-2" />
 
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{course.workload}h</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>{formatDate(course.deadline)}</span>
-                      </div>
-                    </div>
-
-                    <ProgressBar value={course.progress} showLabel className="mb-2" />
-
-                    {/* Grade Curricular */}
-                    {course.curriculum.length > 0 ? (
-                      <div className="mb-2 flex-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleCurriculumExpanded(course.id);
-                          }}
-                          className="flex items-center justify-between w-full text-xs font-medium text-foreground mb-1 hover:text-primary transition-colors"
-                        >
-                          <span>Grade Curricular ({course.curriculum.filter(i => i.completed).length}/{course.curriculum.length})</span>
-                          {expandedCurriculums.has(course.id) ? (
-                            <ChevronUp className="w-3 h-3" />
-                          ) : (
-                            <ChevronDown className="w-3 h-3" />
-                          )}
-                        </button>
-                        {expandedCurriculums.has(course.id) && (
-                          <div className="space-y-1 max-h-40 overflow-y-auto">
-                            {course.curriculum.map((item) => (
-                              <div key={item.id}>
-                                <div
-                                  className="flex items-center gap-1.5 p-1.5 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
-                                  onClick={() => handleToggleCurriculumItem(course.id, item.id)}
-                                >
-                                  <Checkbox
-                                    checked={item.completed}
-                                    onCheckedChange={() => handleToggleCurriculumItem(course.id, item.id)}
-                                    className="h-3.5 w-3.5"
-                                  />
-                                  <span className={`text-xs font-medium ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                                    {item.title}
-                                  </span>
-                                </div>
-                                {/* Subtópicos */}
-                                {item.subtopics && item.subtopics.length > 0 && (
-                                  <div className="ml-5 mt-0.5 space-y-0.5">
-                                    {item.subtopics.map((sub) => (
-                                      <div
-                                        key={sub.id}
-                                        className="flex items-center gap-1.5 p-1 pl-2 rounded bg-muted/50 text-xs text-muted-foreground"
-                                      >
-                                        <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
-                                        <span className={sub.completed ? 'line-through' : ''}>{sub.title}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground mb-2 flex-1">Sem grade curricular.</p>
-                    )}
-
-                    <div className="flex gap-2 pt-2 border-t border-border mt-auto" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 h-7 text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/cursinhos/${course.id}`);
-                        }}
-                      >
-                        Ver detalhes
-                      </Button>
-                      {course.platform && (
-                        <Button size="sm" className="flex-1 h-7 text-xs">
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          Acessar
-                        </Button>
+                {/* Grade Curricular */}
+                {course.curriculum.length > 0 ? (
+                  <div className="mb-2 flex-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleCurriculumExpanded(course.id);
+                      }}
+                      className="flex items-center justify-between w-full text-xs font-medium text-foreground mb-1 hover:text-primary transition-colors"
+                    >
+                      <span>Grade Curricular ({course.curriculum.filter(i => i.completed).length}/{course.curriculum.length})</span>
+                      {expandedCurriculums.has(course.id) ? (
+                        <ChevronUp className="w-3 h-3" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3" />
                       )}
-                    </div>
+                    </button>
+                    {expandedCurriculums.has(course.id) && (
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                        {course.curriculum.map((item) => (
+                          <div key={item.id}>
+                            <div
+                              className="flex items-center gap-1.5 p-1.5 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
+                              onClick={() => handleToggleCurriculumItem(course.id, item.id)}
+                            >
+                              <Checkbox
+                                checked={item.completed}
+                                onCheckedChange={() => handleToggleCurriculumItem(course.id, item.id)}
+                                className="h-3.5 w-3.5"
+                              />
+                              <span className={`text-xs font-medium ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                {item.title}
+                              </span>
+                            </div>
+                            {/* Subtópicos */}
+                            {item.subtopics && item.subtopics.length > 0 && (
+                              <div className="ml-5 mt-0.5 space-y-0.5">
+                                {item.subtopics.map((sub) => (
+                                  <div
+                                    key={sub.id}
+                                    className="flex items-center gap-1.5 p-1 pl-2 rounded bg-muted/50 text-xs text-muted-foreground"
+                                  >
+                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                                    <span className={sub.completed ? 'line-through' : ''}>{sub.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground mb-2 flex-1">Sem grade curricular.</p>
+                )}
+
+                <div className="flex gap-2 pt-2 border-t border-border mt-auto" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-7 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/cursinhos/${course.id}`);
+                    }}
+                  >
+                    Ver detalhes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-7 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditCourse(course);
+                    }}
+                  >
+                    <Pencil className="w-3 h-3 mr-1" />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs text-destructive hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCourse(course.id);
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
                 </div>
-              ))}
+              </div>
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          ))}
+        </div>
+      )}
 
       {/* Create Course Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
