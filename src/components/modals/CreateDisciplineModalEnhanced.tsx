@@ -309,41 +309,48 @@ export function CreateDisciplineModalEnhanced({
             {/* Subtópicos */}
             <div className="space-y-2">
               <Label>Subtópicos do Conteúdo</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={subtopicInput}
-                  onChange={(e) => setSubtopicInput(e.target.value)}
-                  onKeyDown={handleSubtopicKeyDown}
-                  placeholder="Adicionar subtópico..."
-                  className="flex-1"
-                />
-                <Button type="button" size="icon" onClick={handleAddSubtopic}>
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-              {subtopics.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {subtopics.map((subtopic) => (
-                    <Badge
-                      key={subtopic}
-                      variant="outline"
-                      className="flex items-center gap-1"
-                    >
-                      {subtopic}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSubtopic(subtopic)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
+              <div className="border border-border rounded-lg bg-secondary/50 p-3">
+                {/* Input para adicionar */}
+                <div className="flex gap-2 mb-2">
+                  <Input
+                    value={subtopicInput}
+                    onChange={(e) => setSubtopicInput(e.target.value)}
+                    onKeyDown={handleSubtopicKeyDown}
+                    placeholder="Adicionar subtópico..."
+                    className="h-8 text-sm flex-1"
+                  />
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={handleAddSubtopic}>
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Adicione os tópicos que serão estudados nesta disciplina
-              </p>
+
+                {/* Lista de subtópicos */}
+                {subtopics.length > 0 ? (
+                  <div className="space-y-1 pl-2 border-t border-border/50 pt-2">
+                    {subtopics.map((subtopic, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-1.5 rounded bg-background/50 text-sm group"
+                      >
+                        <span className="text-muted-foreground">• {subtopic}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveSubtopic(subtopic)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Nenhum subtópico adicionado
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
