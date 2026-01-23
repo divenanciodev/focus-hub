@@ -325,15 +325,14 @@ export default function Cursinhos() {
   };
 
   return (
-    <div className="fade-in">
-      <div className="flex items-start justify-between gap-4 mb-2">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Cursinhos</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">Gerencie seus cursos e acompanhe seu progresso</p>
-        </div>
-        <div className="flex-shrink-0">
-          <PomodoroTimer compact />
-        </div>
+    <div className="fade-in relative">
+      <div className="absolute top-0 right-0 z-10">
+        <PomodoroTimer compact />
+      </div>
+      
+      <div className="mb-2">
+        <h1 className="text-2xl font-bold text-foreground">Cursinhos</h1>
+        <p className="text-muted-foreground mt-0.5 text-sm">Gerencie seus cursos e acompanhe seu progresso</p>
       </div>
 
       <Tabs defaultValue="meus" className="w-full">
