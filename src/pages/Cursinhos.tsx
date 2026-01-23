@@ -332,7 +332,7 @@ export default function Cursinhos() {
       <Tabs defaultValue="meus" className="w-full">
         <div className="flex items-center gap-3 mb-3">
           <TabsList>
-            <TabsTrigger value="meus">Editar</TabsTrigger>
+            <TabsTrigger value="meus">Meus Cursinhos</TabsTrigger>
             <TabsTrigger value="banco">Biblioteca</TabsTrigger>
           </TabsList>
           <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
