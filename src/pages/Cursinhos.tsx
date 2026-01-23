@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -326,31 +326,30 @@ export default function Cursinhos() {
 
   return (
     <div className="fade-in">
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <PageHeader
-          title="Cursinhos"
-          description="Gerencie seus cursos e acompanhe seu progresso"
-        />
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Cursinhos</h1>
+          <p className="text-muted-foreground mt-1">Gerencie seus cursos e acompanhe seu progresso</p>
+        </div>
         <div className="flex-shrink-0">
           <PomodoroTimer compact />
         </div>
       </div>
 
       <Tabs defaultValue="meus" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="meus">Meus Cursinhos</TabsTrigger>
-          <TabsTrigger value="banco">Cursinhos do Banco</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between mb-4">
+          <TabsList>
+            <TabsTrigger value="meus">Meus Cursinhos</TabsTrigger>
+            <TabsTrigger value="banco">Cursinhos do Banco</TabsTrigger>
+          </TabsList>
+          <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Criar cursinho
+          </Button>
+        </div>
 
         {/* Meus Cursinhos - Área de Edição e Gestão */}
         <TabsContent value="meus" className="mt-0">
-          <div className="flex justify-end mb-6">
-            <Button onClick={() => setIsCreateModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Criar cursinho
-            </Button>
-          </div>
-
           {courses.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground mb-4">Nenhum cursinho criado ainda.</p>
@@ -360,7 +359,7 @@ export default function Cursinhos() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {courses.map((course) => (
                 <div
                   key={course.id}
@@ -435,7 +434,7 @@ export default function Cursinhos() {
               <p className="text-sm text-muted-foreground mt-2">Crie cursinhos em "Meus Cursinhos" para visualizá-los aqui.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {courses.map((course) => (
                 <div
                   key={course.id}
