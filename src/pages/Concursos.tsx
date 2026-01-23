@@ -125,7 +125,7 @@ const INITIAL_FORM: NewContestForm = {
 export default function Concursos() {
   const navigate = useNavigate();
   const { contests, loading, addContest, updateContest, deleteContest } = useContests();
-  const { simulados, loading: loadingSimulados, addSimulado, updateSimulado } = useSimulados();
+  const { simulados, loading: loadingSimulados, addSimulado, updateSimulado, deleteSimulado } = useSimulados();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -820,15 +820,25 @@ export default function Concursos() {
                       </div>
                     )}
 
-                    {/* Action Button */}
-                    <div className="mt-auto pt-3 border-t border-border">
+                    {/* Action Buttons */}
+                    <div className="mt-auto pt-3 border-t border-border flex gap-2">
                       <Button
                         size="sm"
-                        className="w-full"
+                        className="flex-1"
                         onClick={() => navigate(`/treinos/${simulado.id}`)}
                       >
                         <Play className="w-4 h-4 mr-2" />
-                        {simulado.status === 'completed' ? 'Refazer simulado' : 'Resolver simulado'}
+                        {simulado.status === 'completed' ? 'Refazer' : 'Resolver'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteSimulado(simulado.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
