@@ -329,8 +329,7 @@ export default function Cursinhos() {
         <p className="text-muted-foreground mt-0.5 text-sm">Gerencie seus cursos e acompanhe seu progresso</p>
       </div>
 
-      <div className="flex items-center gap-3 mb-3">
-        <div className="px-3 py-1.5 bg-muted rounded-md text-sm font-medium">Biblioteca</div>
+      <div className="mb-3">
         <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
           <Plus className="w-4 h-4 mr-2" />
           Criar cursinho
