@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { CreateDisciplineModalEnhanced } from '@/components/modals/CreateDisciplineModalEnhanced';
 import { DisciplineSearch } from '@/components/studies/DisciplineSearch';
 import { useDisciplines, Discipline } from '@/contexts/DisciplinesContext';
-import { Plus, BookOpen, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Plus, BookOpen, Edit2, Trash2, Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -263,23 +264,31 @@ export default function Estudos() {
                   </p>
                 )}
 
-                {/* Subtopics preview */}
+                {/* Subtopics preview - Collapsible */}
                 {discipline.subtopics && discipline.subtopics.length > 0 && (
-                  <div className="mb-3 flex-1">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Grade de Assuntos:</p>
-                    <div className="space-y-0.5 max-h-20 overflow-hidden">
-                      {discipline.subtopics.slice(0, 3).map((subtopic, idx) => (
-                        <p key={idx} className="text-xs text-muted-foreground truncate">
-                          • {subtopic}
-                        </p>
-                      ))}
-                      {discipline.subtopics.length > 3 && (
-                        <p className="text-xs text-muted-foreground/60">
-                          +{discipline.subtopics.length - 3} mais...
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  <Collapsible className="mb-3 flex-1">
+                    <CollapsibleTrigger 
+                      className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group w-full"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ChevronDown className="w-3 h-3 transition-transform group-data-[state=open]:rotate-180" />
+                      <span>Grade de Assuntos ({discipline.subtopics.length})</span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-1">
+                      <div className="space-y-0.5 max-h-20 overflow-hidden">
+                        {discipline.subtopics.slice(0, 3).map((subtopic, idx) => (
+                          <p key={idx} className="text-xs text-muted-foreground truncate">
+                            • {subtopic}
+                          </p>
+                        ))}
+                        {discipline.subtopics.length > 3 && (
+                          <p className="text-xs text-muted-foreground/60">
+                            +{discipline.subtopics.length - 3} mais...
+                          </p>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
 
                 {/* Progress - always at bottom */}
