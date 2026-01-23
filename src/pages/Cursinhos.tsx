@@ -337,7 +337,7 @@ export default function Cursinhos() {
       </div>
 
       <Tabs defaultValue="meus" className="w-full">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3 mb-4">
           <TabsList>
             <TabsTrigger value="meus">Meus Cursinhos</TabsTrigger>
             <TabsTrigger value="banco">Cursinhos do Banco</TabsTrigger>
