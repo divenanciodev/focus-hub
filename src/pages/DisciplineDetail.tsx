@@ -164,39 +164,11 @@ export default function DisciplineDetail() {
 
   return (
     <div className="fade-in">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <Button variant="ghost" onClick={() => navigate('/estudos')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar
         </Button>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
-            <Edit2 className="w-4 h-4 mr-2" />
-            Editar
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                <Trash2 className="w-4 h-4 mr-2" />
-                Excluir
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Excluir disciplina?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. A disciplina "{discipline.name}" e todos os seus dados serão permanentemente excluídos.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteDiscipline} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Excluir
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
       </div>
 
       <PageHeader
