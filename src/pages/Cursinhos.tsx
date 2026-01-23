@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -29,15 +29,13 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { CurriculumItemEditor } from '@/components/cursinhos/CurriculumItemEditor';
-import { CourseStudyModal } from '@/components/cursinhos/CourseStudyModal';
 import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
 
 export default function Cursinhos() {
+  const navigate = useNavigate();
   const { courses, loading, addCourse, updateCourse, deleteCourse, toggleCurriculumItem } = useCourses();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [contentCourse, setContentCourse] = useState<Course | null>(null);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
@@ -438,7 +436,7 @@ export default function Cursinhos() {
                 <div
                   key={course.id}
                   className="bg-card border border-border rounded-lg overflow-hidden hover:border-foreground/20 hover:shadow-md transition-all duration-200 flex flex-col cursor-pointer"
-                  onClick={() => setContentCourse(course)}
+                  onClick={() => navigate(`/cursinhos/${course.id}`)}
                 >
                   {course.imageUrl ? (
                     <div className="h-28 bg-muted">
@@ -534,7 +532,7 @@ export default function Cursinhos() {
                         className="flex-1 h-7 text-xs"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedCourse(course);
+                          navigate(`/cursinhos/${course.id}`);
                         }}
                       >
                         Ver detalhes
@@ -915,112 +913,6 @@ export default function Cursinhos() {
         </DialogContent>
       </Dialog>
 
-      {/* Course Detail Modal */}
-      <Dialog open={!!selectedCourse} onOpenChange={() => setSelectedCourse(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedCourse?.name}</DialogTitle>
-          </DialogHeader>
-          {selectedCourse && (
-            <div className="space-y-4">
-              {selectedCourse.imageUrl && (
-                <img
-                  src={selectedCourse.imageUrl}
-                  alt={selectedCourse.name}
-                  className="w-full h-40 object-cover rounded-lg"
-                />
-              )}
-
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  <span>{selectedCourse.workload}h de carga horária</span>
-                </div>
-              </div>
-
-              {selectedCourse.platform && (
-                <p className="text-sm text-muted-foreground">
-                  Plataforma: {selectedCourse.platform}
-                </p>
-              )}
-
-              <ProgressBar value={selectedCourse.progress} showLabel />
-
-              {/* Grade Curricular no Modal */}
-              {selectedCourse.curriculum.length > 0 && (
-                <div className="border-t border-border pt-4">
-                  <h4 className="font-medium text-foreground mb-3">Grade Curricular</h4>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {selectedCourse.curriculum.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-2 p-2 rounded bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
-                        onClick={() => handleToggleCurriculumItem(selectedCourse.id, item.id)}
-                      >
-                        <Checkbox
-                          checked={item.completed}
-                          onCheckedChange={() => handleToggleCurriculumItem(selectedCourse.id, item.id)}
-                        />
-                        <span className={`text-sm ${item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                          {item.title}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="border-t border-border pt-4">
-                <h4 className="font-medium text-foreground mb-3">Links do curso</h4>
-                {selectedCourse.links.length > 0 ? (
-                  <div className="space-y-2">
-                    {selectedCourse.links.map((link, idx) => (
-                      <a
-                        key={idx}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 p-2 rounded bg-secondary hover:bg-secondary/80 text-sm"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        {link.name}
-                      </a>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Nenhum link adicionado.</p>
-                )}
-              </div>
-
-              <div className="border-t border-border pt-4">
-                <h4 className="font-medium text-foreground mb-3">Certificado</h4>
-                <Button variant="outline" className="w-full">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Fazer upload do certificado
-                </Button>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedCourse(null)}>
-              Fechar
-            </Button>
-            {selectedCourse?.platform && (
-              <Button>
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Acessar curso
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Course Study Modal - Registro de Estudos */}
-      <CourseStudyModal
-        course={contentCourse}
-        open={!!contentCourse}
-        onOpenChange={(open) => !open && setContentCourse(null)}
-      />
     </div>
   );
 }
