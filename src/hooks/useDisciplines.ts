@@ -32,6 +32,7 @@ export function useDisciplines() {
         color: d.color || undefined,
         coverImage: d.cover_image || undefined,
         studyPlan: d.study_plan as unknown as Discipline['studyPlan'] || undefined,
+        subtopics: (d as any).subtopics || [],
       }));
 
       setDisciplines(mapped);
@@ -52,6 +53,7 @@ export function useDisciplines() {
     color: string;
     studyPlan?: Discipline['studyPlan'];
     coverImage?: string;
+    subtopics?: string[];
   }) => {
     try {
       const { data: newData, error } = await supabase
@@ -65,6 +67,7 @@ export function useDisciplines() {
           color: data.color,
           study_plan: data.studyPlan as unknown as Json,
           cover_image: data.coverImage,
+          subtopics: data.subtopics || [],
           progress: 0,
           hours_studied: 0,
         }])
@@ -86,6 +89,7 @@ export function useDisciplines() {
         color: newData.color || undefined,
         coverImage: newData.cover_image || undefined,
         studyPlan: newData.study_plan as unknown as Discipline['studyPlan'] || undefined,
+        subtopics: (newData as any).subtopics || [],
       };
 
       setDisciplines((prev) => [mapped, ...prev]);
@@ -111,6 +115,7 @@ export function useDisciplines() {
       if (data.color !== undefined) updateData.color = data.color;
       if (data.coverImage !== undefined) updateData.cover_image = data.coverImage;
       if (data.studyPlan !== undefined) updateData.study_plan = data.studyPlan;
+      if (data.subtopics !== undefined) updateData.subtopics = data.subtopics;
 
       const { error } = await supabase
         .from('disciplines')
