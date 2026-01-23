@@ -22,6 +22,7 @@ import {
   Trash2,
   Edit2,
   PlayCircle,
+  ListChecks,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -231,6 +232,7 @@ export default function DisciplineDetail() {
           <Tabs defaultValue="tasks" className="w-full">
             <TabsList className="mb-4 flex-wrap h-auto gap-1">
               <TabsTrigger value="tasks">Tarefas</TabsTrigger>
+              <TabsTrigger value="grade">Grade Curricular</TabsTrigger>
               <TabsTrigger value="videos">Vídeos</TabsTrigger>
               <TabsTrigger value="links">Links</TabsTrigger>
               <TabsTrigger value="resumos">Resumos</TabsTrigger>
@@ -288,6 +290,35 @@ export default function DisciplineDetail() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="grade" className="mt-0">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <ListChecks className="w-5 h-5 text-muted-foreground" />
+                  <h3 className="font-semibold text-foreground">Grade Curricular</h3>
+                </div>
+                
+                {discipline.subtopics && discipline.subtopics.length > 0 ? (
+                  <div className="space-y-2">
+                    {discipline.subtopics.map((subtopic, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                      >
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                          {index + 1}
+                        </div>
+                        <span className="flex-1 text-sm text-foreground">{subtopic}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Nenhum subtópico adicionado. Edite a disciplina para adicionar os tópicos do conteúdo.
+                  </p>
                 )}
               </div>
             </TabsContent>
