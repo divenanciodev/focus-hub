@@ -105,21 +105,36 @@ export default function Cursinhos() {
   };
 
   const handleCreateCourse = async () => {
-    if (newCourse.name && newCourse.theme && newCourse.workload && newCourse.deadline) {
-      await addCourse({
-        name: newCourse.name,
-        theme: newCourse.theme,
-        workload: parseInt(newCourse.workload),
-        deadline: new Date(newCourse.deadline),
-        progress: 0,
-        imageUrl: newCourse.imageUrl || undefined,
-        links: newCourse.links,
-        curriculum: newCourse.curriculum,
-      });
-      setNewCourse({ name: '', theme: '', workload: '', deadline: '', imageUrl: '', curriculum: [], links: [] });
-      setNewLink({ name: '', url: '' });
-      setIsCreateModalOpen(false);
+    if (!newCourse.name.trim()) {
+      toast.error('Preencha o nome do curso');
+      return;
     }
+    if (!newCourse.theme.trim()) {
+      toast.error('Preencha o tema do curso');
+      return;
+    }
+    if (!newCourse.workload) {
+      toast.error('Preencha a carga horária');
+      return;
+    }
+    if (!newCourse.deadline) {
+      toast.error('Preencha o prazo');
+      return;
+    }
+    
+    await addCourse({
+      name: newCourse.name,
+      theme: newCourse.theme,
+      workload: parseInt(newCourse.workload),
+      deadline: new Date(newCourse.deadline),
+      progress: 0,
+      imageUrl: newCourse.imageUrl || undefined,
+      links: newCourse.links,
+      curriculum: newCourse.curriculum,
+    });
+    setNewCourse({ name: '', theme: '', workload: '', deadline: '', imageUrl: '', curriculum: [], links: [] });
+    setNewLink({ name: '', url: '' });
+    setIsCreateModalOpen(false);
   };
 
   const handleDeleteCourse = async (id: string) => {
