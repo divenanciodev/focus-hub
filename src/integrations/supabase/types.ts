@@ -99,9 +99,16 @@ export type Database = {
         Row: {
           course_id: string
           created_at: string
+          curriculum_item_id: string | null
+          curriculum_item_title: string | null
           description: string | null
+          exercise_minutes: number | null
           id: string
+          questions_count: number | null
+          reading_minutes: number | null
           study_minutes: number
+          study_type: string | null
+          summary_minutes: number | null
           tags: string[] | null
           title: string
           user_id: string
@@ -109,9 +116,16 @@ export type Database = {
         Insert: {
           course_id: string
           created_at?: string
+          curriculum_item_id?: string | null
+          curriculum_item_title?: string | null
           description?: string | null
+          exercise_minutes?: number | null
           id?: string
+          questions_count?: number | null
+          reading_minutes?: number | null
           study_minutes?: number
+          study_type?: string | null
+          summary_minutes?: number | null
           tags?: string[] | null
           title: string
           user_id: string
@@ -119,9 +133,16 @@ export type Database = {
         Update: {
           course_id?: string
           created_at?: string
+          curriculum_item_id?: string | null
+          curriculum_item_title?: string | null
           description?: string | null
+          exercise_minutes?: number | null
           id?: string
+          questions_count?: number | null
+          reading_minutes?: number | null
           study_minutes?: number
+          study_type?: string | null
+          summary_minutes?: number | null
           tags?: string[] | null
           title?: string
           user_id?: string
