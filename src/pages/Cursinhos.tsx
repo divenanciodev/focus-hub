@@ -29,7 +29,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { CurriculumItemEditor } from '@/components/cursinhos/CurriculumItemEditor';
-import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
+
 
 export default function Cursinhos() {
   const navigate = useNavigate();
@@ -323,11 +323,7 @@ export default function Cursinhos() {
   };
 
   return (
-    <div className="fade-in relative">
-      <div className="absolute top-0 right-0 z-10">
-        <PomodoroTimer compact />
-      </div>
-      
+    <div className="fade-in">
       <div className="mb-2">
         <h1 className="text-2xl font-bold text-foreground">Cursinhos</h1>
         <p className="text-muted-foreground mt-0.5 text-sm">Gerencie seus cursos e acompanhe seu progresso</p>
@@ -336,8 +332,8 @@ export default function Cursinhos() {
       <Tabs defaultValue="meus" className="w-full">
         <div className="flex items-center gap-3 mb-3">
           <TabsList>
-            <TabsTrigger value="meus">Meus Cursinhos</TabsTrigger>
-            <TabsTrigger value="banco">Cursinhos do Banco</TabsTrigger>
+            <TabsTrigger value="meus">Editar</TabsTrigger>
+            <TabsTrigger value="banco">Biblioteca</TabsTrigger>
           </TabsList>
           <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
             <Plus className="w-4 h-4 mr-2" />
