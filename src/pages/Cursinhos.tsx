@@ -326,10 +326,10 @@ export default function Cursinhos() {
 
   return (
     <div className="fade-in">
-      <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="flex items-start justify-between gap-4 mb-2">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Cursinhos</h1>
-          <p className="text-muted-foreground mt-1">Gerencie seus cursos e acompanhe seu progresso</p>
+          <p className="text-muted-foreground mt-0.5 text-sm">Gerencie seus cursos e acompanhe seu progresso</p>
         </div>
         <div className="flex-shrink-0">
           <PomodoroTimer compact />
@@ -337,7 +337,7 @@ export default function Cursinhos() {
       </div>
 
       <Tabs defaultValue="meus" className="w-full">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-3">
           <TabsList>
             <TabsTrigger value="meus">Meus Cursinhos</TabsTrigger>
             <TabsTrigger value="banco">Cursinhos do Banco</TabsTrigger>
