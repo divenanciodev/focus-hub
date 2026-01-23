@@ -50,6 +50,7 @@ interface CreateDisciplineData {
   color: string;
   studyPlan: StudyPlan;
   coverImage?: string;
+  subtopics?: string[];
 }
 
 interface CreateDisciplineModalEnhancedProps {
@@ -97,6 +98,8 @@ export function CreateDisciplineModalEnhanced({
   const [hoursPerDay, setHoursPerDay] = useState('2');
   const [blockDuration, setBlockDuration] = useState('30');
   const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
+  const [subtopics, setSubtopics] = useState<string[]>([]);
+  const [subtopicInput, setSubtopicInput] = useState('');
 
   // Initialize form with initial data when editing
   useEffect(() => {
@@ -111,6 +114,7 @@ export function CreateDisciplineModalEnhanced({
       setHoursPerDay(initialData.studyPlan?.hoursPerDay?.toString() || '2');
       setBlockDuration(initialData.studyPlan?.blockDuration?.toString() || '30');
       setCoverImage(initialData.coverImage);
+      setSubtopics((initialData as any).subtopics || []);
     } else if (open && !initialData) {
       resetForm();
     }
@@ -142,6 +146,24 @@ export function CreateDisciplineModalEnhanced({
     }
   };
 
+  const handleAddSubtopic = () => {
+    if (subtopicInput.trim() && !subtopics.includes(subtopicInput.trim())) {
+      setSubtopics([...subtopics, subtopicInput.trim()]);
+      setSubtopicInput('');
+    }
+  };
+
+  const handleRemoveSubtopic = (subtopic: string) => {
+    setSubtopics(subtopics.filter(s => s !== subtopic));
+  };
+
+  const handleSubtopicKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddSubtopic();
+    }
+  };
+
   const toggleDay = (day: string) => {
     setSelectedDays(prev =>
       prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
@@ -164,6 +186,7 @@ export function CreateDisciplineModalEnhanced({
           blockDuration: parseInt(blockDuration) || 30,
         },
         coverImage,
+        subtopics,
       });
       if (!initialData) {
         resetForm();
@@ -184,6 +207,8 @@ export function CreateDisciplineModalEnhanced({
     setHoursPerDay('2');
     setBlockDuration('30');
     setCoverImage(undefined);
+    setSubtopics([]);
+    setSubtopicInput('');
   };
 
   const isValid = name.trim().length > 0;
@@ -251,16 +276,11 @@ export function CreateDisciplineModalEnhanced({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Área Geral</Label>
-                <Select value={subject} onValueChange={setSubject}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map(s => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Ex: Direito, Línguas, Exatas..."
+                />
               </div>
               <div className="space-y-2">
                 <Label>Área Específica</Label>
@@ -284,6 +304,46 @@ export function CreateDisciplineModalEnhanced({
                   Será exibido como: <span className="font-medium">{subject} &gt; {specificSubject}</span>
                 </p>
               )}
+            </div>
+
+            {/* Subtópicos */}
+            <div className="space-y-2">
+              <Label>Subtópicos do Conteúdo</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={subtopicInput}
+                  onChange={(e) => setSubtopicInput(e.target.value)}
+                  onKeyDown={handleSubtopicKeyDown}
+                  placeholder="Adicionar subtópico..."
+                  className="flex-1"
+                />
+                <Button type="button" size="icon" onClick={handleAddSubtopic}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              {subtopics.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {subtopics.map((subtopic) => (
+                    <Badge
+                      key={subtopic}
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    >
+                      {subtopic}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSubtopic(subtopic)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Adicione os tópicos que serão estudados nesta disciplina
+              </p>
             </div>
 
             <div className="space-y-2">
