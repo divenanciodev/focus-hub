@@ -14,6 +14,7 @@ import Treinos from "./pages/Treinos";
 import TrainingSession from "./pages/TrainingSession";
 import Concursos from "./pages/Concursos";
 import Cursinhos from "./pages/Cursinhos";
+import CursinhoDetail from "./pages/CursinhoDetail";
 import Financeiro from "./pages/Financeiro";
 import Objetivos from "./pages/Objetivos";
 import Banco from "./pages/Banco";
@@ -115,6 +116,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <MainLayout>
               <Cursinhos />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/cursinhos/:id"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <CursinhoDetail />
             </MainLayout>
           </ProtectedRoute>
         }
