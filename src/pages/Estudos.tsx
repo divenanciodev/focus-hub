@@ -319,6 +319,7 @@ export default function Estudos() {
           tags: editingDiscipline.tags,
           color: editingDiscipline.color,
           coverImage: editingDiscipline.coverImage,
+          subtopics: editingDiscipline.subtopics,
           studyPlan: editingDiscipline.studyPlan ? {
             ...editingDiscipline.studyPlan,
             blockDuration: editingDiscipline.studyPlan.hoursPerDay * 60,
