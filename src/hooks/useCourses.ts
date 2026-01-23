@@ -165,6 +165,72 @@ export function useCourses() {
     return updateCourse(courseId, { curriculum: updatedCurriculum, progress });
   };
 
+  const toggleSubtopicItem = async (courseId: string, itemId: string, subtopicId: string) => {
+    const course = courses.find((c) => c.id === courseId);
+    if (!course) return false;
+
+    const updatedCurriculum = course.curriculum.map((item) => {
+      if (item.id === itemId) {
+        const updatedSubtopics = (item.subtopics || []).map((sub) =>
+          sub.id === subtopicId ? { ...sub, completed: !sub.completed } : sub
+        );
+        // Mark parent as completed if all subtopics are completed
+        const allSubtopicsCompleted = updatedSubtopics.length > 0 && updatedSubtopics.every(s => s.completed);
+        return { ...item, subtopics: updatedSubtopics, completed: allSubtopicsCompleted };
+      }
+      return item;
+    });
+
+    // Calculate progress based on subtopics if they exist, otherwise on items
+    let totalItems = 0;
+    let completedItems = 0;
+    updatedCurriculum.forEach(item => {
+      if (item.subtopics && item.subtopics.length > 0) {
+        totalItems += item.subtopics.length;
+        completedItems += item.subtopics.filter(s => s.completed).length;
+      } else {
+        totalItems += 1;
+        completedItems += item.completed ? 1 : 0;
+      }
+    });
+    
+    const progress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
+    return updateCourse(courseId, { curriculum: updatedCurriculum, progress });
+  };
+
+  const markSubtopicAsStudied = async (courseId: string, itemId: string, subtopicId: string) => {
+    const course = courses.find((c) => c.id === courseId);
+    if (!course) return false;
+
+    const updatedCurriculum = course.curriculum.map((item) => {
+      if (item.id === itemId) {
+        const updatedSubtopics = (item.subtopics || []).map((sub) =>
+          sub.id === subtopicId ? { ...sub, completed: true } : sub
+        );
+        const allSubtopicsCompleted = updatedSubtopics.length > 0 && updatedSubtopics.every(s => s.completed);
+        return { ...item, subtopics: updatedSubtopics, completed: allSubtopicsCompleted };
+      }
+      return item;
+    });
+
+    let totalItems = 0;
+    let completedItems = 0;
+    updatedCurriculum.forEach(item => {
+      if (item.subtopics && item.subtopics.length > 0) {
+        totalItems += item.subtopics.length;
+        completedItems += item.subtopics.filter(s => s.completed).length;
+      } else {
+        totalItems += 1;
+        completedItems += item.completed ? 1 : 0;
+      }
+    });
+    
+    const progress = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
+    return updateCourse(courseId, { curriculum: updatedCurriculum, progress });
+  };
+
   useEffect(() => {
     fetchCourses();
   }, []);
@@ -176,6 +242,8 @@ export function useCourses() {
     updateCourse,
     deleteCourse,
     toggleCurriculumItem,
+    toggleSubtopicItem,
+    markSubtopicAsStudied,
     refetch: fetchCourses,
   };
 }

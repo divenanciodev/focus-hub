@@ -30,6 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { CurriculumItemEditor } from '@/components/cursinhos/CurriculumItemEditor';
 import { CourseStudyModal } from '@/components/cursinhos/CourseStudyModal';
+import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
 
 export default function Cursinhos() {
   const { courses, loading, addCourse, updateCourse, deleteCourse, toggleCurriculumItem } = useCourses();
@@ -325,10 +326,15 @@ export default function Cursinhos() {
 
   return (
     <div className="fade-in">
-      <PageHeader
-        title="Cursinhos"
-        description="Gerencie seus cursos e acompanhe seu progresso"
-      />
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <PageHeader
+          title="Cursinhos"
+          description="Gerencie seus cursos e acompanhe seu progresso"
+        />
+        <div className="flex-shrink-0">
+          <PomodoroTimer compact />
+        </div>
+      </div>
 
       <Tabs defaultValue="meus" className="w-full">
         <TabsList className="mb-6">

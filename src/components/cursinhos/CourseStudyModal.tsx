@@ -17,14 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { Course, CurriculumItem } from '@/hooks/useCourses';
-import { useCourseStudySessions, CourseStudySession, StudyType } from '@/hooks/useCourseStudySessions';
-import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
+import { Course, CurriculumItem, CurriculumSubtopic } from '@/hooks/useCourses';
+import { useCourseStudySessions, StudyType } from '@/hooks/useCourseStudySessions';
+import { useCourses } from '@/hooks/useCourses';
 import { 
   Clock, 
   Plus, 
@@ -36,8 +31,6 @@ import {
   ListChecks,
   BookMarked,
   HelpCircle,
-  Timer,
-  ChevronDown
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -47,6 +40,7 @@ interface CourseStudyModalProps {
   course: Course | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSubtopicCompleted?: (courseId: string, itemId: string, subtopicId: string) => void;
 }
 
 const STUDY_TYPES: { value: StudyType; label: string; icon: React.ReactNode; color: string }[] = [
@@ -55,8 +49,9 @@ const STUDY_TYPES: { value: StudyType; label: string; icon: React.ReactNode; col
   { value: 'leitura', label: 'Leitura', icon: <BookMarked className="w-4 h-4" />, color: 'bg-amber-500' },
 ];
 
-export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModalProps) {
+export function CourseStudyModal({ course, open, onOpenChange, onSubtopicCompleted }: CourseStudyModalProps) {
   const { sessions, loading, addSession, deleteSession, getTotalStudyHours, getTotalQuestions } = useCourseStudySessions(course?.id);
+  const { markSubtopicAsStudied } = useCourses();
   
   const [newStudy, setNewStudy] = useState({
     title: '',
@@ -64,6 +59,8 @@ export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModa
     tags: [] as string[],
     curriculumItemId: '',
     curriculumItemTitle: '',
+    subtopicId: '',
+    subtopicTitle: '',
     studyType: 'resumo' as StudyType,
     summaryMinutes: 30,
     exerciseMinutes: 30,
@@ -71,29 +68,6 @@ export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModa
     readingMinutes: 30,
   });
   const [newTag, setNewTag] = useState('');
-  const [pomodoroOpen, setPomodoroOpen] = useState(false);
-  const [pomodoroMinutes, setPomodoroMinutes] = useState(0);
-
-  const handlePomodoroComplete = (minutes: number) => {
-    setPomodoroMinutes((prev) => prev + minutes);
-    toast.success(`Sessão Pomodoro concluída! +${minutes} minutos`, {
-      description: 'O tempo será adicionado ao registro de estudo.',
-    });
-    
-    // Auto-fill the time based on study type
-    setNewStudy((prev) => {
-      switch (prev.studyType) {
-        case 'resumo':
-          return { ...prev, summaryMinutes: prev.summaryMinutes + minutes };
-        case 'exercicios':
-          return { ...prev, exerciseMinutes: prev.exerciseMinutes + minutes };
-        case 'leitura':
-          return { ...prev, readingMinutes: prev.readingMinutes + minutes };
-        default:
-          return prev;
-      }
-    });
-  };
 
   const handleAddTag = () => {
     if (newTag.trim() && !newStudy.tags.includes(newTag.trim())) {
@@ -112,8 +86,27 @@ export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModa
       ...newStudy,
       curriculumItemId: itemId,
       curriculumItemTitle: item?.title || '',
+      subtopicId: '',
+      subtopicTitle: '',
       title: item?.title || newStudy.title,
     });
+  };
+
+  const handleSubtopicSelect = (subtopicId: string) => {
+    const item = getAllCurriculumItems().find(i => i.id === newStudy.curriculumItemId);
+    const subtopic = item?.subtopics?.find(s => s.id === subtopicId);
+    setNewStudy({
+      ...newStudy,
+      subtopicId,
+      subtopicTitle: subtopic?.title || '',
+      title: subtopic?.title || newStudy.title,
+    });
+  };
+
+  const getSelectedItemSubtopics = (): CurriculumSubtopic[] => {
+    if (!newStudy.curriculumItemId || !course?.curriculum) return [];
+    const item = course.curriculum.find(i => i.id === newStudy.curriculumItemId);
+    return item?.subtopics || [];
   };
 
   const getAllCurriculumItems = (): CurriculumItem[] => {
@@ -146,7 +139,7 @@ export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModa
       tags: newStudy.tags,
       studyMinutes,
       curriculumItemId: newStudy.curriculumItemId || undefined,
-      curriculumItemTitle: newStudy.curriculumItemTitle || undefined,
+      curriculumItemTitle: newStudy.subtopicTitle || newStudy.curriculumItemTitle || undefined,
       studyType: newStudy.studyType,
       questionsCount: newStudy.studyType === 'exercicios' ? newStudy.questionsCount : 0,
       readingMinutes: newStudy.studyType === 'leitura' ? newStudy.readingMinutes : 0,
@@ -154,12 +147,20 @@ export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModa
       summaryMinutes: newStudy.studyType === 'resumo' ? newStudy.summaryMinutes : 0,
     });
 
+    // Mark subtopic as studied (completed) if selected
+    if (newStudy.curriculumItemId && newStudy.subtopicId) {
+      await markSubtopicAsStudied(course.id, newStudy.curriculumItemId, newStudy.subtopicId);
+      toast.success('Subtópico marcado como estudado!');
+    }
+
     setNewStudy({
       title: '',
       description: '',
       tags: [],
       curriculumItemId: '',
       curriculumItemTitle: '',
+      subtopicId: '',
+      subtopicTitle: '',
       studyType: 'resumo',
       summaryMinutes: 30,
       exerciseMinutes: 30,
@@ -205,27 +206,6 @@ export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModa
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden flex flex-col gap-4">
-          {/* Timer Pomodoro */}
-          <Collapsible open={pomodoroOpen} onOpenChange={setPomodoroOpen}>
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
-                <div className="flex items-center gap-2">
-                  <Timer className="w-4 h-4 text-primary" />
-                  <span>Timer Pomodoro</span>
-                  {pomodoroMinutes > 0 && (
-                    <Badge variant="secondary" className="ml-2">
-                      +{pomodoroMinutes}min acumulados
-                    </Badge>
-                  )}
-                </div>
-                <ChevronDown className={`w-4 h-4 transition-transform ${pomodoroOpen ? 'rotate-180' : ''}`} />
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2">
-              <PomodoroTimer compact onComplete={handlePomodoroComplete} />
-            </CollapsibleContent>
-          </Collapsible>
-
           {/* Formulário de Registro */}
           <div className="p-4 bg-secondary/30 rounded-lg space-y-3">
             <Label className="text-sm font-medium">Registrar Estudo</Label>
@@ -245,6 +225,31 @@ export function CourseStudyModal({ course, open, onOpenChange }: CourseStudyModa
                     {curriculumItems.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Seleção de Subtópico */}
+            {getSelectedItemSubtopics().length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Subtópico (será marcado como estudado)</Label>
+                <Select
+                  value={newStudy.subtopicId}
+                  onValueChange={handleSubtopicSelect}
+                >
+                  <SelectTrigger className="text-sm">
+                    <SelectValue placeholder="Selecione um subtópico (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getSelectedItemSubtopics().map((subtopic) => (
+                      <SelectItem key={subtopic.id} value={subtopic.id}>
+                        <span className={subtopic.completed ? 'line-through text-muted-foreground' : ''}>
+                          {subtopic.title}
+                        </span>
+                        {subtopic.completed && <Badge variant="secondary" className="ml-2 text-xs">Estudado</Badge>}
                       </SelectItem>
                     ))}
                   </SelectContent>
