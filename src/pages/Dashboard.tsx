@@ -4,9 +4,11 @@ import { StatCard } from '@/components/ui/stat-card';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { HabitsDashboardWidget } from '@/components/habits/HabitsDashboardWidget';
 import { TrainingMetricsDashboard } from '@/components/training/TrainingMetricsDashboard';
+import { PendingReviewsList } from '@/components/studies/PendingReviewsList';
 import { useDisciplines } from '@/contexts/DisciplinesContext';
 import { useObjectives } from '@/hooks/useObjectives';
 import { useFinancial } from '@/hooks/useFinancial';
+import { useStudyReviews } from '@/hooks/useStudyReviews';
 import {
   Clock,
   TrendingUp,
@@ -18,8 +20,10 @@ import {
   CheckCircle2,
   Calendar,
   Loader2,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { TrainingMetrics } from '@/types/training';
 
 export default function Dashboard() {
@@ -27,8 +31,17 @@ export default function Dashboard() {
   const { disciplines, loading: loadingDisciplines } = useDisciplines();
   const { objectives, loading: loadingObjectives } = useObjectives();
   const { piggyBanks, allocatedSaved, loading: loadingFinancial } = useFinancial();
+  const { pendingReviews, loading: loadingReviews } = useStudyReviews();
 
-  const loading = loadingDisciplines || loadingObjectives || loadingFinancial;
+  const loading = loadingDisciplines || loadingObjectives || loadingFinancial || loadingReviews;
+  
+  // Get pending reviews count
+  const overdueReviews = pendingReviews.filter(r => r.isOverdue).length;
+  const todayReviews = pendingReviews.filter(r => {
+    const today = new Date();
+    return !r.isOverdue && r.dueDate.toDateString() === today.toDateString();
+  }).length;
+  const totalPendingReviews = overdueReviews + todayReviews;
 
   // Calculate stats from real data
   const totalHoursStudied = disciplines.reduce((acc, d) => acc + d.hoursStudied, 0);
@@ -104,6 +117,27 @@ export default function Dashboard() {
           onClick={() => navigate('/objetivos')}
         />
       </div>
+
+      {/* Pending Reviews Alert */}
+      {totalPendingReviews > 0 && (
+        <div className={`mb-6 p-4 rounded-xl border ${overdueReviews > 0 ? 'bg-destructive/10 border-destructive/20' : 'bg-primary/10 border-primary/20'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <RotateCcw className={`w-5 h-5 ${overdueReviews > 0 ? 'text-destructive' : 'text-primary'}`} />
+              <h2 className="font-semibold text-foreground">Revisões Pendentes</h2>
+              {overdueReviews > 0 && (
+                <Badge variant="destructive" className="text-xs">
+                  {overdueReviews} atrasada(s)
+                </Badge>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/estudos')}>
+              Ver todas
+            </Button>
+          </div>
+          <PendingReviewsList compact />
+        </div>
+      )}
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

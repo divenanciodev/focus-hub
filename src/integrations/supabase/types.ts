@@ -1062,6 +1062,65 @@ export type Database = {
           },
         ]
       }
+      study_reviews: {
+        Row: {
+          created_at: string
+          discipline_id: string
+          id: string
+          review_1_completed: string | null
+          review_1_due: string
+          review_15_completed: string | null
+          review_15_due: string
+          review_3_completed: string | null
+          review_3_due: string
+          review_7_completed: string | null
+          review_7_due: string
+          studied_at: string
+          subtopic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discipline_id: string
+          id?: string
+          review_1_completed?: string | null
+          review_1_due: string
+          review_15_completed?: string | null
+          review_15_due: string
+          review_3_completed?: string | null
+          review_3_due: string
+          review_7_completed?: string | null
+          review_7_due: string
+          studied_at?: string
+          subtopic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discipline_id?: string
+          id?: string
+          review_1_completed?: string | null
+          review_1_due?: string
+          review_15_completed?: string | null
+          review_15_due?: string
+          review_3_completed?: string | null
+          review_3_due?: string
+          review_7_completed?: string | null
+          review_7_due?: string
+          studied_at?: string
+          subtopic?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_reviews_discipline_id_fkey"
+            columns: ["discipline_id"]
+            isOneToOne: false
+            referencedRelation: "disciplines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
