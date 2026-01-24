@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { CreateDisciplineModalEnhanced } from '@/components/modals/CreateDisciplineModalEnhanced';
 import { DisciplineSearch } from '@/components/studies/DisciplineSearch';
-import { useDisciplines, Discipline } from '@/contexts/DisciplinesContext';
+import { useDisciplines, Discipline, Subtopic } from '@/contexts/DisciplinesContext';
 import { Plus, BookOpen, Edit2, Trash2, Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -52,7 +52,7 @@ export default function Estudos() {
     color: string;
     studyPlan: Discipline['studyPlan'];
     coverImage?: string;
-    subtopics?: string[];
+    subtopics?: Subtopic[];
   }) => {
     await addDiscipline({
       ...data,
@@ -72,7 +72,7 @@ export default function Estudos() {
     color: string;
     studyPlan: Discipline['studyPlan'];
     coverImage?: string;
-    subtopics?: string[];
+    subtopics?: Subtopic[];
   }) => {
     if (editingDiscipline) {
       const success = await updateDiscipline(editingDiscipline.id, {
@@ -278,7 +278,7 @@ export default function Estudos() {
                       <div className="space-y-0.5 max-h-20 overflow-hidden">
                         {discipline.subtopics.slice(0, 3).map((subtopic, idx) => (
                           <p key={idx} className="text-xs text-muted-foreground truncate">
-                            • {subtopic}
+                            • {subtopic.name}
                           </p>
                         ))}
                         {discipline.subtopics.length > 3 && (

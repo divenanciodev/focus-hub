@@ -18,10 +18,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { subjectColors, weekDays } from '@/types/schedule';
-import { StudyPlan, Discipline } from '@/types';
-import { X, Plus, Image as ImageIcon, Link } from 'lucide-react';
+import { StudyPlan, Discipline, Subtopic, SubtopicRelevance } from '@/types';
+import { X, Plus, Image as ImageIcon, Link, Flame, Star, TrendingUp, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Imagens padrão de produtividade/estudos (Unsplash)
 const defaultCoverImages = [
@@ -50,8 +51,15 @@ interface CreateDisciplineData {
   color: string;
   studyPlan: StudyPlan;
   coverImage?: string;
-  subtopics?: string[];
+  subtopics?: Subtopic[];
 }
+
+const relevanceLevels: { value: SubtopicRelevance; label: string; icon: React.ReactNode; color: string }[] = [
+  { value: 'low', label: 'Baixa', icon: <Circle className="w-3 h-3" />, color: 'text-muted-foreground' },
+  { value: 'medium', label: 'Média', icon: <TrendingUp className="w-3 h-3" />, color: 'text-blue-500' },
+  { value: 'high', label: 'Alta', icon: <Star className="w-3 h-3" />, color: 'text-amber-500' },
+  { value: 'very_high', label: 'Muito Alta', icon: <Flame className="w-3 h-3" />, color: 'text-red-500' },
+];
 
 interface CreateDisciplineModalEnhancedProps {
   open: boolean;
@@ -98,7 +106,7 @@ export function CreateDisciplineModalEnhanced({
   const [hoursPerDay, setHoursPerDay] = useState('2');
   const [blockDuration, setBlockDuration] = useState('30');
   const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
-  const [subtopics, setSubtopics] = useState<string[]>([]);
+  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   const [subtopicInput, setSubtopicInput] = useState('');
 
   // Initialize form with initial data when editing
@@ -114,7 +122,9 @@ export function CreateDisciplineModalEnhanced({
       setHoursPerDay(initialData.studyPlan?.hoursPerDay?.toString() || '2');
       setBlockDuration(initialData.studyPlan?.blockDuration?.toString() || '30');
       setCoverImage(initialData.coverImage);
-      setSubtopics((initialData as any).subtopics || []);
+      // Handle both old string[] format and new Subtopic[] format
+      const existingSubtopics = initialData.subtopics || [];
+      setSubtopics(existingSubtopics);
     } else if (open && !initialData) {
       resetForm();
     }
@@ -147,14 +157,18 @@ export function CreateDisciplineModalEnhanced({
   };
 
   const handleAddSubtopic = () => {
-    if (subtopicInput.trim() && !subtopics.includes(subtopicInput.trim())) {
-      setSubtopics([...subtopics, subtopicInput.trim()]);
+    if (subtopicInput.trim() && !subtopics.some(s => s.name === subtopicInput.trim())) {
+      setSubtopics([...subtopics, { name: subtopicInput.trim(), relevance: 'medium' }]);
       setSubtopicInput('');
     }
   };
 
-  const handleRemoveSubtopic = (subtopic: string) => {
-    setSubtopics(subtopics.filter(s => s !== subtopic));
+  const handleRemoveSubtopic = (name: string) => {
+    setSubtopics(subtopics.filter(s => s.name !== name));
+  };
+
+  const handleChangeRelevance = (name: string, relevance: SubtopicRelevance) => {
+    setSubtopics(subtopics.map(s => s.name === name ? { ...s, relevance } : s));
   };
 
   const handleSubtopicKeyDown = (e: React.KeyboardEvent) => {
@@ -327,23 +341,54 @@ export function CreateDisciplineModalEnhanced({
                 {/* Lista de subtópicos */}
                 {subtopics.length > 0 ? (
                   <div className="space-y-1 pl-2 border-t border-border/50 pt-2">
-                    {subtopics.map((subtopic, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-1.5 rounded bg-background/50 text-sm group"
-                      >
-                        <span className="text-muted-foreground">• {subtopic}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleRemoveSubtopic(subtopic)}
+                    {subtopics.map((subtopic, index) => {
+                      const relevanceInfo = relevanceLevels.find(r => r.value === subtopic.relevance) || relevanceLevels[1];
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-1.5 rounded bg-background/50 text-sm group gap-2"
                         >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    ))}
+                          <span className="text-muted-foreground flex-1 truncate">• {subtopic.name}</span>
+                          
+                          {/* Relevance selector */}
+                          <TooltipProvider>
+                            <div className="flex items-center gap-0.5">
+                              {relevanceLevels.map((level) => (
+                                <Tooltip key={level.value}>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleChangeRelevance(subtopic.name, level.value)}
+                                      className={cn(
+                                        "p-1 rounded transition-all",
+                                        subtopic.relevance === level.value 
+                                          ? `${level.color} bg-secondary` 
+                                          : "text-muted-foreground/30 hover:text-muted-foreground/60"
+                                      )}
+                                    >
+                                      {level.icon}
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs">
+                                    {level.label}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ))}
+                            </div>
+                          </TooltipProvider>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-destructive opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                            onClick={() => handleRemoveSubtopic(subtopic.name)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground text-center py-2">
@@ -351,6 +396,9 @@ export function CreateDisciplineModalEnhanced({
                   </p>
                 )}
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Use os ícones para definir a relevância de cada assunto em concursos
+              </p>
             </div>
 
             <div className="space-y-2">

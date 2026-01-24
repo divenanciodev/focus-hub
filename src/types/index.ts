@@ -1,5 +1,13 @@
 // Types for the PRODUTIVIDADE MÁXIMA system
 
+// Relevance levels for subtopics (used in competitive exams)
+export type SubtopicRelevance = 'low' | 'medium' | 'high' | 'very_high';
+
+export interface Subtopic {
+  name: string;
+  relevance: SubtopicRelevance;
+}
+
 export interface Discipline {
   id: string;
   name: string;
@@ -13,7 +21,7 @@ export interface Discipline {
   color?: string;
   studyPlan?: StudyPlan;
   coverImage?: string; // URL da imagem de capa (base64 ou URL)
-  subtopics?: string[]; // Subtópicos do conteúdo
+  subtopics?: Subtopic[]; // Subtópicos do conteúdo com nível de relevância
 }
 
 export interface StudyPlan {
