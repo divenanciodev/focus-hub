@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, Circle, Clock, RotateCcw, Flame, Star, TrendingUp } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, RotateCcw, Flame, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStudyReviews, StudyReview } from '@/hooks/useStudyReviews';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,7 @@ export function SubtopicReviewItem({ disciplineId, subtopic, index }: SubtopicRe
       case 'high':
         return { icon: <Star className="w-3.5 h-3.5" />, color: 'text-amber-500', bg: 'bg-amber-500/10', label: 'Alta' };
       case 'medium':
-        return { icon: <TrendingUp className="w-3.5 h-3.5" />, color: 'text-blue-500', bg: 'bg-blue-500/10', label: 'Média' };
+        return { icon: null, color: 'text-blue-500', bg: 'bg-blue-500/10', label: 'Média' };
       default:
         return { icon: null, color: 'text-muted-foreground', bg: '', label: 'Baixa' };
     }
