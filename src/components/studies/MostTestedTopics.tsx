@@ -10,20 +10,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Plus,
   Trash2,
   Edit2,
   Target,
   Flame,
   Star,
-  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,7 +23,7 @@ export interface TestedTopic {
   id: string;
   theme: string;
   topic: string;
-  frequency: 'very_high' | 'high' | 'medium' | 'low';
+  frequency: number; // Percentage 0-100
   notes?: string;
 }
 
@@ -40,35 +32,36 @@ interface MostTestedTopicsProps {
   onUpdateTopics: (topics: TestedTopic[]) => void;
 }
 
-const frequencyConfig = {
-  very_high: {
-    label: 'Muito Alta',
-    icon: <Flame className="w-4 h-4" />,
-    color: 'text-red-500',
-    bg: 'bg-red-500/10',
-    border: 'border-l-red-500',
-  },
-  high: {
-    label: 'Alta',
-    icon: <Star className="w-4 h-4" />,
-    color: 'text-amber-500',
-    bg: 'bg-amber-500/10',
-    border: 'border-l-amber-500',
-  },
-  medium: {
-    label: 'Média',
-    icon: <TrendingUp className="w-4 h-4" />,
-    color: 'text-blue-500',
-    bg: 'bg-blue-500/10',
-    border: 'border-l-blue-500',
-  },
-  low: {
-    label: 'Baixa',
-    icon: null,
-    color: 'text-muted-foreground',
-    bg: 'bg-muted/50',
-    border: 'border-l-muted-foreground',
-  },
+const getFrequencyConfig = (frequency: number) => {
+  if (frequency >= 80) {
+    return {
+      icon: <Flame className="w-4 h-4" />,
+      color: 'text-red-500',
+      bg: 'bg-red-500/10',
+      border: 'border-l-red-500',
+    };
+  } else if (frequency >= 50) {
+    return {
+      icon: <Star className="w-4 h-4" />,
+      color: 'text-amber-500',
+      bg: 'bg-amber-500/10',
+      border: 'border-l-amber-500',
+    };
+  } else if (frequency >= 30) {
+    return {
+      icon: null,
+      color: 'text-blue-500',
+      bg: 'bg-blue-500/10',
+      border: 'border-l-blue-500',
+    };
+  } else {
+    return {
+      icon: null,
+      color: 'text-muted-foreground',
+      bg: 'bg-muted/50',
+      border: 'border-l-muted-foreground',
+    };
+  }
 };
 
 export function MostTestedTopics({ topics, onUpdateTopics }: MostTestedTopicsProps) {
@@ -76,7 +69,7 @@ export function MostTestedTopics({ topics, onUpdateTopics }: MostTestedTopicsPro
   const [editingTopic, setEditingTopic] = useState<TestedTopic | null>(null);
   const [theme, setTheme] = useState('');
   const [topic, setTopic] = useState('');
-  const [frequency, setFrequency] = useState<TestedTopic['frequency']>('medium');
+  const [frequency, setFrequency] = useState<number>(50);
   const [notes, setNotes] = useState('');
 
   const handleOpenModal = (topicItem?: TestedTopic) => {
@@ -90,7 +83,7 @@ export function MostTestedTopics({ topics, onUpdateTopics }: MostTestedTopicsPro
       setEditingTopic(null);
       setTheme('');
       setTopic('');
-      setFrequency('medium');
+      setFrequency(50);
       setNotes('');
     }
     setIsModalOpen(true);
@@ -103,7 +96,7 @@ export function MostTestedTopics({ topics, onUpdateTopics }: MostTestedTopicsPro
       id: editingTopic?.id || Date.now().toString(),
       theme: theme.trim(),
       topic: topic.trim(),
-      frequency,
+      frequency: Math.min(100, Math.max(0, frequency)),
       notes: notes.trim() || undefined,
     };
 
@@ -120,7 +113,7 @@ export function MostTestedTopics({ topics, onUpdateTopics }: MostTestedTopicsPro
   const resetForm = () => {
     setTheme('');
     setTopic('');
-    setFrequency('medium');
+    setFrequency(50);
     setNotes('');
     setEditingTopic(null);
   };
@@ -167,12 +160,9 @@ export function MostTestedTopics({ topics, onUpdateTopics }: MostTestedTopicsPro
               </h4>
               <div className="space-y-2 pl-6">
                 {themeTopics
-                  .sort((a, b) => {
-                    const order = { very_high: 0, high: 1, medium: 2, low: 3 };
-                    return order[a.frequency] - order[b.frequency];
-                  })
+                  .sort((a, b) => b.frequency - a.frequency)
                   .map((topicItem) => {
-                    const config = frequencyConfig[topicItem.frequency];
+                    const config = getFrequencyConfig(topicItem.frequency);
                     return (
                       <div
                         key={topicItem.id}
@@ -194,8 +184,8 @@ export function MostTestedTopics({ topics, onUpdateTopics }: MostTestedTopicsPro
                             </p>
                           )}
                         </div>
-                        <Badge className={cn('text-xs', config.bg, config.color)} variant="secondary">
-                          {config.label}
+                        <Badge className={cn('text-xs font-bold', config.bg, config.color)} variant="secondary">
+                          {topicItem.frequency}%
                         </Badge>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
@@ -252,37 +242,22 @@ export function MostTestedTopics({ topics, onUpdateTopics }: MostTestedTopicsPro
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Frequência de Cobrança</label>
-              <Select value={frequency} onValueChange={(v) => setFrequency(v as TestedTopic['frequency'])}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="very_high">
-                    <div className="flex items-center gap-2">
-                      <Flame className="w-4 h-4 text-red-500" />
-                      Muito Alta
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="high">
-                    <div className="flex items-center gap-2">
-                      <Star className="w-4 h-4 text-amber-500" />
-                      Alta
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="medium">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-blue-500" />
-                      Média
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="low">
-                    <div className="flex items-center gap-2">
-                      Baixa
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium text-foreground">
+                Frequência de Cobrança: <span className="text-primary font-bold">{frequency}%</span>
+              </label>
+              <Input
+                type="range"
+                min="0"
+                max="100"
+                value={frequency}
+                onChange={(e) => setFrequency(Number(e.target.value))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+              </div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Observações (opcional)</label>
