@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { EvaluationCriteria, EvaluationCriteriaItem } from '@/types/contests';
 
 interface EvaluationCriteriaEditorProps {
@@ -14,49 +13,38 @@ interface EvaluationCriteriaEditorProps {
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export function EvaluationCriteriaEditor({ criteria, onChange }: EvaluationCriteriaEditorProps) {
-  const [newLevel, setNewLevel] = useState('');
-  const [expandedCriteria, setExpandedCriteria] = useState<Set<number>>(new Set([0]));
-  const [editingItem, setEditingItem] = useState<{ criteriaIdx: number; itemId: string } | null>(null);
+  const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editingItemValues, setEditingItemValues] = useState<Partial<EvaluationCriteriaItem>>({});
 
-  const toggleExpanded = (idx: number) => {
-    setExpandedCriteria((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) {
-        next.delete(idx);
-      } else {
-        next.add(idx);
-      }
-      return next;
-    });
-  };
-
-  const addCriteria = () => {
-    if (!newLevel.trim()) return;
-    const newCriteria: EvaluationCriteria = {
-      level: newLevel.trim(),
+  // Ensure we have a single criteria container
+  const ensureCriteria = (): EvaluationCriteria => {
+    if (criteria.length > 0) return criteria[0];
+    return {
+      level: 'Geral',
       description: '',
       items: [],
       totalQuestions: 0,
       totalPoints: 0,
     };
-    onChange([...criteria, newCriteria]);
-    setExpandedCriteria((prev) => new Set([...prev, criteria.length]));
-    setNewLevel('');
   };
 
-  const removeCriteria = (idx: number) => {
-    onChange(criteria.filter((_, i) => i !== idx));
+  const currentCriteria = ensureCriteria();
+  const items = currentCriteria.items;
+
+  const updateCriteria = (updatedItems: EvaluationCriteriaItem[]) => {
+    const totalQuestions = updatedItems.reduce((sum, item) => sum + item.questions, 0);
+    const totalPoints = updatedItems.reduce((sum, item) => sum + item.totalPoints, 0);
+    
+    const updated: EvaluationCriteria = {
+      ...currentCriteria,
+      items: updatedItems,
+      totalQuestions,
+      totalPoints,
+    };
+    onChange([updated]);
   };
 
-  const updateCriteriaDescription = (idx: number, description: string) => {
-    const updated = [...criteria];
-    updated[idx] = { ...updated[idx], description };
-    onChange(updated);
-  };
-
-  const addItem = (criteriaIdx: number) => {
-    const updated = [...criteria];
+  const addItem = () => {
     const newItem: EvaluationCriteriaItem = {
       id: generateId(),
       content: '',
@@ -64,66 +52,57 @@ export function EvaluationCriteriaEditor({ criteria, onChange }: EvaluationCrite
       weight: 0,
       totalPoints: 0,
     };
-    updated[criteriaIdx] = {
-      ...updated[criteriaIdx],
-      items: [...updated[criteriaIdx].items, newItem],
-    };
-    onChange(updated);
-    // Start editing the new item
-    setEditingItem({ criteriaIdx, itemId: newItem.id });
+    updateCriteria([...items, newItem]);
+    setEditingItem(newItem.id);
     setEditingItemValues(newItem);
   };
 
-  const removeItem = (criteriaIdx: number, itemId: string) => {
-    const updated = [...criteria];
-    updated[criteriaIdx] = {
-      ...updated[criteriaIdx],
-      items: updated[criteriaIdx].items.filter((item) => item.id !== itemId),
-    };
-    recalculateTotals(updated, criteriaIdx);
-    onChange(updated);
+  const removeItem = (itemId: string) => {
+    updateCriteria(items.filter((item) => item.id !== itemId));
   };
 
-  const startEditingItem = (criteriaIdx: number, item: EvaluationCriteriaItem) => {
-    setEditingItem({ criteriaIdx, itemId: item.id });
+  const startEditingItem = (item: EvaluationCriteriaItem) => {
+    setEditingItem(item.id);
     setEditingItemValues({ ...item });
   };
 
   const cancelEditingItem = () => {
+    // Remove if empty
+    if (editingItem) {
+      const item = items.find(i => i.id === editingItem);
+      if (item && !item.content) {
+        updateCriteria(items.filter(i => i.id !== editingItem));
+      }
+    }
     setEditingItem(null);
     setEditingItemValues({});
   };
 
   const saveEditingItem = () => {
-    if (!editingItem || !editingItemValues.content) return;
-
-    const updated = [...criteria];
-    const itemIdx = updated[editingItem.criteriaIdx].items.findIndex(
-      (item) => item.id === editingItem.itemId
-    );
-    if (itemIdx !== -1) {
-      const questions = editingItemValues.questions || 0;
-      const weight = editingItemValues.weight || 0;
-      updated[editingItem.criteriaIdx].items[itemIdx] = {
-        id: editingItem.itemId,
-        content: editingItemValues.content || '',
-        questions,
-        weight,
-        totalPoints: questions * weight,
-      };
-      recalculateTotals(updated, editingItem.criteriaIdx);
+    if (!editingItem || !editingItemValues.content?.trim()) {
+      cancelEditingItem();
+      return;
     }
-    onChange(updated);
+
+    const questions = editingItemValues.questions || 0;
+    const weight = editingItemValues.weight || 0;
+    
+    const updatedItems = items.map((item) =>
+      item.id === editingItem
+        ? {
+            id: editingItem,
+            content: editingItemValues.content?.trim() || '',
+            questions,
+            weight,
+            totalPoints: questions * weight,
+          }
+        : item
+    );
+    
+    updateCriteria(updatedItems);
     setEditingItem(null);
     setEditingItemValues({});
   };
-
-  const recalculateTotals = (updated: EvaluationCriteria[], criteriaIdx: number) => {
-    const items = updated[criteriaIdx].items;
-    updated[criteriaIdx].totalQuestions = items.reduce((sum, item) => sum + item.questions, 0);
-    updated[criteriaIdx].totalPoints = items.reduce((sum, item) => sum + item.totalPoints, 0);
-  };
-
 
   return (
     <div className="space-y-4">
@@ -133,222 +112,167 @@ export function EvaluationCriteriaEditor({ criteria, onChange }: EvaluationCrite
 
       <p className="text-sm text-muted-foreground">
         Defina a estrutura da prova objetiva: conteúdos, quantidade de questões, peso individual e
-        pontuação total para cada nível de escolaridade.
+        pontuação total.
       </p>
 
-      {/* Existing Criteria */}
-      {criteria.map((crit, critIdx) => {
-        const isExpanded = expandedCriteria.has(critIdx);
+      {/* Table Header */}
+      {items.length > 0 && (
+        <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground border-b border-border pb-2 px-1">
+          <div className="col-span-5">Conteúdo</div>
+          <div className="col-span-2 text-center">Questões</div>
+          <div className="col-span-2 text-center">Peso</div>
+          <div className="col-span-2 text-center">Total</div>
+          <div className="col-span-1"></div>
+        </div>
+      )}
 
-        return (
-          <div key={critIdx} className="border border-border rounded-lg overflow-hidden bg-card">
-            {/* Header - Clicável para expandir/recolher */}
+      {/* Items */}
+      <div className="space-y-1">
+        {items.map((item) => {
+          const isEditing = editingItem === item.id;
+
+          return (
             <div
-              className="flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
-              onClick={() => toggleExpanded(critIdx)}
+              key={item.id}
+              className="grid grid-cols-12 gap-2 items-center text-sm py-2 px-1 rounded-md hover:bg-muted/30"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
-                  {isExpanded ? (
-                    <ChevronUp className="w-4 h-4 text-primary" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-primary" />
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-semibold text-sm">{crit.level}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {crit.items.length} conteúdos • {crit.totalQuestions} questões • {crit.totalPoints.toFixed(1)} pontos
-                  </span>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeCriteria(critIdx);
-                }}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Content */}
-            {isExpanded && (
-              <div className="p-3 space-y-3">
-                {/* Description */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Descrição (opcional)</Label>
-                  <Textarea
-                    value={crit.description || ''}
-                    onChange={(e) => updateCriteriaDescription(critIdx, e.target.value)}
-                    placeholder="Ex: Prova escrita com 40 questões, incluindo História e Geografia do Estado e Município"
-                    className="resize-none h-16 text-sm"
-                  />
-                </div>
-
-                {/* Items Table Header */}
-                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground border-b border-border pb-2">
-                  <div className="col-span-5">Conteúdo</div>
-                  <div className="col-span-2 text-center">Questões</div>
-                  <div className="col-span-2 text-center">Peso</div>
-                  <div className="col-span-2 text-center">Total</div>
-                  <div className="col-span-1"></div>
-                </div>
-
-                {/* Items */}
-                {crit.items.map((item) => {
-                  const isEditing =
-                    editingItem?.criteriaIdx === critIdx && editingItem?.itemId === item.id;
-
-                  return (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-12 gap-2 items-center text-sm py-1"
-                    >
-                      {isEditing ? (
-                        <>
-                          <div className="col-span-5">
-                            <Input
-                              value={editingItemValues.content || ''}
-                              onChange={(e) =>
-                                setEditingItemValues({ ...editingItemValues, content: e.target.value })
-                              }
-                              placeholder="Ex: Língua Portuguesa"
-                              className="h-8 text-sm"
-                              autoFocus
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <Input
-                              type="number"
-                              value={editingItemValues.questions || ''}
-                              onChange={(e) =>
-                                setEditingItemValues({
-                                  ...editingItemValues,
-                                  questions: parseInt(e.target.value) || 0,
-                                })
-                              }
-                              className="h-8 text-sm text-center"
-                              min={0}
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <Input
-                              type="number"
-                              step="0.1"
-                              value={editingItemValues.weight || ''}
-                              onChange={(e) =>
-                                setEditingItemValues({
-                                  ...editingItemValues,
-                                  weight: parseFloat(e.target.value) || 0,
-                                })
-                              }
-                              className="h-8 text-sm text-center"
-                              min={0}
-                            />
-                          </div>
-                          <div className="col-span-2 text-center text-muted-foreground">
-                            {((editingItemValues.questions || 0) * (editingItemValues.weight || 0)).toFixed(
-                              1
-                            )}
-                          </div>
-                          <div className="col-span-1 flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-success"
-                              onClick={saveEditingItem}
-                            >
-                              <Check className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={cancelEditingItem}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="col-span-5 truncate">{item.content || '(vazio)'}</div>
-                          <div className="col-span-2 text-center">{item.questions}</div>
-                          <div className="col-span-2 text-center">{item.weight.toFixed(1)}</div>
-                          <div className="col-span-2 text-center font-medium">
-                            {item.totalPoints.toFixed(1)}
-                          </div>
-                          <div className="col-span-1 flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => startEditingItem(critIdx, item)}
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                              onClick={() => removeItem(critIdx, item.id)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* Totals Row */}
-                {crit.items.length > 0 && (
-                  <div className="grid grid-cols-12 gap-2 items-center text-sm py-2 border-t border-border font-semibold">
-                    <div className="col-span-5">TOTAL DA PROVA</div>
-                    <div className="col-span-2 text-center">{crit.totalQuestions}</div>
-                    <div className="col-span-2 text-center">-</div>
-                    <div className="col-span-2 text-center">{crit.totalPoints.toFixed(1)}</div>
-                    <div className="col-span-1"></div>
+              {isEditing ? (
+                <>
+                  <div className="col-span-5">
+                    <Input
+                      value={editingItemValues.content || ''}
+                      onChange={(e) =>
+                        setEditingItemValues({ ...editingItemValues, content: e.target.value })
+                      }
+                      placeholder="Ex: Língua Portuguesa"
+                      className="h-8 text-sm"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          saveEditingItem();
+                        } else if (e.key === 'Escape') {
+                          cancelEditingItem();
+                        }
+                      }}
+                    />
                   </div>
-                )}
-
-                {/* Add Item Button */}
-                <div className="pt-2 border-t border-border">
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => addItem(critIdx)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar conteúdo
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {/* Add New Criteria */}
-      <div className="flex gap-2">
-        <Input
-          value={newLevel}
-          onChange={(e) => setNewLevel(e.target.value)}
-          placeholder="Ex: Nível Médio, Nível Superior, Professor..."
-          className="flex-1"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addCriteria();
-            }
-          }}
-        />
-        <Button variant="outline" onClick={addCriteria} disabled={!newLevel.trim()}>
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar nível
-        </Button>
+                  <div className="col-span-2">
+                    <Input
+                      type="number"
+                      value={editingItemValues.questions || ''}
+                      onChange={(e) =>
+                        setEditingItemValues({
+                          ...editingItemValues,
+                          questions: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="h-8 text-sm text-center"
+                      min={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          saveEditingItem();
+                        } else if (e.key === 'Escape') {
+                          cancelEditingItem();
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={editingItemValues.weight || ''}
+                      onChange={(e) =>
+                        setEditingItemValues({
+                          ...editingItemValues,
+                          weight: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="h-8 text-sm text-center"
+                      min={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          saveEditingItem();
+                        } else if (e.key === 'Escape') {
+                          cancelEditingItem();
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="col-span-2 text-center text-muted-foreground">
+                    {((editingItemValues.questions || 0) * (editingItemValues.weight || 0)).toFixed(1)}
+                  </div>
+                  <div className="col-span-1 flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-success"
+                      onClick={saveEditingItem}
+                    >
+                      <Check className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={cancelEditingItem}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="col-span-5 truncate">{item.content || '(vazio)'}</div>
+                  <div className="col-span-2 text-center">{item.questions}</div>
+                  <div className="col-span-2 text-center">{item.weight.toFixed(1)}</div>
+                  <div className="col-span-2 text-center font-medium">
+                    {item.totalPoints.toFixed(1)}
+                  </div>
+                  <div className="col-span-1 flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => startEditingItem(item)}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {/* Totals Row */}
+      {items.length > 0 && (
+        <div className="grid grid-cols-12 gap-2 items-center text-sm py-2 px-1 border-t border-border font-semibold">
+          <div className="col-span-5">TOTAL DA PROVA</div>
+          <div className="col-span-2 text-center">{currentCriteria.totalQuestions}</div>
+          <div className="col-span-2 text-center">-</div>
+          <div className="col-span-2 text-center">{currentCriteria.totalPoints.toFixed(1)}</div>
+          <div className="col-span-1"></div>
+        </div>
+      )}
+
+      {/* Add Item Button */}
+      <Button variant="outline" size="sm" className="w-full" onClick={addItem}>
+        <Plus className="w-4 h-4 mr-2" />
+        Adicionar conteúdo
+      </Button>
     </div>
   );
 }
