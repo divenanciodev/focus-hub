@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, Circle, Clock, RotateCcw } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, RotateCcw, Flame, Star, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStudyReviews, StudyReview } from '@/hooks/useStudyReviews';
 import { Badge } from '@/components/ui/badge';
@@ -12,10 +12,11 @@ import {
 } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Subtopic, SubtopicRelevance } from '@/types';
 
 interface SubtopicReviewItemProps {
   disciplineId: string;
-  subtopic: string;
+  subtopic: Subtopic;
   index: number;
 }
 
@@ -23,7 +24,9 @@ export function SubtopicReviewItem({ disciplineId, subtopic, index }: SubtopicRe
   const { isSubtopicStudied, markAsStudied, unmarkAsStudied } = useStudyReviews(disciplineId);
   const [loading, setLoading] = useState(false);
 
-  const review = isSubtopicStudied(subtopic);
+  // Use subtopic.name for checking study status
+  const subtopicName = subtopic.name;
+  const review = isSubtopicStudied(subtopicName);
   const isStudied = !!review;
 
   const handleToggle = async () => {
@@ -32,12 +35,28 @@ export function SubtopicReviewItem({ disciplineId, subtopic, index }: SubtopicRe
       if (isStudied && review) {
         await unmarkAsStudied(review.id);
       } else {
-        await markAsStudied(disciplineId, subtopic);
+        await markAsStudied(disciplineId, subtopicName);
       }
     } finally {
       setLoading(false);
     }
   };
+
+  // Get relevance info for visual display
+  const getRelevanceInfo = (relevance: SubtopicRelevance) => {
+    switch (relevance) {
+      case 'very_high':
+        return { icon: <Flame className="w-3.5 h-3.5" />, color: 'text-red-500', bg: 'bg-red-500/10', label: 'Muito Alta' };
+      case 'high':
+        return { icon: <Star className="w-3.5 h-3.5" />, color: 'text-amber-500', bg: 'bg-amber-500/10', label: 'Alta' };
+      case 'medium':
+        return { icon: <TrendingUp className="w-3.5 h-3.5" />, color: 'text-blue-500', bg: 'bg-blue-500/10', label: 'Média' };
+      default:
+        return { icon: null, color: 'text-muted-foreground', bg: '', label: 'Baixa' };
+    }
+  };
+
+  const relevanceInfo = getRelevanceInfo(subtopic.relevance);
 
   const getNextReviewInfo = (review: StudyReview): { label: string; date: Date; type: number } | null => {
     const now = new Date();
@@ -78,7 +97,11 @@ export function SubtopicReviewItem({ disciplineId, subtopic, index }: SubtopicRe
           ? isAllCompleted 
             ? 'bg-success/10 border border-success/20' 
             : 'bg-primary/10 border border-primary/20'
-          : 'bg-secondary/50 hover:bg-secondary'
+          : 'bg-secondary/50 hover:bg-secondary',
+        // Add left border based on relevance
+        subtopic.relevance === 'very_high' && 'border-l-4 border-l-red-500',
+        subtopic.relevance === 'high' && 'border-l-4 border-l-amber-500',
+        subtopic.relevance === 'medium' && 'border-l-4 border-l-blue-500'
       )}
     >
       <button 
@@ -100,11 +123,27 @@ export function SubtopicReviewItem({ disciplineId, subtopic, index }: SubtopicRe
         {index + 1}
       </div>
 
+      {/* Relevance indicator */}
+      {relevanceInfo.icon && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={cn('flex-shrink-0', relevanceInfo.color)}>
+                {relevanceInfo.icon}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              Relevância: {relevanceInfo.label}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+
       <span className={cn(
         'flex-1 text-sm',
         isStudied && 'text-foreground font-medium'
       )}>
-        {subtopic}
+        {subtopic.name}
       </span>
 
       {isStudied && review && (

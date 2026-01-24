@@ -225,7 +225,7 @@ export type Database = {
           specific_subject: string | null
           study_plan: Json | null
           subject: string
-          subtopics: string[] | null
+          subtopics: Json | null
           tags: string[] | null
           updated_at: string | null
           user_id: string | null
@@ -243,7 +243,7 @@ export type Database = {
           specific_subject?: string | null
           study_plan?: Json | null
           subject: string
-          subtopics?: string[] | null
+          subtopics?: Json | null
           tags?: string[] | null
           updated_at?: string | null
           user_id?: string | null
@@ -261,7 +261,7 @@ export type Database = {
           specific_subject?: string | null
           study_plan?: Json | null
           subject?: string
-          subtopics?: string[] | null
+          subtopics?: Json | null
           tags?: string[] | null
           updated_at?: string | null
           user_id?: string | null

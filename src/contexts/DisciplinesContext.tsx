@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { useDisciplines as useDisciplinesHook, Discipline } from '@/hooks/useDisciplines';
+import { useDisciplines as useDisciplinesHook, Discipline, Subtopic } from '@/hooks/useDisciplines';
 
 interface DisciplinesContextType {
   disciplines: Discipline[];
@@ -13,7 +13,7 @@ interface DisciplinesContextType {
     color: string;
     studyPlan?: Discipline['studyPlan'];
     coverImage?: string;
-    subtopics?: string[];
+    subtopics?: Subtopic[];
   }) => Promise<Discipline | null>;
   updateDiscipline: (id: string, data: Partial<Discipline>) => Promise<boolean>;
   deleteDiscipline: (id: string) => Promise<boolean>;
@@ -57,5 +57,5 @@ export function useDisciplines() {
   return context;
 }
 
-// Re-export the Discipline type for convenience
-export type { Discipline } from '@/hooks/useDisciplines';
+// Re-export the types for convenience
+export type { Discipline, Subtopic } from '@/hooks/useDisciplines';
