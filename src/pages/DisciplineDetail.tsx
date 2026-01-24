@@ -6,14 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
 import { AddStudyLinkModal } from '@/components/modals/AddStudyLinkModal';
-import { VideoPlaylist } from '@/components/studies/VideoPlaylist';
+import { MostTestedTopics, TestedTopic } from '@/components/studies/MostTestedTopics';
 import { SummarySection } from '@/components/studies/SummarySection';
 import { SubtopicReviewItem } from '@/components/studies/SubtopicReviewItem';
 import { PendingReviewsList } from '@/components/studies/PendingReviewsList';
 import { PendingReviewsBadge } from '@/components/studies/PendingReviewsBadge';
 import { useDisciplines } from '@/contexts/DisciplinesContext';
 import { useStudyReviews } from '@/hooks/useStudyReviews';
-import { StudyLink, Task, VideoLink, Summary } from '@/types';
+import { StudyLink, Task, Summary } from '@/types';
 import {
   ArrowLeft,
   Plus,
@@ -54,7 +54,7 @@ export default function DisciplineDetail() {
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [links, setLinks] = useState<StudyLink[]>([]);
-  const [videos, setVideos] = useState<VideoLink[]>([]);
+  const [testedTopics, setTestedTopics] = useState<TestedTopic[]>([]);
   const [summaries, setSummaries] = useState<Summary[]>([]);
 
   const [newTask, setNewTask] = useState('');
@@ -225,7 +225,7 @@ export default function DisciplineDetail() {
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="videos">Vídeos</TabsTrigger>
+              <TabsTrigger value="tested-topics">Assuntos mais cobrados</TabsTrigger>
               <TabsTrigger value="links">Links</TabsTrigger>
               <TabsTrigger value="resumos">Resumos</TabsTrigger>
             </TabsList>
@@ -343,9 +343,9 @@ export default function DisciplineDetail() {
               </div>
             </TabsContent>
 
-            <TabsContent value="videos" className="mt-0">
+            <TabsContent value="tested-topics" className="mt-0">
               <div className="bg-card border border-border rounded-xl p-5">
-                <VideoPlaylist videos={videos} onUpdateVideos={setVideos} />
+                <MostTestedTopics topics={testedTopics} onUpdateTopics={setTestedTopics} />
               </div>
             </TabsContent>
 
@@ -432,10 +432,8 @@ export default function DisciplineDetail() {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Vídeos assistidos</span>
-                <span className="font-medium text-foreground">
-                  {videos.filter(v => v.status === 'completed').length}/{videos.length}
-                </span>
+                <span className="text-muted-foreground">Assuntos mapeados</span>
+                <span className="font-medium text-foreground">{testedTopics.length}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Resumos</span>
