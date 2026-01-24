@@ -8,7 +8,11 @@ import { PomodoroTimer } from '@/components/pomodoro/PomodoroTimer';
 import { AddStudyLinkModal } from '@/components/modals/AddStudyLinkModal';
 import { VideoPlaylist } from '@/components/studies/VideoPlaylist';
 import { SummarySection } from '@/components/studies/SummarySection';
+import { SubtopicReviewItem } from '@/components/studies/SubtopicReviewItem';
+import { PendingReviewsList } from '@/components/studies/PendingReviewsList';
+import { PendingReviewsBadge } from '@/components/studies/PendingReviewsBadge';
 import { useDisciplines } from '@/contexts/DisciplinesContext';
+import { useStudyReviews } from '@/hooks/useStudyReviews';
 import { StudyLink, Task, VideoLink, Summary } from '@/types';
 import {
   ArrowLeft,
@@ -23,6 +27,7 @@ import {
   Edit2,
   PlayCircle,
   ListChecks,
+  RotateCcw,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -45,6 +50,7 @@ export default function DisciplineDetail() {
   const navigate = useNavigate();
   const { getDiscipline, deleteDiscipline, updateDiscipline } = useDisciplines();
   const discipline = getDiscipline(id || '');
+  const { getStudiedSubtopics } = useStudyReviews(id);
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [links, setLinks] = useState<StudyLink[]>([]);
@@ -66,6 +72,10 @@ export default function DisciplineDetail() {
       </div>
     );
   }
+
+  const studiedSubtopics = getStudiedSubtopics();
+  const totalSubtopics = discipline.subtopics?.length || 0;
+  const studiedCount = studiedSubtopics.length;
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,88 +213,126 @@ export default function DisciplineDetail() {
         <div className="lg:col-span-2">
           <Tabs defaultValue="tasks" className="w-full">
             <TabsList className="mb-4 flex-wrap h-auto gap-1">
-              <TabsTrigger value="tasks">Tarefas</TabsTrigger>
-              <TabsTrigger value="grade">Grade Curricular</TabsTrigger>
+              <TabsTrigger value="tasks" className="flex items-center gap-2">
+                Tarefas
+                <PendingReviewsBadge disciplineId={id} showTooltip={false} />
+              </TabsTrigger>
+              <TabsTrigger value="grade">
+                Grade Curricular
+                {totalSubtopics > 0 && (
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    {studiedCount}/{totalSubtopics}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="videos">Vídeos</TabsTrigger>
               <TabsTrigger value="links">Links</TabsTrigger>
               <TabsTrigger value="resumos">Resumos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="tasks" className="mt-0">
-              <div className="bg-card border border-border rounded-xl p-5">
-                <form onSubmit={handleAddTask} className="flex gap-2 mb-4">
-                  <Input
-                    value={newTask}
-                    onChange={(e) => setNewTask(e.target.value)}
-                    placeholder="Nova tarefa..."
-                    className="flex-1"
-                  />
-                  <Button type="submit" size="icon">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </form>
-
-                {tasks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    Nenhuma tarefa adicionada. Comece adicionando sua primeira tarefa acima.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {tasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className={cn(
-                          'flex items-center gap-3 p-3 rounded-lg transition-colors',
-                          task.completed ? 'bg-muted/50' : 'bg-secondary/50 hover:bg-secondary'
-                        )}
-                      >
-                        <button onClick={() => toggleTask(task.id)}>
-                          {task.completed ? (
-                            <CheckCircle2 className="w-5 h-5 text-success" />
-                          ) : (
-                            <Circle className="w-5 h-5 text-muted-foreground" />
-                          )}
-                        </button>
-                        <span
-                          className={cn(
-                            'flex-1 text-sm',
-                            task.completed && 'line-through text-muted-foreground'
-                          )}
-                        >
-                          {task.title}
-                        </span>
-                        <button
-                          onClick={() => deleteTask(task.id)}
-                          className="text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+              <div className="bg-card border border-border rounded-xl p-5 space-y-6">
+                {/* Pending Reviews Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <RotateCcw className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold text-foreground">Revisões Pendentes</h3>
                   </div>
-                )}
+                  <PendingReviewsList disciplineId={id} />
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-border" />
+
+                {/* Manual Tasks Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="font-semibold text-foreground">Tarefas Manuais</h3>
+                  </div>
+                  
+                  <form onSubmit={handleAddTask} className="flex gap-2 mb-4">
+                    <Input
+                      value={newTask}
+                      onChange={(e) => setNewTask(e.target.value)}
+                      placeholder="Nova tarefa..."
+                      className="flex-1"
+                    />
+                    <Button type="submit" size="icon">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </form>
+
+                  {tasks.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nenhuma tarefa manual adicionada.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {tasks.map((task) => (
+                        <div
+                          key={task.id}
+                          className={cn(
+                            'flex items-center gap-3 p-3 rounded-lg transition-colors',
+                            task.completed ? 'bg-muted/50' : 'bg-secondary/50 hover:bg-secondary'
+                          )}
+                        >
+                          <button onClick={() => toggleTask(task.id)}>
+                            {task.completed ? (
+                              <CheckCircle2 className="w-5 h-5 text-success" />
+                            ) : (
+                              <Circle className="w-5 h-5 text-muted-foreground" />
+                            )}
+                          </button>
+                          <span
+                            className={cn(
+                              'flex-1 text-sm',
+                              task.completed && 'line-through text-muted-foreground'
+                            )}
+                          >
+                            {task.title}
+                          </span>
+                          <button
+                            onClick={() => deleteTask(task.id)}
+                            className="text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
             <TabsContent value="grade" className="mt-0">
               <div className="bg-card border border-border rounded-xl p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <ListChecks className="w-5 h-5 text-muted-foreground" />
-                  <h3 className="font-semibold text-foreground">Grade Curricular</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <ListChecks className="w-5 h-5 text-muted-foreground" />
+                    <h3 className="font-semibold text-foreground">Grade Curricular</h3>
+                  </div>
+                  {totalSubtopics > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {studiedCount} de {totalSubtopics} estudados
+                    </Badge>
+                  )}
                 </div>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  Clique no círculo para marcar como estudado. O sistema criará revisões automáticas em 1, 3, 7 e 15 dias.
+                </p>
                 
                 {discipline.subtopics && discipline.subtopics.length > 0 ? (
                   <div className="space-y-2">
                     {discipline.subtopics.map((subtopic, index) => (
-                      <div
+                      <SubtopicReviewItem
                         key={index}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
-                      >
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                          {index + 1}
-                        </div>
-                        <span className="flex-1 text-sm text-foreground">{subtopic}</span>
-                      </div>
+                        disciplineId={id || ''}
+                        subtopic={subtopic}
+                        index={index}
+                      />
                     ))}
                   </div>
                 ) : (
