@@ -230,11 +230,12 @@ export function CreateDisciplineModalEnhanced({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl w-[90vw] min-h-[70vh]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-4xl w-[90vw] max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{isEditing ? 'Editar Disciplina' : 'Criar Disciplina'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {/* Imagem de Capa */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground border-b pb-2">🖼️ Imagem de Capa</h3>
@@ -552,7 +553,9 @@ export function CreateDisciplineModalEnhanced({
             )}
           </div>
 
-          <DialogFooter>
+          </div>
+
+          <DialogFooter className="flex-shrink-0 pt-4 border-t mt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
