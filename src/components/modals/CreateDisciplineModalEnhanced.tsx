@@ -230,7 +230,7 @@ export function CreateDisciplineModalEnhanced({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[95vh]">
+      <DialogContent className="sm:max-w-4xl w-[90vw] min-h-[70vh]">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Disciplina' : 'Criar Disciplina'}</DialogTitle>
         </DialogHeader>
