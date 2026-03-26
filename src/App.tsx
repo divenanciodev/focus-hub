@@ -23,6 +23,8 @@ import Habitos from "./pages/Habitos";
 import Cronograma from "./pages/Cronograma";
 import Idiomas from "./pages/Idiomas";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
