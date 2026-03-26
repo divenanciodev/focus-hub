@@ -147,7 +147,13 @@ export default function Auth() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <div className="text-center mt-4">
+            <a href="/forgot-password" className="text-sm text-primary hover:underline">
+              Esqueceu sua senha?
+            </a>
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground mt-4">
             Acesso restrito. Contate o administrador para obter uma conta.
           </p>
         </div>
