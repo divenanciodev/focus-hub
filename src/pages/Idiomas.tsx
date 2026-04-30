@@ -21,6 +21,7 @@ import type { Language } from '@/types/languages';
 import { VocabularyModule } from '@/components/languages/VocabularyModule';
 import { StructuresModule } from '@/components/languages/StructuresModule';
 import { ProgressModule } from '@/components/languages/ProgressModule';
+import { GameHub } from '@/components/languages/GameHub';
 import usFlagIcon from '@/assets/flags/us-flag.png';
 
 // Helper to render language icon - supports both emoji and image paths
@@ -40,6 +41,7 @@ export default function Idiomas() {
   const { languages, loading } = useLanguages();
   const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
   const [activeModule, setActiveModule] = useState<'vocabulary' | 'structures' | 'progress'>('vocabulary');
+  const [showLibrary, setShowLibrary] = useState(false);
 
   // If no language selected, show language selection
   if (!selectedLanguage) {
@@ -95,6 +97,19 @@ export default function Idiomas() {
     );
   }
 
+  // Language selected - show Game Hub by default; library opens the study modules
+  if (!showLibrary) {
+    return (
+      <MainLayout>
+        <GameHub
+          languageName={selectedLanguage.name}
+          onBack={() => setSelectedLanguage(null)}
+          onOpenLibrary={() => setShowLibrary(true)}
+        />
+      </MainLayout>
+    );
+  }
+
   // Language selected - show modules
   return (
     <MainLayout>
@@ -104,7 +119,7 @@ export default function Idiomas() {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => setSelectedLanguage(null)}
+            onClick={() => setShowLibrary(false)}
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
