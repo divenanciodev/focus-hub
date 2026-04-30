@@ -87,7 +87,7 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
   ];
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] -m-6 lg:-m-8 overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 dark:from-indigo-950 dark:via-purple-950 dark:to-slate-950">
       {/* Decorative blobs */}
       <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-yellow-300/30 blur-3xl" />
       <div className="pointer-events-none absolute top-1/3 -right-32 w-[28rem] h-[28rem] rounded-full bg-pink-400/30 blur-3xl" />

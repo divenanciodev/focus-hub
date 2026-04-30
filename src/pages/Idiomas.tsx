@@ -98,15 +98,16 @@ export default function Idiomas() {
   }
 
   // Language selected - show Game Hub by default; library opens the study modules
+  // GameHub is rendered fullscreen WITHOUT MainLayout to hide the sidebar
   if (!showLibrary) {
     return (
-      <MainLayout>
+      <div className="min-h-screen bg-background">
         <GameHub
           languageName={selectedLanguage.name}
           onBack={() => setSelectedLanguage(null)}
           onOpenLibrary={() => setShowLibrary(true)}
         />
-      </MainLayout>
+      </div>
     );
   }
 
