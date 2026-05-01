@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import avatar3D from '@/assets/avatar-3d-placeholder.png';
 import avatarDefault from '@/assets/avatar-profile-default.png';
+import { QuestsHub } from './quests/QuestsHub';
 
 interface GameHubProps {
   languageName: string;
@@ -299,7 +300,11 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
         )}
 
         {section !== 'home' && (
-          <PlaceholderSection section={section} />
+          section === 'quests' ? (
+            <QuestsHub />
+          ) : (
+            <PlaceholderSection section={section} />
+          )
         )}
       </main>
 
