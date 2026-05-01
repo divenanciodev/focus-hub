@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Volume2, CheckCircle2, BookOpen } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Volume2, CheckCircle2, BookOpen, X, Lock, Trophy } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface ImGoodAtLessonProps {
@@ -10,7 +11,7 @@ interface ImGoodAtLessonProps {
   initialProgress: number;
 }
 
-type Stage = 'intro' | 'learn' | 'done';
+type Stage = 'intro' | 'learn';
 
 interface VocabItem {
   en: string;
@@ -20,16 +21,22 @@ interface VocabItem {
 
 interface VocabGroup {
   title: string;
+  subtitle: string;
   emoji: string;
   color: string;
+  trophyColor: string;
+  badgeBg: string;
   items: VocabItem[];
 }
 
 const GROUPS: VocabGroup[] = [
   {
     title: 'Habilidades gerais',
+    subtitle: 'Fale, escreva, leia e ensine como um nativo',
     emoji: '🧠',
     color: 'from-indigo-400 to-purple-500',
+    trophyColor: 'from-amber-500 via-orange-500 to-rose-500',
+    badgeBg: 'bg-orange-500',
     items: [
       { en: "I'm good at speaking", pt: 'Eu sou bom(a) em falar', emoji: '🗣️' },
       { en: "I'm good at writing", pt: 'Eu sou bom(a) em escrever', emoji: '✍️' },
@@ -41,8 +48,11 @@ const GROUPS: VocabGroup[] = [
   },
   {
     title: 'Tecnologia / estudo',
+    subtitle: 'Vocabulário do mundo digital e dos estudos',
     emoji: '💻',
     color: 'from-cyan-400 to-blue-500',
+    trophyColor: 'from-slate-300 via-slate-400 to-slate-500',
+    badgeBg: 'bg-slate-500',
     items: [
       { en: "I'm good at typing", pt: 'Eu sou bom(a) em digitar', emoji: '⌨️' },
       { en: "I'm good at coding", pt: 'Eu sou bom(a) em programar', emoji: '👨‍💻' },
@@ -52,8 +62,11 @@ const GROUPS: VocabGroup[] = [
   },
   {
     title: 'Criatividade',
+    subtitle: 'Expresse seu lado artístico em inglês',
     emoji: '🎨',
     color: 'from-pink-400 to-rose-500',
+    trophyColor: 'from-yellow-300 via-amber-400 to-yellow-600',
+    badgeBg: 'bg-amber-500',
     items: [
       { en: "I'm good at drawing", pt: 'Eu sou bom(a) em desenhar', emoji: '✏️' },
       { en: "I'm good at painting", pt: 'Eu sou bom(a) em pintar', emoji: '🖌️' },
@@ -63,8 +76,11 @@ const GROUPS: VocabGroup[] = [
   },
   {
     title: 'Comunicação',
+    subtitle: 'Conecte-se com pessoas em qualquer lugar',
     emoji: '🗣️',
     color: 'from-emerald-400 to-teal-500',
+    trophyColor: 'from-blue-400 via-indigo-500 to-blue-700',
+    badgeBg: 'bg-blue-500',
     items: [
       { en: "I'm good at talking to people", pt: 'Eu sou bom(a) em conversar com pessoas', emoji: '💬' },
       { en: "I'm good at listening", pt: 'Eu sou bom(a) em ouvir', emoji: '👂' },
@@ -74,8 +90,11 @@ const GROUPS: VocabGroup[] = [
   },
   {
     title: 'Atividades físicas',
+    subtitle: 'Mexa-se e descreva seus esportes favoritos',
     emoji: '🏃‍♀️',
     color: 'from-orange-400 to-red-500',
+    trophyColor: 'from-emerald-400 via-green-500 to-teal-600',
+    badgeBg: 'bg-emerald-500',
     items: [
       { en: "I'm good at running", pt: 'Eu sou bom(a) em correr', emoji: '🏃' },
       { en: "I'm good at swimming", pt: 'Eu sou bom(a) em nadar', emoji: '🏊' },
@@ -85,8 +104,11 @@ const GROUPS: VocabGroup[] = [
   },
   {
     title: 'Vida prática',
+    subtitle: 'Rotina, casa e organização do dia a dia',
     emoji: '🍳',
     color: 'from-amber-400 to-yellow-500',
+    trophyColor: 'from-fuchsia-400 via-purple-500 to-violet-700',
+    badgeBg: 'bg-purple-500',
     items: [
       { en: "I'm good at cooking", pt: 'Eu sou bom(a) em cozinhar', emoji: '👨‍🍳' },
       { en: "I'm good at driving", pt: 'Eu sou bom(a) em dirigir', emoji: '🚗' },
@@ -97,6 +119,11 @@ const GROUPS: VocabGroup[] = [
 ];
 
 const TOTAL_ITEMS = GROUPS.reduce((s, g) => s + g.items.length, 0);
+
+function extractGerund(en: string): string {
+  const m = en.match(/good at (.+)/i);
+  return (m?.[1] ?? en).split(' ')[0];
+}
 
 function speak(text: string) {
   if (!('speechSynthesis' in window)) return;
@@ -110,19 +137,46 @@ function speak(text: string) {
 export function ImGoodAtLesson({ onBack, onComplete, initialProgress }: ImGoodAtLessonProps) {
   const [stage, setStage] = useState<Stage>('intro');
   const [learned, setLearned] = useState<Set<string>>(new Set());
+  const [openGroup, setOpenGroup] = useState<VocabGroup | null>(null);
+  const [cardIndex, setCardIndex] = useState(0);
 
   const learnedCount = learned.size;
   const pct = Math.round((learnedCount / TOTAL_ITEMS) * 100);
 
-  const toggleLearned = (key: string) => {
+  const markLearned = (key: string) => {
     setLearned((s) => {
+      if (s.has(key)) return s;
       const next = new Set(s);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      next.add(key);
       const newPct = Math.round((next.size / TOTAL_ITEMS) * 100);
       onComplete(newPct);
       return next;
     });
+  };
+
+  const openGroupModal = (group: VocabGroup) => {
+    setOpenGroup(group);
+    setCardIndex(0);
+  };
+
+  const closeGroupModal = () => {
+    setOpenGroup(null);
+    if (typeof window !== 'undefined') window.speechSynthesis?.cancel();
+  };
+
+  const nextCard = () => {
+    if (!openGroup) return;
+    const current = openGroup.items[cardIndex];
+    if (current) markLearned(current.en);
+    if (cardIndex < openGroup.items.length - 1) {
+      setCardIndex((i) => i + 1);
+    } else {
+      closeGroupModal();
+    }
+  };
+
+  const prevCard = () => {
+    if (cardIndex > 0) setCardIndex((i) => i - 1);
   };
 
   // INTRO
@@ -184,9 +238,9 @@ export function ImGoodAtLesson({ onBack, onComplete, initialProgress }: ImGoodAt
     );
   }
 
-  // LEARN
+  // LEARN — trophy-style category cards
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <Button variant="ghost" onClick={() => setStage('intro')} className="text-white hover:bg-white/15">
           <ArrowLeft className="w-4 h-4 mr-2" /> Explicação
@@ -205,76 +259,99 @@ export function ImGoodAtLesson({ onBack, onComplete, initialProgress }: ImGoodAt
         </div>
       </div>
 
-      <div className="text-center mb-6">
+      <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-extrabold text-white drop-shadow-lg">
-          Vocabulário: <span className="text-amber-200">verbo + ing</span>
+          Conquiste todas as <span className="text-amber-200">categorias</span>
         </h1>
         <p className="text-white/80 text-sm mt-1">
-          Toque em uma palavra para ouvir. Marque as que você já aprendeu.
+          Toque em um troféu para começar a estudar as palavras dessa categoria.
         </p>
       </div>
 
-      <div className="space-y-6">
-        {GROUPS.map((group) => (
-          <div key={group.title}>
-            <div className="flex items-center gap-2 mb-3 text-white">
-              <div
-                className={cn(
-                  'w-9 h-9 rounded-full bg-gradient-to-br flex items-center justify-center text-lg shadow-md',
-                  group.color
-                )}
-              >
-                {group.emoji}
-              </div>
-              <h2 className="text-lg font-extrabold drop-shadow">{group.title}</h2>
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {GROUPS.map((group, idx) => {
+          const groupLearned = group.items.filter((i) => learned.has(i.en)).length;
+          const groupPct = Math.round((groupLearned / group.items.length) * 100);
+          const completed = groupPct >= 100;
+          const xp = group.items.length * 10;
+          return (
+            <button
+              key={group.title}
+              onClick={() => openGroupModal(group)}
+              className="group text-left"
+            >
+              <Card className="relative bg-white dark:bg-card border-0 rounded-3xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all p-5 pt-6 h-full flex flex-col">
+                <div className="absolute top-3 left-3">
+                  <div className={cn('relative w-9 h-9 flex items-center justify-center text-white rounded-md rotate-3 shadow-md', group.badgeBg)}>
+                    <Trophy className="w-4 h-4" />
+                    <span className="absolute -bottom-1 -right-1 bg-white text-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow font-bold">
+                      {idx + 1}
+                    </span>
+                  </div>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {group.items.map((item) => {
-                const key = item.en;
-                const isLearned = learned.has(key);
-                return (
-                  <Card
-                    key={key}
-                    className={cn(
-                      'group relative bg-white dark:bg-card border-0 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all p-4 flex items-center gap-3 cursor-pointer',
-                      isLearned && 'ring-2 ring-emerald-400'
-                    )}
-                    onClick={() => toggleLearned(key)}
-                  >
+                <div className="absolute top-3 right-3 text-xs font-bold text-cyan-600 bg-cyan-50 dark:bg-cyan-950/40 px-2 py-0.5 rounded-full">
+                  + {xp} EXP
+                </div>
+
+                <div className="flex justify-center mt-4 mb-3">
+                  <div className="relative">
                     <div
                       className={cn(
-                        'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-2xl shrink-0',
-                        group.color
+                        'w-24 h-24 bg-gradient-to-br flex items-center justify-center shadow-xl',
+                        group.trophyColor
                       )}
-                    >
-                      {item.emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-foreground text-sm truncate">{item.en}</div>
-                      <div className="text-xs text-muted-foreground truncate">{item.pt}</div>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        speak(item.en);
+                      style={{
+                        clipPath:
+                          'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
                       }}
-                      className="w-8 h-8 rounded-full bg-muted hover:bg-indigo-100 hover:text-indigo-600 flex items-center justify-center transition shrink-0"
-                      aria-label="Ouvir"
                     >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
-                    {isLearned && (
-                      <div className="absolute -top-1.5 -right-1.5 bg-emerald-500 rounded-full p-0.5 shadow">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+                      <Trophy className="w-12 h-12 text-white drop-shadow-lg" strokeWidth={2.5} />
+                    </div>
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-white text-foreground text-[11px] font-extrabold w-6 h-6 rounded-full flex items-center justify-center shadow-md border border-muted">
+                      {idx + 1}
+                    </div>
+                  </div>
+                </div>
+
+                <h3 className="text-center text-base font-extrabold text-foreground mt-2">
+                  {group.title}
+                </h3>
+                <p className="text-center text-xs text-muted-foreground mt-1 leading-snug px-2 line-clamp-2 min-h-[2.25rem]">
+                  {group.subtitle}
+                </p>
+
+                <div className="mt-4">
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all',
+                        completed
+                          ? 'bg-emerald-500'
+                          : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400'
+                      )}
+                      style={{ width: `${groupPct}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3 text-center text-[11px] font-extrabold tracking-[0.15em] uppercase">
+                  {completed ? (
+                    <span className="text-emerald-600 inline-flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Concluído
+                    </span>
+                  ) : groupLearned > 0 ? (
+                    <span className="text-indigo-600">Em progresso</span>
+                  ) : (
+                    <span className="text-muted-foreground inline-flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Iniciar
+                    </span>
+                  )}
+                </div>
+              </Card>
+            </button>
+          );
+        })}
       </div>
 
       <div className="mt-8 mb-4 flex justify-center">
@@ -286,6 +363,104 @@ export function ImGoodAtLesson({ onBack, onComplete, initialProgress }: ImGoodAt
           Concluir lição
         </Button>
       </div>
+
+      {/* Study modal — center flashcard */}
+      <Dialog open={!!openGroup} onOpenChange={(o) => !o && closeGroupModal()}>
+        <DialogContent className="max-w-md p-0 overflow-hidden border-0 bg-transparent shadow-none">
+          {openGroup && (() => {
+            const item = openGroup.items[cardIndex];
+            const total = openGroup.items.length;
+            const isLearned = learned.has(item.en);
+            const gerund = extractGerund(item.en);
+            return (
+              <Card className="bg-white dark:bg-card border-0 rounded-3xl shadow-2xl p-6 relative">
+                <button
+                  onClick={closeGroupModal}
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center z-10"
+                  aria-label="Fechar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+
+                <div className="flex items-center gap-2 mb-3 pr-10">
+                  <div className={cn('w-7 h-7 rounded-full bg-gradient-to-br flex items-center justify-center text-sm shadow', openGroup.color)}>
+                    {openGroup.emoji}
+                  </div>
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider truncate">
+                    {openGroup.title}
+                  </span>
+                  <span className="ml-auto text-xs font-bold text-muted-foreground tabular-nums">
+                    {cardIndex + 1} / {total}
+                  </span>
+                </div>
+
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-6">
+                  <div
+                    className={cn('h-full bg-gradient-to-r transition-all', openGroup.color)}
+                    style={{ width: `${((cardIndex + 1) / total) * 100}%` }}
+                  />
+                </div>
+
+                <div
+                  className={cn(
+                    'mx-auto w-44 h-44 rounded-3xl bg-gradient-to-br flex items-center justify-center text-7xl shadow-xl mb-6',
+                    openGroup.color
+                  )}
+                >
+                  {item.emoji}
+                </div>
+
+                <div className="text-center">
+                  <div className="text-3xl font-extrabold text-foreground capitalize">
+                    {gerund}
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1 italic">
+                    {item.en}
+                  </div>
+                  <div className="text-sm font-medium text-foreground/70 mt-2">
+                    {item.pt}
+                  </div>
+                </div>
+
+                <div className="flex justify-center mt-5">
+                  <Button
+                    size="lg"
+                    onClick={() => speak(item.en)}
+                    className="rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold shadow-lg hover:shadow-xl"
+                  >
+                    <Volume2 className="w-5 h-5 mr-2" /> Ouvir pronúncia
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 mt-6">
+                  <Button
+                    variant="ghost"
+                    onClick={prevCard}
+                    disabled={cardIndex === 0}
+                    className="rounded-full"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-1" /> Anterior
+                  </Button>
+
+                  {isLearned && (
+                    <span className="text-xs font-bold text-emerald-600 inline-flex items-center gap-1">
+                      <CheckCircle2 className="w-4 h-4" /> Aprendida
+                    </span>
+                  )}
+
+                  <Button
+                    onClick={nextCard}
+                    className="rounded-full bg-foreground text-background hover:bg-foreground/90 font-bold"
+                  >
+                    {cardIndex === total - 1 ? 'Concluir' : 'Próxima'}
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </Card>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
