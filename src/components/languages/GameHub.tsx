@@ -58,6 +58,7 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
   const [profileName, setProfileName] = useState('Estudante');
   const [avatarUrl, setAvatarUrl] = useState<string>(avatarDefault);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [rankingOpen, setRankingOpen] = useState(false);
   const [following, setFollowing] = useState<Record<string, boolean>>(
     Object.fromEntries(MOCK_RANKING.map(r => [r.id, r.following]))
   );
@@ -121,7 +122,8 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
             <StatPill icon={<Coins className="w-4 h-4" />} value={freeCoins.toString()} label="Moedas" color="from-yellow-400 to-amber-500" />
           </div>
 
-          {/* Right: profile */}
+          {/* Right: profile + ranking button stacked */}
+          <div className="flex flex-col items-end gap-2">
           <Dialog open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen}>
             <DialogTrigger asChild>
               <button className="flex items-center gap-3 bg-white/15 hover:bg-white/25 backdrop-blur-md transition rounded-full pl-2 pr-4 py-1.5 group">
@@ -172,15 +174,30 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Ranking button (below profile) */}
+          <button
+            onClick={() => setRankingOpen(true)}
+            className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md transition rounded-full pl-1.5 pr-4 py-1.5 group"
+          >
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
+              <Trophy className="w-4 h-4 text-white" />
+            </div>
+            <div className="text-left leading-tight">
+              <div className="text-[10px] text-white/70">Sua posição</div>
+              <div className="text-sm font-bold text-white">Ranking · #42</div>
+            </div>
+          </button>
+          </div>
         </div>
       </header>
 
       {/* MAIN CONTENT */}
       <main className="relative z-10 px-4 md:px-8 pb-32 pt-4">
         {section === 'home' && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
+          <div className="flex justify-center">
             {/* Avatar stage */}
-            <div className="relative flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="relative flex flex-col items-center justify-center min-h-[60vh] w-full max-w-3xl">
               {/* Welcome */}
               <div className="text-center mb-4 animate-fade-in">
                 <h2 className="text-white/80 text-lg">Bem-vindo de volta,</h2>
@@ -218,84 +235,6 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
                 Continuar estudando
               </Button>
             </div>
-
-            {/* Ranking */}
-            <Card className="bg-white/95 dark:bg-card/95 backdrop-blur-md border-white/40 shadow-2xl rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                    <Trophy className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground">Ranking</h3>
-                    <p className="text-xs text-muted-foreground">Melhores em {languageName}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {MOCK_RANKING.map((p, i) => {
-                  const isFollowing = following[p.id];
-                  return (
-                    <div
-                      key={p.id}
-                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted transition"
-                    >
-                      <div
-                        className={cn(
-                          'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
-                          i === 0 && 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white',
-                          i === 1 && 'bg-gradient-to-br from-slate-300 to-slate-400 text-white',
-                          i === 2 && 'bg-gradient-to-br from-orange-400 to-orange-600 text-white',
-                          i > 2 && 'bg-muted text-muted-foreground'
-                        )}
-                      >
-                        {i + 1}
-                      </div>
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={p.avatar} />
-                        <AvatarFallback>{p.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-foreground truncate">{p.name}</div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Zap className="w-3 h-3" /> {p.xp.toLocaleString()} XP
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant={isFollowing ? 'secondary' : 'default'}
-                        onClick={() =>
-                          setFollowing((s) => ({ ...s, [p.id]: !s[p.id] }))
-                        }
-                        className="h-8 px-2 rounded-full"
-                      >
-                        {isFollowing ? (
-                          <UserCheck className="w-4 h-4" />
-                        ) : (
-                          <UserPlus className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-border grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-lg font-bold text-foreground">#42</div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Sua pos.</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-foreground">12</div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Seguindo</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-foreground">28</div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Seguidores</div>
-                </div>
-              </div>
-            </Card>
           </div>
         )}
 
@@ -307,6 +246,86 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
           )
         )}
       </main>
+
+      {/* Ranking fullscreen modal */}
+      <Dialog open={rankingOpen} onOpenChange={setRankingOpen}>
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+          <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 rounded-t-lg">
+            <div className="flex items-center gap-3 text-white">
+              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <Trophy className="w-6 h-6 text-amber-300 fill-amber-300" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-extrabold text-white">Ranking</DialogTitle>
+                <p className="text-sm text-white/80">Melhores estudantes em {languageName}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+              <div className="bg-white/15 backdrop-blur-md rounded-xl py-3">
+                <div className="text-2xl font-extrabold text-white">#42</div>
+                <div className="text-[10px] text-white/70 uppercase tracking-wide">Sua posição</div>
+              </div>
+              <div className="bg-white/15 backdrop-blur-md rounded-xl py-3">
+                <div className="text-2xl font-extrabold text-white">12</div>
+                <div className="text-[10px] text-white/70 uppercase tracking-wide">Seguindo</div>
+              </div>
+              <div className="bg-white/15 backdrop-blur-md rounded-xl py-3">
+                <div className="text-2xl font-extrabold text-white">28</div>
+                <div className="text-[10px] text-white/70 uppercase tracking-wide">Seguidores</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-2">
+            {MOCK_RANKING.map((p, i) => {
+              const isFollowing = following[p.id];
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted transition"
+                >
+                  <div
+                    className={cn(
+                      'w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0',
+                      i === 0 && 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white',
+                      i === 1 && 'bg-gradient-to-br from-slate-300 to-slate-400 text-white',
+                      i === 2 && 'bg-gradient-to-br from-orange-400 to-orange-600 text-white',
+                      i > 2 && 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {i + 1}
+                  </div>
+                  <Avatar className="w-12 h-12">
+                    <AvatarImage src={p.avatar} />
+                    <AvatarFallback>{p.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-base font-semibold text-foreground truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Zap className="w-3 h-3" /> {p.xp.toLocaleString()} XP
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={isFollowing ? 'secondary' : 'default'}
+                    onClick={() =>
+                      setFollowing((s) => ({ ...s, [p.id]: !s[p.id] }))
+                    }
+                    className="rounded-full"
+                  >
+                    {isFollowing ? (
+                      <><UserCheck className="w-4 h-4 mr-1" /> Seguindo</>
+                    ) : (
+                      <><UserPlus className="w-4 h-4 mr-1" /> Seguir</>
+                    )}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* BOTTOM NAV */}
       <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 bg-white/95 dark:bg-card/95 backdrop-blur-xl shadow-2xl rounded-full px-2 py-2 flex items-center gap-1 border border-white/40">
