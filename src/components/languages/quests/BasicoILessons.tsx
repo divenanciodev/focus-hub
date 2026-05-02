@@ -77,11 +77,18 @@ export function BasicoILessons({ onBack }: BasicoILessonsProps) {
         </div>
       </div>
 
-      {/* Path nodes — zigzag */}
-      <div className="flex flex-col items-center gap-7">
-        {NODES.map((node, idx) => {
-          const offsets = [0, 70, -70, 70, -70, 0, 70, 0];
-          const offset = offsets[idx] ?? (idx % 2 === 0 ? 60 : -60);
+      {/* Path nodes — hierarchy: solo, pairs, solo */}
+      {(() => {
+        // Group: [intro], [im-good-at, travel], [menu, meet], [family, jobs], [present]
+        const rows: NodeDef[][] = [
+          [NODES[0]],
+          [NODES[1], NODES[2]],
+          [NODES[3], NODES[4]],
+          [NODES[5], NODES[6]],
+          [NODES[7]],
+        ];
+
+        const renderNode = (node: NodeDef) => {
           const pct = progress[node.id] ?? 0;
           const completed = pct >= 100;
           const Icon = node.Icon;
@@ -90,7 +97,6 @@ export function BasicoILessons({ onBack }: BasicoILessonsProps) {
             <div
               key={node.id}
               className="flex flex-col items-center"
-              style={{ transform: `translateX(${offset}px)` }}
             >
               <button
                 onClick={() => node.available && setOpenLesson(node.id)}
@@ -151,8 +157,24 @@ export function BasicoILessons({ onBack }: BasicoILessonsProps) {
               </div>
             </div>
           );
-        })}
-        </div>
+        };
+
+        return (
+          <div className="flex flex-col items-center gap-10">
+            {rows.map((row, rowIdx) => (
+              <div
+                key={rowIdx}
+                className={cn(
+                  'flex items-start justify-center',
+                  row.length === 1 ? 'w-full' : 'gap-12 sm:gap-16'
+                )}
+              >
+                {row.map(renderNode)}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
