@@ -414,17 +414,33 @@ function HomeView({
 const LOJA_TABS = ['Vestindo', 'Tudo', 'camisas', 'Shorts', 'Tênis', 'Acessórios'] as const;
 type LojaTab = typeof LOJA_TABS[number];
 
-const LOJA_ITEMS: { id: string; tab: Exclude<LojaTab, 'Tudo' | 'Vestindo'>; price: number; promoPrice?: number; equipKey: keyof AvatarEquipState; thumb: string }[] = [
-  { id: 'c1', tab: 'camisas', price: 350, equipKey: 'shirt', thumb: AVATAR_LAYERS.blusa },
-  { id: 'c2', tab: 'camisas', price: 350, promoPrice: 800, equipKey: 'shirt', thumb: AVATAR_LAYERS.blusa },
-  { id: 'c3', tab: 'camisas', price: 350, equipKey: 'shirt', thumb: AVATAR_LAYERS.blusa },
-  { id: 's1', tab: 'Shorts', price: 350, equipKey: 'shorts', thumb: AVATAR_LAYERS.short },
-  { id: 's2', tab: 'Shorts', price: 350, equipKey: 'shorts', thumb: AVATAR_LAYERS.short },
-  { id: 's3', tab: 'Shorts', price: 350, equipKey: 'shorts', thumb: AVATAR_LAYERS.short },
-  { id: 't1', tab: 'Tênis', price: 350, equipKey: 'sandals', thumb: AVATAR_LAYERS.sandalia },
-  { id: 'a1', tab: 'Acessórios', price: 350, equipKey: 'hat', thumb: AVATAR_LAYERS.bone },
-  { id: 'a2', tab: 'Acessórios', price: 350, equipKey: 'mouth', thumb: AVATAR_LAYERS.boca },
-];
+type LojaItem = {
+  id: string;
+  tab: Exclude<LojaTab, 'Tudo' | 'Vestindo'>;
+  price: number;
+  promoPrice?: number;
+  equipKey: keyof AvatarEquipState;
+  thumb: string;
+};
+
+const TAB_CONFIG: Record<Exclude<LojaTab, 'Tudo' | 'Vestindo'>, { equipKey: keyof AvatarEquipState; thumb: string }> = {
+  camisas: { equipKey: 'shirt', thumb: AVATAR_LAYERS.blusa },
+  Shorts: { equipKey: 'shorts', thumb: AVATAR_LAYERS.short },
+  'Tênis': { equipKey: 'sandals', thumb: AVATAR_LAYERS.sandalia },
+  'Acessórios': { equipKey: 'hat', thumb: AVATAR_LAYERS.bone },
+};
+
+// Generate 50 items per category for pagination demo
+const LOJA_ITEMS: LojaItem[] = (Object.keys(TAB_CONFIG) as Array<keyof typeof TAB_CONFIG>).flatMap((cat) =>
+  Array.from({ length: 50 }, (_, i) => ({
+    id: `${cat}-${i + 1}`,
+    tab: cat,
+    price: 350 + ((i * 10) % 200),
+    promoPrice: i % 4 === 1 ? 500 + (i % 5) * 50 : undefined,
+    equipKey: TAB_CONFIG[cat].equipKey,
+    thumb: TAB_CONFIG[cat].thumb,
+  }))
+);
 
 function LojaView({
   equip,
