@@ -363,34 +363,34 @@ function HomeView({
   setPageIndex: (n: number) => void;
 }) {
   return (
-    <div className="px-4 md:px-8 py-8 md:py-10">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+    <div className="px-4 md:px-8 py-6 md:py-8 min-h-[calc(100vh-72px)] flex items-center justify-center">
+      <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 lg:gap-14 items-center justify-center">
         {/* Avatar preview */}
-        <div className="flex justify-center lg:justify-end">
+        <div className="flex justify-center shrink-0">
           <AvatarCharacter equip={equip} size="hero" />
         </div>
 
         {/* Buttons grid with arrows */}
-        <div className="flex items-center gap-3 md:gap-4 justify-center">
+        <div className="flex items-center gap-4 md:gap-6 justify-center">
           <button
             onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
             className="shrink-0 text-purple-500 hover:text-purple-700 transition"
             aria-label="Anterior"
           >
-            <ArrowLeft className="w-10 h-10 md:w-12 md:h-12 stroke-[3]" />
+            <ArrowLeft className="w-12 h-12 md:w-14 md:h-14 stroke-[3]" />
           </button>
 
-          <div className="grid grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-3 gap-4 md:gap-5">
             {buttons.map((btn) => {
               const Icon = btn.Icon;
               return (
                 <button
                   key={btn.key}
                   onClick={() => onSelect(btn.key)}
-                  className="group relative w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-500 to-fuchsia-500 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex flex-col items-center justify-center gap-1.5 text-white"
+                  className="group relative w-28 h-28 md:w-36 md:h-36 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-500 to-fuchsia-500 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex flex-col items-center justify-center gap-2 text-white"
                 >
-                  <Icon className="w-9 h-9 md:w-10 md:h-10" strokeWidth={2.2} />
-                  <span className="text-xs md:text-sm font-bold">{btn.label}</span>
+                  <Icon className="w-11 h-11 md:w-14 md:h-14" strokeWidth={2.2} />
+                  <span className="text-sm md:text-base font-bold">{btn.label}</span>
                 </button>
               );
             })}
@@ -401,7 +401,7 @@ function HomeView({
             className="shrink-0 text-purple-500 hover:text-purple-700 transition"
             aria-label="Próximo"
           >
-            <ArrowRight className="w-10 h-10 md:w-12 md:h-12 stroke-[3]" />
+            <ArrowRight className="w-12 h-12 md:w-14 md:h-14 stroke-[3]" />
           </button>
         </div>
       </div>
