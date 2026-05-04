@@ -641,10 +641,14 @@ function AvatarCharacter({
         ? 'h-full w-auto max-w-full'
         : 'w-64 md:w-80';
 
+  const innerClass =
+    size === 'store'
+      ? 'relative isolate aspect-[210/297] h-full w-auto max-w-full overflow-visible'
+      : 'relative isolate aspect-[210/297] w-full overflow-visible';
+
   return (
-    <div className={cn('relative leading-[0] flex flex-col items-center', sizeClass)}>
-      {/* Avatar stack — fixed aspect ratio so all SVG layers align pixel-perfect */}
-      <div className="relative isolate aspect-[210/297] h-full w-auto max-w-full overflow-visible">
+    <div className={cn('relative leading-[0] flex flex-col items-center justify-end', sizeClass)}>
+      <div className={innerClass}>
         <img src={AVATAR_LAYERS.corpo} alt="" className={L} aria-hidden />
         {equip.shorts && <img src={AVATAR_LAYERS.short} alt="" className={cn(L, 'z-[1]')} aria-hidden />}
         {equip.shirt && <img src={AVATAR_LAYERS.blusa} alt="" className={cn(L, 'z-[2]')} aria-hidden />}
