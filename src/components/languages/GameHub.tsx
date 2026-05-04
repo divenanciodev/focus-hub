@@ -628,28 +628,35 @@ function AvatarCharacter({
   enableFloat?: boolean;
 }) {
   const L = avatarLayerClass();
-  const widthClass =
+  // Force-disable floating animation — avatar must stay still so SVG layers
+  // line up exactly when overlaid.
+  void enableFloat;
+
+  // hero  → home grid (bigger than before, but stays inline)
+  // store → fills the preview card vertically without triggering scroll
+  const sizeClass =
     size === 'hero'
-      ? 'w-[14rem] sm:w-[16rem] md:w-[18rem] lg:w-[20rem]'
+      ? 'w-[18rem] sm:w-[20rem] md:w-[24rem] lg:w-[26rem]'
       : size === 'store'
-        ? 'w-[min(100%,16rem)] sm:w-[min(100%,18rem)] md:w-[min(100%,20rem)]'
+        ? 'h-full w-auto max-w-full'
         : 'w-64 md:w-80';
 
   return (
-    <div
-      className={cn(
-        'relative leading-[0]',
-        enableFloat && 'animate-[float_4s_ease-in-out_infinite]',
-        widthClass
-      )}
-    >
-      <div className="relative isolate aspect-[210/297] w-full overflow-visible">
-        <img src={AVATAR_LAYERS.corpo} alt="" loading="lazy" className={L} aria-hidden />
-        {equip.shorts && <img src={AVATAR_LAYERS.short} alt="" loading="lazy" className={cn(L, 'z-[1]')} aria-hidden />}
-        {equip.shirt && <img src={AVATAR_LAYERS.blusa} alt="" loading="lazy" className={cn(L, 'z-[2]')} aria-hidden />}
-        {equip.sandals && <img src={AVATAR_LAYERS.sandalia} alt="" loading="lazy" className={cn(L, 'z-[3]')} aria-hidden />}
-        {equip.mouth && <img src={AVATAR_LAYERS.boca} alt="" loading="lazy" className={cn(L, 'z-[4]')} aria-hidden />}
-        {equip.hat && <img src={AVATAR_LAYERS.bone} alt="" loading="lazy" className={cn(L, 'z-[5]')} aria-hidden />}
+    <div className={cn('relative leading-[0] flex flex-col items-center', sizeClass)}>
+      {/* Avatar stack — fixed aspect ratio so all SVG layers align pixel-perfect */}
+      <div className="relative isolate aspect-[210/297] h-full w-auto max-w-full overflow-visible">
+        <img src={AVATAR_LAYERS.corpo} alt="" className={L} aria-hidden />
+        {equip.shorts && <img src={AVATAR_LAYERS.short} alt="" className={cn(L, 'z-[1]')} aria-hidden />}
+        {equip.shirt && <img src={AVATAR_LAYERS.blusa} alt="" className={cn(L, 'z-[2]')} aria-hidden />}
+        {equip.sandals && <img src={AVATAR_LAYERS.sandalia} alt="" className={cn(L, 'z-[3]')} aria-hidden />}
+        {equip.mouth && <img src={AVATAR_LAYERS.boca} alt="" className={cn(L, 'z-[4]')} aria-hidden />}
+        {equip.hat && <img src={AVATAR_LAYERS.bone} alt="" className={cn(L, 'z-[5]')} aria-hidden />}
+
+        {/* Ground shadow under the feet */}
+        <div
+          aria-hidden
+          className="absolute left-1/2 -translate-x-1/2 bottom-[1%] w-[55%] h-[3.5%] rounded-[50%] bg-black/35 blur-md pointer-events-none"
+        />
       </div>
     </div>
   );
