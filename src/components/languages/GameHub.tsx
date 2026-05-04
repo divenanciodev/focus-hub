@@ -21,8 +21,6 @@ import {
   Settings,
   ArrowLeft,
 } from 'lucide-react';
-import avatar3D from '@/assets/avatar-3d-placeholder.png';
-import avatarDefault from '@/assets/avatar-profile-default.png';
 import { QuestsHub } from './quests/QuestsHub';
 
 interface GameHubProps {
@@ -33,16 +31,17 @@ interface GameHubProps {
 
 type HubSection = 'home' | 'store' | 'games' | 'library' | 'quests' | 'proflix';
 
-const AVATAR_OPTIONS = [
-  avatarDefault,
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Luna',
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Max',
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Zoe',
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Kai',
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Mia',
-  'https://api.dicebear.com/7.x/bottts/svg?seed=Bot1',
-  'https://api.dicebear.com/7.x/bottts/svg?seed=Bot2',
-];
+/** Miniatura do perfil (cabeçalho) — pasta só tem SVGs em camadas; usa o corpo como ícone */
+const BASE_AVATAR_URL = '/avatars/corpo-base.svg';
+
+const AVATAR_LAYERS = {
+  corpo: '/avatars/corpo-base.svg',
+  short: '/avatars/short-item.svg',
+  blusa: '/avatars/blusa-item.svg',
+  sandalia: '/avatars/sandalia-item.svg',
+  boca: '/avatars/boca-base-item.svg',
+  bone: '/avatars/bone-item.svg',
+} as const;
 
 const MOCK_RANKING = [
   { id: '1', name: 'Sophia', xp: 12450, avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Sophia', following: false },
@@ -56,9 +55,21 @@ const MOCK_RANKING = [
 export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
   const [section, setSection] = useState<HubSection>('home');
   const [profileName, setProfileName] = useState('Estudante');
-  const [avatarUrl, setAvatarUrl] = useState<string>(avatarDefault);
+  const [avatarUrl] = useState<string>(BASE_AVATAR_URL);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [rankingOpen, setRankingOpen] = useState(false);
+  const [activeQuestPack, setActiveQuestPack] = useState<string | null>(null);
+  const [avatarEquip, setAvatarEquip] = useState({
+    shirt: false,
+    shorts: false,
+    sandals: false,
+    mouth: false,
+    hat: false,
+  });
+
+  const toggleAvatarEquip = (key: keyof typeof avatarEquip) => {
+    setAvatarEquip((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
   const [following, setFollowing] = useState<Record<string, boolean>>(
     Object.fromEntries(MOCK_RANKING.map(r => [r.id, r.following]))
   );
@@ -77,6 +88,18 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
       return;
     }
     setSection(key);
+    setActiveQuestPack(null); // Reset sub-section when changing main section
+  };
+
+  const handleBack = () => {
+    if (section === 'home') {
+      onBack();
+    } else if (section === 'quests' && activeQuestPack) {
+      setActiveQuestPack(null);
+    } else {
+      setSection('home');
+      setActiveQuestPack(null);
+    }
   };
 
   const navItems: { key: HubSection; label: string; icon: typeof Home }[] = [
@@ -95,23 +118,25 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
       <div className="pointer-events-none absolute top-1/3 -right-32 w-[28rem] h-[28rem] rounded-full bg-pink-400/30 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 left-1/3 w-96 h-96 rounded-full bg-cyan-300/30 blur-3xl" />
 
-      {/* TOP BAR */}
-      <header className="relative z-10 px-4 md:px-8 pt-4 pb-2">
+      {/* TOP BAR — z acima do palco do avatar para não ser coberto */}
+      <header className="relative z-30 px-4 md:px-8 pt-4 pb-2 shrink-0">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Left: back + language */}
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              onClick={onBack}
+              onClick={handleBack}
               className="bg-white/15 hover:bg-white/25 text-white backdrop-blur-md rounded-full"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className="px-4 py-2 rounded-full bg-white/15 backdrop-blur-md text-white font-semibold flex items-center gap-2">
-              <span className="text-xl">🇺🇸</span>
-              <span>{languageName}</span>
-            </div>
+            {section === 'home' && (
+              <div className="px-4 py-2 rounded-full bg-white/15 backdrop-blur-md text-white font-semibold flex items-center gap-2">
+                <span className="text-xl">🇺🇸</span>
+                <span>{languageName}</span>
+              </div>
+            )}
           </div>
 
           {/* Center: stats */}
@@ -123,114 +148,83 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
           </div>
 
           {/* Right: profile + ranking button stacked */}
-          <div className="flex flex-col items-end gap-2">
-          <Dialog open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen}>
-            <DialogTrigger asChild>
-              <button className="flex items-center gap-3 bg-white/15 hover:bg-white/25 backdrop-blur-md transition rounded-full pl-2 pr-4 py-1.5 group">
-                <Avatar className="w-10 h-10 ring-2 ring-white/60 group-hover:ring-white">
-                  <AvatarImage src={avatarUrl} alt={profileName} />
-                  <AvatarFallback>{profileName[0]}</AvatarFallback>
-                </Avatar>
-                <div className="text-left">
-                  <div className="text-xs text-white/70 leading-tight">Perfil</div>
-                  <div className="text-sm font-semibold text-white leading-tight">{profileName}</div>
-                </div>
-                <Settings className="w-4 h-4 text-white/70 group-hover:text-white" />
-              </button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Personalizar perfil</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground">Nome do perfil</label>
-                  <input
-                    value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
-                    className="mt-1 w-full px-3 py-2 rounded-md border border-input bg-background text-foreground"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-2">Escolha um avatar</p>
-                  <div className="grid grid-cols-4 gap-3">
-                    {AVATAR_OPTIONS.map((url, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setAvatarUrl(url)}
-                        className={cn(
-                          'rounded-full overflow-hidden border-2 transition aspect-square',
-                          avatarUrl === url ? 'border-primary ring-2 ring-primary/40' : 'border-border hover:border-foreground/40'
-                        )}
-                      >
-                        <img src={url} alt={`avatar ${i}`} className="w-full h-full object-cover bg-muted" />
-                      </button>
-                    ))}
+          {section !== 'quests' && (
+            <div className="flex flex-col items-end gap-2">
+              <Dialog open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen}>
+                <DialogTrigger asChild>
+                  <button className="flex items-center gap-3 bg-white/15 hover:bg-white/25 backdrop-blur-md transition rounded-full pl-2 pr-4 py-1.5 group">
+                    <Avatar className="w-10 h-10 ring-2 ring-white/60 group-hover:ring-white">
+                      <AvatarImage src={avatarUrl} alt={profileName} />
+                      <AvatarFallback>{profileName[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-left">
+                      <div className="text-xs text-white/70 leading-tight">Perfil</div>
+                      <div className="text-sm font-semibold text-white leading-tight">{profileName}</div>
+                    </div>
+                    <Settings className="w-4 h-4 text-white/70 group-hover:text-white" />
+                  </button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Personalizar perfil</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground">Nome do perfil</label>
+                      <input
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="mt-1 w-full px-3 py-2 rounded-md border border-input bg-background text-foreground"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Personalização visual do avatar disponível em ProStore.
+                    </p>
+                    <Button className="w-full" onClick={() => setAvatarPickerOpen(false)}>
+                      Salvar
+                    </Button>
                   </div>
-                </div>
-                <Button className="w-full" onClick={() => setAvatarPickerOpen(false)}>
-                  Salvar
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+                </DialogContent>
+              </Dialog>
 
-          {/* Ranking button (below profile) */}
-          <button
-            onClick={() => setRankingOpen(true)}
-            className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md transition rounded-full pl-1.5 pr-4 py-1.5 group"
-          >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
-              <Trophy className="w-4 h-4 text-white" />
+              {/* Ranking button (below profile) */}
+              <button
+                onClick={() => setRankingOpen(true)}
+                className="flex items-center gap-3 bg-white/15 hover:bg-white/25 backdrop-blur-md transition rounded-full pl-2 pr-4 py-1.5 group w-full"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md ring-2 ring-white/60 group-hover:ring-white">
+                  <Trophy className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 text-left leading-tight">
+                  <div className="text-xs text-white/70">Sua posição</div>
+                  <div className="text-sm font-bold text-white">Ranking · #42</div>
+                </div>
+              </button>
             </div>
-            <div className="text-left leading-tight">
-              <div className="text-[10px] text-white/70">Sua posição</div>
-              <div className="text-sm font-bold text-white">Ranking · #42</div>
-            </div>
-          </button>
-          </div>
+          )}
         </div>
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="relative z-10 px-4 md:px-8 pb-32 pt-4">
+      <main
+        className={cn(
+          'relative z-10 px-4 md:px-8',
+          section === 'home'
+            ? 'pt-6 md:pt-8 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))]'
+            : 'pt-4 pb-32'
+        )}
+      >
         {section === 'home' && (
-          <div className="flex justify-center">
-            {/* Avatar stage */}
-            <div className="relative flex flex-col items-center justify-center min-h-[60vh] w-full max-w-3xl">
-              {/* Welcome */}
-              <div className="text-center mb-4 animate-fade-in">
-                <h2 className="text-white/80 text-lg">Bem-vindo de volta,</h2>
-                <h1 className="text-white text-4xl md:text-5xl font-extrabold drop-shadow-lg">
-                  {profileName}!
-                </h1>
+          <div className="flex justify-center -translate-y-7 md:-translate-y-9">
+            <div className="relative flex w-full max-w-3xl flex-col items-center gap-6 md:gap-8">
+              <div className="relative z-0 flex w-full flex-col items-center justify-center pt-1">
+                <AvatarCharacter equip={avatarEquip} size="hero" />
               </div>
 
-              {/* Avatar name tag */}
-              <div className="relative">
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-white text-foreground font-bold text-sm shadow-lg whitespace-nowrap">
-                  {profileName}
-                </div>
-
-                {/* Floating platform shadow */}
-                <div className="relative">
-                  <img
-                    src={avatar3D}
-                    alt="Avatar 3D"
-                    width={768}
-                    height={1024}
-                    loading="lazy"
-                    className="w-64 md:w-80 h-auto drop-shadow-2xl animate-[float_4s_ease-in-out_infinite]"
-                  />
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-48 h-6 bg-black/30 rounded-full blur-md" />
-                </div>
-              </div>
-
-              {/* Quick action */}
               <Button
                 size="lg"
                 onClick={onOpenLibrary}
-                className="mt-8 bg-white text-foreground hover:bg-white/90 font-bold rounded-full px-8 shadow-xl"
+                className="shrink-0 bg-white text-foreground hover:bg-white/90 font-bold rounded-full px-8 shadow-xl"
               >
                 Continuar estudando
               </Button>
@@ -240,7 +234,9 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
 
         {section !== 'home' && (
           section === 'quests' ? (
-            <QuestsHub />
+            <QuestsHub openPack={activeQuestPack} onOpenPack={setActiveQuestPack} />
+          ) : section === 'store' ? (
+            <ProStoreSection equip={avatarEquip} onToggleEquip={toggleAvatarEquip} />
           ) : (
             <PlaceholderSection section={section} />
           )
@@ -249,80 +245,92 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
 
       {/* Ranking fullscreen modal */}
       <Dialog open={rankingOpen} onOpenChange={setRankingOpen}>
-        <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto p-0">
-          <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 rounded-t-lg">
-            <div className="flex items-center gap-3 text-white">
-              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-amber-300 fill-amber-300" />
-              </div>
-              <div>
-                <DialogTitle className="text-2xl font-extrabold text-white">Ranking</DialogTitle>
-                <p className="text-sm text-white/80">Melhores estudantes em {languageName}</p>
+        <DialogContent className="max-w-none w-full h-screen p-0 rounded-none border-none overflow-y-auto flex flex-col">
+          <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 md:p-10 shrink-0">
+            <div className="flex items-center justify-between gap-4 text-white max-w-4xl mx-auto">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setRankingOpen(false)}
+                  className="bg-white/20 hover:bg-white/30 text-white rounded-full"
+                >
+                  <ArrowLeft className="w-6 h-6" />
+                </Button>
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  <Trophy className="w-6 h-6 md:w-8 md:h-8 text-amber-300 fill-amber-300" />
+                </div>
+                <div>
+                  <DialogTitle className="text-2xl md:text-4xl font-extrabold text-white">Ranking</DialogTitle>
+                  <p className="text-sm md:text-lg text-white/80">Melhores estudantes em {languageName}</p>
+                </div>
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-              <div className="bg-white/15 backdrop-blur-md rounded-xl py-3">
-                <div className="text-2xl font-extrabold text-white">#42</div>
-                <div className="text-[10px] text-white/70 uppercase tracking-wide">Sua posição</div>
+            <div className="mt-8 grid grid-cols-3 gap-4 max-w-4xl mx-auto text-center">
+              <div className="bg-white/15 backdrop-blur-md rounded-2xl py-4 md:py-6 border border-white/10">
+                <div className="text-3xl md:text-5xl font-extrabold text-white">#42</div>
+                <div className="text-[10px] md:text-xs text-white/70 uppercase tracking-widest mt-1">Sua posição</div>
               </div>
-              <div className="bg-white/15 backdrop-blur-md rounded-xl py-3">
-                <div className="text-2xl font-extrabold text-white">12</div>
-                <div className="text-[10px] text-white/70 uppercase tracking-wide">Seguindo</div>
+              <div className="bg-white/15 backdrop-blur-md rounded-2xl py-4 md:py-6 border border-white/10">
+                <div className="text-3xl md:text-5xl font-extrabold text-white">12</div>
+                <div className="text-[10px] md:text-xs text-white/70 uppercase tracking-widest mt-1">Seguindo</div>
               </div>
-              <div className="bg-white/15 backdrop-blur-md rounded-xl py-3">
-                <div className="text-2xl font-extrabold text-white">28</div>
-                <div className="text-[10px] text-white/70 uppercase tracking-wide">Seguidores</div>
+              <div className="bg-white/15 backdrop-blur-md rounded-2xl py-4 md:py-6 border border-white/10">
+                <div className="text-3xl md:text-5xl font-extrabold text-white">28</div>
+                <div className="text-[10px] md:text-xs text-white/70 uppercase tracking-widest mt-1">Seguidores</div>
               </div>
             </div>
           </div>
 
-          <div className="p-6 space-y-2">
-            {MOCK_RANKING.map((p, i) => {
-              const isFollowing = following[p.id];
-              return (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted transition"
-                >
+          <div className="flex-1 bg-background p-6 md:p-10">
+            <div className="max-w-4xl mx-auto space-y-3">
+              {MOCK_RANKING.map((p, i) => {
+                const isFollowing = following[p.id];
+                return (
                   <div
-                    className={cn(
-                      'w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0',
-                      i === 0 && 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white',
-                      i === 1 && 'bg-gradient-to-br from-slate-300 to-slate-400 text-white',
-                      i === 2 && 'bg-gradient-to-br from-orange-400 to-orange-600 text-white',
-                      i > 2 && 'bg-muted text-muted-foreground'
-                    )}
+                    key={p.id}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted transition"
                   >
-                    {i + 1}
-                  </div>
-                  <Avatar className="w-12 h-12">
-                    <AvatarImage src={p.avatar} />
-                    <AvatarFallback>{p.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-base font-semibold text-foreground truncate">{p.name}</div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Zap className="w-3 h-3" /> {p.xp.toLocaleString()} XP
+                    <div
+                      className={cn(
+                        'w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0',
+                        i === 0 && 'bg-gradient-to-br from-amber-400 to-yellow-500 text-white',
+                        i === 1 && 'bg-gradient-to-br from-slate-300 to-slate-400 text-white',
+                        i === 2 && 'bg-gradient-to-br from-orange-400 to-orange-600 text-white',
+                        i > 2 && 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {i + 1}
                     </div>
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={p.avatar} />
+                      <AvatarFallback>{p.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-base font-semibold text-foreground truncate">{p.name}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Zap className="w-3 h-3" /> {p.xp.toLocaleString()} XP
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={isFollowing ? 'secondary' : 'default'}
+                      onClick={() =>
+                        setFollowing((s) => ({ ...s, [p.id]: !s[p.id] }))
+                      }
+                      className="rounded-full"
+                    >
+                      {isFollowing ? (
+                        <><UserCheck className="w-4 h-4 mr-1" /> Seguindo</>
+                      ) : (
+                        <><UserPlus className="w-4 h-4 mr-1" /> Seguir</>
+                      )}
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant={isFollowing ? 'secondary' : 'default'}
-                    onClick={() =>
-                      setFollowing((s) => ({ ...s, [p.id]: !s[p.id] }))
-                    }
-                    className="rounded-full"
-                  >
-                    {isFollowing ? (
-                      <><UserCheck className="w-4 h-4 mr-1" /> Seguindo</>
-                    ) : (
-                      <><UserPlus className="w-4 h-4 mr-1" /> Seguir</>
-                    )}
-                  </Button>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -356,6 +364,166 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
           50% { transform: translateY(-12px); }
         }
       `}</style>
+    </div>
+  );
+}
+
+type AvatarEquipState = {
+  shirt: boolean;
+  shorts: boolean;
+  sandals: boolean;
+  mouth: boolean;
+  hat: boolean;
+};
+
+/** Mesma caixa e posição para todas as camadas (viewBox 210×297): base inferior alinhada, sem folga de inline-img */
+function avatarLayerClass() {
+  return cn(
+    'absolute inset-0 block h-full w-full object-contain object-bottom pointer-events-none select-none'
+  );
+}
+
+function AvatarCharacter({
+  equip,
+  size = 'default',
+  /** Na loja: sem flutuar — a animação movia o conjunto e dava sensação de itens “fora” do corpo */
+  enableFloat = true,
+}: {
+  equip: AvatarEquipState;
+  size?: 'default' | 'hero' | 'store';
+  enableFloat?: boolean;
+}) {
+  const L = avatarLayerClass();
+
+  const widthClass =
+    size === 'hero'
+      ? 'w-[13.5rem] sm:w-[15.5rem] md:w-[18.5rem] lg:w-[20.5rem]'
+      : size === 'store'
+        ? 'mx-auto w-[min(100%,11.5rem)] sm:w-[min(100%,13rem)] md:w-[min(100%,14.5rem)]'
+        : 'w-64 md:w-80';
+
+  return (
+    <div
+      className={cn(
+        'relative leading-[0]',
+        enableFloat && 'animate-[float_4s_ease-in-out_infinite]',
+        widthClass
+      )}
+    >
+      {/* viewBox dos SVGs ~ 210×297 (retrato) */}
+      <div className="relative isolate aspect-[210/297] w-full overflow-visible">
+        <img src={AVATAR_LAYERS.corpo} alt="" loading="lazy" className={L} aria-hidden />
+        {equip.shorts && (
+          <img src={AVATAR_LAYERS.short} alt="" loading="lazy" className={cn(L, 'z-[1]')} aria-hidden />
+        )}
+        {equip.shirt && (
+          <img src={AVATAR_LAYERS.blusa} alt="" loading="lazy" className={cn(L, 'z-[2]')} aria-hidden />
+        )}
+        {equip.sandals && (
+          <img src={AVATAR_LAYERS.sandalia} alt="" loading="lazy" className={cn(L, 'z-[3]')} aria-hidden />
+        )}
+        {equip.mouth && (
+          <img src={AVATAR_LAYERS.boca} alt="" loading="lazy" className={cn(L, 'z-[4]')} aria-hidden />
+        )}
+        {equip.hat && (
+          <img src={AVATAR_LAYERS.bone} alt="" loading="lazy" className={cn(L, 'z-[5]')} aria-hidden />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const PRO_STORE_ROWS: {
+  key: keyof AvatarEquipState;
+  title: string;
+  subtitle: string;
+  thumb: string;
+}[] = [
+  {
+    key: 'shirt',
+    title: 'Blusa',
+    subtitle: 'Camiseta colorida',
+    thumb: AVATAR_LAYERS.blusa,
+  },
+  {
+    key: 'shorts',
+    title: 'Short',
+    subtitle: 'Bermuda',
+    thumb: AVATAR_LAYERS.short,
+  },
+  {
+    key: 'sandals',
+    title: 'Sandálias',
+    subtitle: 'Calçado',
+    thumb: AVATAR_LAYERS.sandalia,
+  },
+  {
+    key: 'mouth',
+    title: 'Boca',
+    subtitle: 'Expressão / detalhe da boca',
+    thumb: AVATAR_LAYERS.boca,
+  },
+  {
+    key: 'hat',
+    title: 'Boné',
+    subtitle: 'Acessório de cabeça',
+    thumb: AVATAR_LAYERS.bone,
+  },
+];
+
+function ProStoreSection({
+  equip,
+  onToggleEquip,
+}: {
+  equip: AvatarEquipState;
+  onToggleEquip: (key: keyof AvatarEquipState) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+      <Card className="bg-white/15 backdrop-blur-md border-white/20 p-6">
+        <h3 className="text-white text-xl font-bold mb-1">Preview do Avatar</h3>
+        <p className="text-white/70 text-sm mb-6">Veja como os itens ficam no personagem.</p>
+        <div className="flex min-h-[min(42vh,20rem)] items-center justify-center px-1 py-6 sm:py-8">
+          <AvatarCharacter equip={equip} size="store" enableFloat={false} />
+        </div>
+      </Card>
+
+      <Card className="bg-white/15 backdrop-blur-md border-white/20 p-6">
+        <h3 className="text-white text-xl font-bold mb-1">Loja de Itens</h3>
+        <p className="text-white/70 text-sm mb-6">Escolha o item para adicionar ao avatar.</p>
+
+        <div className="space-y-3 max-h-[min(60vh,28rem)] overflow-y-auto pr-1">
+          {PRO_STORE_ROWS.map((row) => {
+            const on = equip[row.key];
+            return (
+              <div
+                key={row.key}
+                className="rounded-2xl bg-black/20 border border-white/10 p-4 flex items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-14 h-14 shrink-0 rounded-xl bg-white/10 grid place-items-center overflow-hidden">
+                    <img src={row.thumb} alt="" className="w-10 h-10 object-contain" aria-hidden />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white font-semibold truncate">{row.title}</p>
+                    <p className="text-white/70 text-xs">{row.subtitle}</p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => onToggleEquip(row.key)}
+                  className={cn(
+                    'rounded-full px-5 shrink-0',
+                    on ? 'bg-white text-foreground hover:bg-white/90' : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                  )}
+                >
+                  {on ? 'Remover' : 'Equipar'}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
     </div>
   );
 }

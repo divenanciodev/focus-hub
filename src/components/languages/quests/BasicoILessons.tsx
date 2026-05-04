@@ -47,16 +47,6 @@ export function BasicoILessons({ onBack }: BasicoILessonsProps) {
 
   return (
     <div className="max-w-md mx-auto pb-10">
-      <div className="flex items-center justify-between mb-4">
-        <Button variant="ghost" onClick={onBack} className="text-white hover:bg-white/15">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-        </Button>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-white text-sm font-bold">
-          <Crown className="w-4 h-4 text-amber-300 fill-amber-300" />
-          <span className="tabular-nums">{earnedCrowns}</span>
-        </div>
-      </div>
-
       {/* Section header card */}
       <div className="relative mx-auto w-full max-w-xs mb-10">
         <div className="absolute left-1/2 -translate-x-1/2 -top-8 text-4xl">🏰</div>

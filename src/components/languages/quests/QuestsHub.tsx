@@ -5,7 +5,8 @@ import { ArrowLeft, Lock, Sparkles } from 'lucide-react';
 import { BasicoILessons } from './BasicoILessons';
 
 interface QuestsHubProps {
-  onBack?: () => void;
+  openPack: string | null;
+  onOpenPack: (id: string | null) => void;
 }
 
 const QUEST_PACKS = [
@@ -19,25 +20,13 @@ const QUEST_PACKS = [
   },
 ];
 
-export function QuestsHub({ onBack }: QuestsHubProps) {
-  const [openPack, setOpenPack] = useState<string | null>(null);
-
+export function QuestsHub({ openPack, onOpenPack }: QuestsHubProps) {
   if (openPack === 'basico-1') {
-    return <BasicoILessons onBack={() => setOpenPack(null)} />;
+    return <BasicoILessons onBack={() => onOpenPack(null)} />;
   }
 
   return (
     <div className="max-w-5xl mx-auto">
-      {onBack && (
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="text-white hover:bg-white/15 mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-        </Button>
-      )}
-
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-white text-sm mb-3">
           <Sparkles className="w-4 h-4" /> Quests
@@ -53,7 +42,7 @@ export function QuestsHub({ onBack }: QuestsHubProps) {
           <button
             key={pack.id}
             disabled={pack.locked}
-            onClick={() => !pack.locked && setOpenPack(pack.id)}
+            onClick={() => !pack.locked && onOpenPack(pack.id)}
             className="group text-left disabled:cursor-not-allowed"
           >
             <Card className="relative overflow-hidden bg-white dark:bg-card border-0 rounded-3xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all p-6 aspect-[4/5] flex flex-col items-center justify-between">
