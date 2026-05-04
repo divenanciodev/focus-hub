@@ -454,20 +454,29 @@ function LojaView({
   const [cartCount, setCartCount] = useState(2);
   const [page, setPage] = useState(1);
 
+  const PAGE_SIZE = 6;
   const filtered = tab === 'Tudo' || tab === 'Vestindo'
     ? LOJA_ITEMS
     : LOJA_ITEMS.filter(i => i.tab === tab);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  // Build sliding window of page numbers (max 7 visible)
+  const windowSize = 7;
+  const start = Math.max(1, Math.min(safePage - 3, totalPages - windowSize + 1));
+  const pageWindow = Array.from({ length: Math.min(windowSize, totalPages) }, (_, i) => start + i);
 
   return (
-    <div className="px-4 md:px-8 py-6">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-6">
-        {/* Avatar preview panel */}
-        <Card className="bg-slate-100 dark:bg-slate-900 border-0 rounded-3xl p-6 md:p-8 flex items-center justify-center min-h-[420px]">
+    <div className="px-4 md:px-8 py-4 h-[calc(100vh-72px)] overflow-hidden">
+      <div className="max-w-7xl mx-auto h-full grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.6fr)] gap-6">
+        {/* Avatar preview panel — extends to bottom of viewport */}
+        <Card className="bg-slate-100 dark:bg-slate-900 border-0 rounded-3xl p-4 md:p-6 flex items-end justify-center h-full overflow-hidden">
           <AvatarCharacter equip={equip} size="store" enableFloat={false} />
         </Card>
 
         {/* Catalog */}
-        <div className="space-y-4">
+        <div className="flex flex-col h-full min-h-0 gap-3">
           {/* Tabs row */}
           <div className="flex items-center gap-2 md:gap-3">
             <button className="text-purple-500 hover:text-purple-700 shrink-0">
@@ -477,7 +486,7 @@ function LojaView({
               {LOJA_TABS.map(t => (
                 <button
                   key={t}
-                  onClick={() => setTab(t)}
+                  onClick={() => { setTab(t); setPage(1); }}
                   className={cn(
                     'px-4 py-1.5 rounded-full text-sm font-bold border-2 whitespace-nowrap transition',
                     tab === t
@@ -519,37 +528,45 @@ function LojaView({
 
           {/* Pagination indicator */}
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground font-semibold">
-            <span>Catalogo {page}/50</span>
-            <button className="text-purple-500" onClick={() => setPage(Math.max(1, page - 1))}>‹</button>
-            {[1,2,3,4,5,6,7].map(n => (
+            <span>Catálogo {safePage}/{totalPages}</span>
+            <button
+              className="text-purple-500 disabled:opacity-30"
+              disabled={safePage === 1}
+              onClick={() => setPage(Math.max(1, safePage - 1))}
+            >‹</button>
+            {pageWindow.map(n => (
               <button
                 key={n}
                 onClick={() => setPage(n)}
                 className={cn(
                   'px-2 py-0.5 rounded font-bold',
-                  page === n ? 'bg-purple-600 text-white' : 'text-purple-700 hover:bg-purple-100'
+                  safePage === n ? 'bg-purple-600 text-white' : 'text-purple-700 hover:bg-purple-100'
                 )}
               >
                 {n}
               </button>
             ))}
-            <button className="text-purple-500" onClick={() => setPage(page + 1)}>›</button>
+            <button
+              className="text-purple-500 disabled:opacity-30"
+              disabled={safePage === totalPages}
+              onClick={() => setPage(Math.min(totalPages, safePage + 1))}
+            >›</button>
           </div>
 
-          {/* Items grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {filtered.map(item => {
+          {/* Items grid — 3 cols x 2 rows, fits without scroll */}
+          <div className="grid grid-cols-3 grid-rows-2 gap-3 flex-1 min-h-0">
+            {pageItems.map(item => {
               const equipped = equip[item.equipKey];
               const fav = favorites[item.id];
               return (
                 <div
                   key={item.id}
-                  className="rounded-2xl border-2 border-purple-300 bg-white dark:bg-card overflow-hidden flex flex-col"
+                  className="rounded-xl border-2 border-purple-300 bg-white dark:bg-card overflow-hidden flex flex-col min-h-0"
                 >
-                  <div className="aspect-square bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+                  <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-2">
                     <img src={item.thumb} alt="" className="max-w-full max-h-full object-contain" />
                   </div>
-                  <div className="px-2 py-1.5 flex items-center justify-end gap-2 text-xs">
+                  <div className="px-2 py-1 flex items-center justify-end gap-2 text-[11px]">
                     {item.promoPrice && (
                       <span className="text-amber-600 font-bold flex items-center gap-0.5">
                         <span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />
@@ -564,22 +581,22 @@ function LojaView({
                     <button
                       onClick={() => setFavorites(f => ({ ...f, [item.id]: !f[item.id] }))}
                       className={cn(
-                        'w-7 h-7 rounded-full border flex items-center justify-center transition',
+                        'w-6 h-6 rounded-full border flex items-center justify-center transition shrink-0',
                         fav ? 'border-rose-500 text-rose-500 bg-rose-50' : 'border-purple-200 text-purple-400 hover:text-rose-500'
                       )}
                     >
-                      <Heart className={cn('w-3.5 h-3.5', fav && 'fill-current')} />
+                      <Heart className={cn('w-3 h-3', fav && 'fill-current')} />
                     </button>
                     <div className="flex gap-1">
                       <button
                         onClick={() => onToggleEquip(item.equipKey)}
-                        className="px-2 py-1 rounded-md bg-white text-purple-700 text-[10px] font-extrabold border border-purple-200 hover:bg-purple-50"
+                        className="px-2 py-0.5 rounded-md bg-white text-purple-700 text-[10px] font-extrabold border border-purple-200 hover:bg-purple-50"
                       >
                         {equipped ? 'Tirar' : 'Experimentar'}
                       </button>
                       <button
                         onClick={() => setCartCount(c => c + 1)}
-                        className="px-2 py-1 rounded-md bg-amber-400 hover:bg-amber-500 text-white text-[10px] font-extrabold"
+                        className="px-2 py-0.5 rounded-md bg-amber-400 hover:bg-amber-500 text-white text-[10px] font-extrabold"
                       >
                         Comprar
                       </button>
