@@ -128,14 +128,14 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
   return (
     <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* TOP BAR — purple gradient */}
-      <header className="relative z-30 bg-gradient-to-r from-purple-500 via-purple-500 to-fuchsia-500 px-4 md:px-6 py-3 shadow-md">
-        <div className="flex items-center justify-between gap-3 max-w-7xl mx-auto">
-          {/* Back */}
+      <header className="relative z-30 bg-gradient-to-r from-purple-500 via-purple-500 to-fuchsia-500 px-2 md:px-4 py-3 shadow-md">
+        <div className="flex items-center justify-between gap-3 w-full">
+          {/* Back — pushed to far left */}
           <Button
             variant="ghost"
             size="icon"
             onClick={handleBack}
-            className="bg-white hover:bg-white/90 text-purple-600 rounded-full shrink-0 h-11 w-11 shadow"
+            className="bg-white hover:bg-white/90 text-purple-600 rounded-full shrink-0 h-11 w-11 shadow ml-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
