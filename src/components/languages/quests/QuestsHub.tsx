@@ -1,30 +1,95 @@
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Lock, Sparkles } from 'lucide-react';
-import { BasicoILessons } from './BasicoILessons';
+import { useMemo, useState } from 'react';
+import { Sparkles } from 'lucide-react';
+import { QuestMap } from './QuestMap';
+import { QuestLesson } from './QuestLesson';
+import { QuestChallenge } from './QuestChallenge';
+import { QuestReward } from './QuestReward';
+import { WORLDS } from './questData';
 
 interface QuestsHubProps {
+  // legacy props kept for GameHub compatibility — not used by the new flow.
   openPack: string | null;
   onOpenPack: (id: string | null) => void;
 }
 
-const QUEST_PACKS = [
-  {
-    id: 'basico-1',
-    title: 'Básico I',
-    description: 'Fundamentos essenciais do inglês',
-    color: 'from-amber-400 via-orange-400 to-rose-400',
-    icon: '🥉',
-    locked: false,
-  },
-];
+type Screen = 'map' | 'lesson' | 'challenge' | 'reward';
 
-export function QuestsHub({ openPack, onOpenPack }: QuestsHubProps) {
-  if (openPack === 'basico-1') {
-    return <BasicoILessons onBack={() => onOpenPack(null)} />;
+export function QuestsHub(_props: QuestsHubProps) {
+  const [screen, setScreen] = useState<Screen>('map');
+  const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
+  const [completed, setCompleted] = useState<Set<string>>(new Set());
+
+  const allQuests = WORLDS[0].quests;
+  const activeQuest = useMemo(
+    () => allQuests.find((q) => q.id === activeQuestId) ?? null,
+    [allQuests, activeQuestId],
+  );
+  const activeIdx = activeQuest ? allQuests.findIndex((q) => q.id === activeQuest.id) : -1;
+  const nextQuest = activeIdx >= 0 && activeIdx + 1 < allQuests.length ? allQuests[activeIdx + 1] : null;
+
+  const startQuest = (id: string) => {
+    setActiveQuestId(id);
+    setScreen('lesson');
+  };
+
+  const finishLesson = () => setScreen('challenge');
+
+  const finishChallenge = () => {
+    if (activeQuest) {
+      setCompleted((c) => {
+        const next = new Set(c);
+        next.add(activeQuest.id);
+        return next;
+      });
+    }
+    setScreen('reward');
+  };
+
+  const goNext = () => {
+    if (nextQuest) {
+      setActiveQuestId(nextQuest.id);
+      setScreen('lesson');
+    } else {
+      setScreen('map');
+    }
+  };
+
+  const goMap = () => {
+    setScreen('map');
+  };
+
+  if (screen === 'lesson' && activeQuest) {
+    return (
+      <QuestLesson
+        quest={activeQuest}
+        onBack={goMap}
+        onComplete={finishLesson}
+      />
+    );
   }
 
+  if (screen === 'challenge' && activeQuest) {
+    return (
+      <QuestChallenge
+        quest={activeQuest}
+        onBack={goMap}
+        onComplete={finishChallenge}
+      />
+    );
+  }
+
+  if (screen === 'reward' && activeQuest) {
+    return (
+      <QuestReward
+        quest={activeQuest}
+        hasNext={!!nextQuest}
+        onNext={goNext}
+        onMap={goMap}
+      />
+    );
+  }
+
+  // Map (default)
   return (
     <div className="max-w-5xl mx-auto">
       <div className="text-center mb-8">
@@ -32,52 +97,15 @@ export function QuestsHub({ openPack, onOpenPack }: QuestsHubProps) {
           <Sparkles className="w-4 h-4" /> Quests
         </div>
         <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg">
-          Conquistas de Inglês
+          Mapa de Quests
         </h1>
-        <p className="text-white/80 mt-2">Complete missões e desbloqueie novos níveis</p>
+        <p className="text-white/80 mt-2">Escolha uma quest verde e suba de nível</p>
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-        {QUEST_PACKS.map((pack) => (
-          <button
-            key={pack.id}
-            disabled={pack.locked}
-            onClick={() => !pack.locked && onOpenPack(pack.id)}
-            className="group text-left disabled:cursor-not-allowed"
-          >
-            <Card className="relative overflow-hidden bg-white dark:bg-card border-0 rounded-3xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all p-6 aspect-[4/5] flex flex-col items-center justify-between">
-              {pack.locked && (
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-10 flex items-center justify-center">
-                  <Lock className="w-10 h-10 text-white" />
-                </div>
-              )}
-              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Pacote
-              </div>
-              <div className={`w-32 h-32 rounded-full bg-gradient-to-br ${pack.color} flex items-center justify-center text-6xl shadow-lg group-hover:scale-110 transition-transform`}>
-                {pack.icon}
-              </div>
-              <div className="text-center">
-                <h3 className="text-xl font-extrabold text-foreground">{pack.title}</h3>
-                <div className="w-8 h-0.5 bg-muted-foreground/40 mx-auto my-2" />
-                <p className="text-xs text-muted-foreground">{pack.description}</p>
-              </div>
-              <div className={`w-full py-2.5 rounded-full bg-gradient-to-r ${pack.color} text-white font-bold text-sm text-center shadow-md`}>
-                Começar
-              </div>
-            </Card>
-          </button>
-        ))}
-
-        {/* Coming soon placeholders */}
-        {['Básico II', 'Intermediário I'].map((t) => (
-          <Card key={t} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 aspect-[4/5] flex flex-col items-center justify-center text-center">
-            <Lock className="w-10 h-10 text-white/60 mb-3" />
-            <h3 className="text-lg font-bold text-white">{t}</h3>
-            <p className="text-xs text-white/70 mt-1">Em breve</p>
-          </Card>
-        ))}
-      </div>
+      <QuestMap
+        completedQuests={completed}
+        currentQuestId={activeQuestId}
+        onSelectQuest={startQuest}
+      />
     </div>
   );
 }
