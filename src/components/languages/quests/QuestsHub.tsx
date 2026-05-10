@@ -5,6 +5,7 @@ import { QuestLesson } from './QuestLesson';
 import { QuestChallenge } from './QuestChallenge';
 import { QuestReward } from './QuestReward';
 import { ImGoodAtModule } from './ImGoodAtModule';
+import { ImModule } from './ImModule';
 import { WORLDS } from './questData';
 
 interface QuestsHubProps {
@@ -60,6 +61,15 @@ export function QuestsHub(_props: QuestsHubProps) {
   };
 
   if (screen === 'lesson' && activeQuest) {
+    if (activeQuest.id === 'im') {
+      return (
+        <ImModule
+          quest={activeQuest}
+          onBack={goMap}
+          onComplete={finishChallenge}
+        />
+      );
+    }
     if (activeQuest.id === 'im-good-at') {
       return (
         <ImGoodAtModule
