@@ -161,6 +161,29 @@ export const WORLDS: QuestWorld[] = [
         isBoss: true,
         unlocksSyntax: { word: 'age', cat: 'plain' },
       },
+      {
+        id: 'im-good-at',
+        shortTitle: 'good at',
+        title: "I'm good at",
+        meaning: 'Expressar habilidades, talentos ou áreas em que você é bom.',
+        formula: "I'm good at + noun / activity / verb+ing",
+        vocabulary: ['math', 'drawing', 'dancing', 'chess', 'swimming', 'reading', 'writing', 'sports'],
+        toneNote: "Após 'at', use substantivo ou verbo + ing (gerúndio).",
+        usage: ["I'm good at math.", "I'm good at dancing.", "I'm good at chess.", "I'm good at drawing."],
+        // Custom flow handles its own steps; these are placeholders for type compat.
+        exercises: [
+          { prompt: "I'm good at ____.", blank: 'math', options: ['math', 'happy', 'tired'], hint: 'Uma área de estudo.', category: 'plain' },
+        ],
+        challenge: {
+          promptEmoji: '🎨',
+          promptLabel: 'someone drawing',
+          expected: "I'm good at drawing",
+          pieces: ["I'm", 'good', 'at', 'drawing', 'happy'],
+        },
+        xpReward: 50,
+        coinReward: 20,
+        unlocksSyntax: { word: 'good at', cat: 'plain' },
+      },
     ],
   },
   {
