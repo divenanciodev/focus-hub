@@ -4,6 +4,7 @@ import { QuestMap } from './QuestMap';
 import { QuestLesson } from './QuestLesson';
 import { QuestChallenge } from './QuestChallenge';
 import { QuestReward } from './QuestReward';
+import { ImGoodAtModule } from './ImGoodAtModule';
 import { WORLDS } from './questData';
 
 interface QuestsHubProps {
@@ -59,6 +60,15 @@ export function QuestsHub(_props: QuestsHubProps) {
   };
 
   if (screen === 'lesson' && activeQuest) {
+    if (activeQuest.id === 'im-good-at') {
+      return (
+        <ImGoodAtModule
+          quest={activeQuest}
+          onBack={goMap}
+          onComplete={finishChallenge}
+        />
+      );
+    }
     return (
       <QuestLesson
         quest={activeQuest}
