@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { DisciplinesProvider } from "@/contexts/DisciplinesContext";
-import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Estudos from "./pages/Estudos";
 import DisciplineDetail from "./pages/DisciplineDetail";
@@ -22,29 +21,11 @@ import Perfil from "./pages/Perfil";
 import Habitos from "./pages/Habitos";
 import Cronograma from "./pages/Cronograma";
 import Idiomas from "./pages/Idiomas";
-import Auth from "./pages/Auth";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
   return <>{children}</>;
 }
 
