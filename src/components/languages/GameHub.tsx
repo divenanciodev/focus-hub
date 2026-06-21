@@ -74,11 +74,11 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
   const [activeQuestPack, setActiveQuestPack] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0); // for the home grid arrows (placeholder)
   const [avatarEquip, setAvatarEquip] = useState<AvatarEquipState>({
-    shirt: false,
-    shorts: false,
-    sandals: false,
-    mouth: false,
-    hat: false,
+    shirt: true,
+    shorts: true,
+    sandals: true,
+    mouth: true,
+    hat: true,
   });
 
   const toggleAvatarEquip = (key: keyof AvatarEquipState) => {
