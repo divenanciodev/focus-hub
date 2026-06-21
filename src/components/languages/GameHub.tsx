@@ -638,12 +638,12 @@ function AvatarCharacter({
     size === 'hero'
       ? 'w-[18rem] sm:w-[20rem] md:w-[24rem] lg:w-[26rem]'
       : size === 'store'
-        ? 'h-full w-auto max-w-full'
+        ? 'h-full aspect-[210/297] max-w-full mx-auto'
         : 'w-64 md:w-80';
 
   const innerClass =
     size === 'store'
-      ? 'relative isolate aspect-[210/297] h-full w-auto max-w-full overflow-visible'
+      ? 'relative isolate h-full w-full overflow-visible'
       : 'relative isolate aspect-[210/297] w-full overflow-visible';
 
   return (
