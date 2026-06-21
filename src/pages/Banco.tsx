@@ -244,10 +244,10 @@ export default function Banco() {
         description="Organize seus links úteis por categorias e pastas"
       />
 
-      <Tabs defaultValue="meus-links" className="w-full">
+      <Tabs defaultValue="biblioteca" className="w-full">
         <TabsList className="mb-6">
-          <TabsTrigger value="meus-links">Meus Links</TabsTrigger>
           <TabsTrigger value="biblioteca">Biblioteca</TabsTrigger>
+          <TabsTrigger value="meus-links">Meus Links</TabsTrigger>
         </TabsList>
 
         {/* Meus Links - Área de criação e edição */}
