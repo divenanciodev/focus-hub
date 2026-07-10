@@ -618,6 +618,17 @@ function avatarLayerClass() {
   return cn('absolute inset-0 block h-full w-full object-contain object-bottom pointer-events-none select-none');
 }
 
+// The base body SVG (`corpo-base.svg`) was authored inside a smaller
+// sub-region of its 21000x29700 viewBox (bbox ≈ x:2690 y:3862 w:15879 h:23535),
+// while all the clothing/accessory SVGs were authored assuming the character
+// fills the full viewBox. We remap each item layer onto the body's actual
+// bounding box so hats, shirts, shorts and sandals sit exactly on the body.
+const ITEM_FIT_STYLE: React.CSSProperties = {
+  transformOrigin: '0 0',
+  // translate(bodyX/vbW, bodyY/vbH) then scale(bodyW/vbW, bodyH/vbH)
+  transform: 'translate(12.81%, 13.00%) scale(0.7561, 0.7924)',
+};
+
 function AvatarCharacter({
   equip,
   size = 'default',
@@ -650,11 +661,11 @@ function AvatarCharacter({
     <div className={cn('relative leading-[0] flex flex-col items-center justify-end', sizeClass)}>
       <div className={innerClass}>
         <img src={AVATAR_LAYERS.corpo} alt="" className={L} aria-hidden />
-        {equip.shorts && <img src={AVATAR_LAYERS.short} alt="" className={cn(L, 'z-[1]')} aria-hidden />}
-        {equip.shirt && <img src={AVATAR_LAYERS.blusa} alt="" className={cn(L, 'z-[2]')} aria-hidden />}
-        {equip.sandals && <img src={AVATAR_LAYERS.sandalia} alt="" className={cn(L, 'z-[3]')} aria-hidden />}
-        {equip.mouth && <img src={AVATAR_LAYERS.boca} alt="" className={cn(L, 'z-[4]')} aria-hidden />}
-        {equip.hat && <img src={AVATAR_LAYERS.bone} alt="" className={cn(L, 'z-[5]')} aria-hidden />}
+        {equip.shorts && <img src={AVATAR_LAYERS.short} alt="" className={cn(L, 'z-[1]')} style={ITEM_FIT_STYLE} aria-hidden />}
+        {equip.shirt && <img src={AVATAR_LAYERS.blusa} alt="" className={cn(L, 'z-[2]')} style={ITEM_FIT_STYLE} aria-hidden />}
+        {equip.sandals && <img src={AVATAR_LAYERS.sandalia} alt="" className={cn(L, 'z-[3]')} style={ITEM_FIT_STYLE} aria-hidden />}
+        {equip.mouth && <img src={AVATAR_LAYERS.boca} alt="" className={cn(L, 'z-[4]')} style={ITEM_FIT_STYLE} aria-hidden />}
+        {equip.hat && <img src={AVATAR_LAYERS.bone} alt="" className={cn(L, 'z-[5]')} style={ITEM_FIT_STYLE} aria-hidden />}
 
         {/* Ground shadow under the feet */}
         <div
