@@ -618,25 +618,6 @@ function avatarLayerClass() {
   return cn('absolute inset-0 block h-full w-full object-contain object-bottom pointer-events-none select-none');
 }
 
-// The base body SVG (`corpo-base.svg`) was authored inside a smaller
-// sub-region of its 21000x29700 viewBox (bbox ≈ x:2690 y:3862 w:15879 h:23535),
-// while all the clothing/accessory SVGs were authored assuming the character
-// fills the full viewBox. We remap each item layer onto the body's actual
-// bounding box so hats, shirts, shorts and sandals sit exactly on the body.
-// The base body SVG occupies bbox (x:2690 y:3862 w:15879 h:23535) inside a
-// 21000x29700 viewBox. The clothing/accessory SVGs were authored assuming the
-// character fills x:0..21000, y:2782..27355 of their own viewBox. We remap
-// that "item design region" onto the actual body bbox so every accessory
-// snaps onto the correct body part.
-//   sx = 15879 / 21000            = 0.7561
-//   sy = 23535 / (27355 - 2782)   = 0.9578
-//   tx = 2690 / 21000             = 12.81%
-//   ty = (3862 - 2782 * sy) / 29700 = 4.03%
-const ITEM_FIT_STYLE: React.CSSProperties = {
-  transformOrigin: '0 0',
-  transform: 'translate(12.81%, 4.03%) scale(0.7561, 0.9578)',
-};
-
 function AvatarCharacter({
   equip,
   size = 'default',
@@ -669,11 +650,11 @@ function AvatarCharacter({
     <div className={cn('relative leading-[0] flex flex-col items-center justify-end', sizeClass)}>
       <div className={innerClass}>
         <img src={AVATAR_LAYERS.corpo} alt="" className={L} aria-hidden />
-        {equip.shorts && <img src={AVATAR_LAYERS.short} alt="" className={cn(L, 'z-[1]')} style={ITEM_FIT_STYLE} aria-hidden />}
-        {equip.shirt && <img src={AVATAR_LAYERS.blusa} alt="" className={cn(L, 'z-[2]')} style={ITEM_FIT_STYLE} aria-hidden />}
-        {equip.sandals && <img src={AVATAR_LAYERS.sandalia} alt="" className={cn(L, 'z-[3]')} style={ITEM_FIT_STYLE} aria-hidden />}
-        {equip.mouth && <img src={AVATAR_LAYERS.boca} alt="" className={cn(L, 'z-[4]')} style={ITEM_FIT_STYLE} aria-hidden />}
-        {equip.hat && <img src={AVATAR_LAYERS.bone} alt="" className={cn(L, 'z-[5]')} style={ITEM_FIT_STYLE} aria-hidden />}
+        {equip.shorts && <img src={AVATAR_LAYERS.short} alt="" className={cn(L, 'z-[1]')} aria-hidden />}
+        {equip.shirt && <img src={AVATAR_LAYERS.blusa} alt="" className={cn(L, 'z-[2]')} aria-hidden />}
+        {equip.sandals && <img src={AVATAR_LAYERS.sandalia} alt="" className={cn(L, 'z-[3]')} aria-hidden />}
+        {equip.mouth && <img src={AVATAR_LAYERS.boca} alt="" className={cn(L, 'z-[4]')} aria-hidden />}
+        {equip.hat && <img src={AVATAR_LAYERS.bone} alt="" className={cn(L, 'z-[5]')} aria-hidden />}
 
         {/* Ground shadow under the feet */}
         <div
