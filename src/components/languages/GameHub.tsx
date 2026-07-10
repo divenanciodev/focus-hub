@@ -623,10 +623,18 @@ function avatarLayerClass() {
 // while all the clothing/accessory SVGs were authored assuming the character
 // fills the full viewBox. We remap each item layer onto the body's actual
 // bounding box so hats, shirts, shorts and sandals sit exactly on the body.
+// The base body SVG occupies bbox (x:2690 y:3862 w:15879 h:23535) inside a
+// 21000x29700 viewBox. The clothing/accessory SVGs were authored assuming the
+// character fills x:0..21000, y:2782..27355 of their own viewBox. We remap
+// that "item design region" onto the actual body bbox so every accessory
+// snaps onto the correct body part.
+//   sx = 15879 / 21000            = 0.7561
+//   sy = 23535 / (27355 - 2782)   = 0.9578
+//   tx = 2690 / 21000             = 12.81%
+//   ty = (3862 - 2782 * sy) / 29700 = 4.03%
 const ITEM_FIT_STYLE: React.CSSProperties = {
   transformOrigin: '0 0',
-  // translate(bodyX/vbW, bodyY/vbH) then scale(bodyW/vbW, bodyH/vbH)
-  transform: 'translate(12.81%, 13.00%) scale(0.7561, 0.7924)',
+  transform: 'translate(12.81%, 4.03%) scale(0.7561, 0.9578)',
 };
 
 function AvatarCharacter({
