@@ -35,7 +35,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileBarChart,
-  Infinity,
+  Infinity as InfinityIcon,
   FileText,
   Upload,
   X,
