@@ -29,6 +29,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { QuestsHub } from './quests/QuestsHub';
+import { LearnFlixView } from './LearnFlixView';
 
 interface GameHubProps {
   languageName: string;
@@ -255,7 +256,11 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
           </div>
         )}
 
-        {section !== 'home' && section !== 'loja' && section !== 'quests' && (
+        {section === 'learnflix' && (
+          <LearnFlixView languageName={languageName} />
+        )}
+
+        {section !== 'home' && section !== 'loja' && section !== 'quests' && section !== 'learnflix' && (
           <PlaceholderSection section={section} />
         )}
       </main>

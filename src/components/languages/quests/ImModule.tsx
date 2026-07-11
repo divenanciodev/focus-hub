@@ -12,6 +12,8 @@ import {
   BookOpen,
   Lightbulb as Bulb,
   SkipForward,
+  Menu,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -50,6 +52,7 @@ function speak(text: string, rate = 0.9) {
 
 export function ImModule({ quest, onBack, onComplete }: ImModuleProps) {
   const [stage, setStage] = useState<Stage>('learn');
+  const [showDescription, setShowDescription] = useState(false);
 
   const stageIdx = stage === 'learn' ? 0 : stage === 'speak' ? 1 : 2;
   const progress = ((stageIdx + 1) / 3) * 100;
@@ -89,19 +92,68 @@ export function ImModule({ quest, onBack, onComplete }: ImModuleProps) {
         </div>
       </div>
 
-      {/* Stepper */}
+      {/* Course description control */}
       <div className="bg-white dark:bg-card border-b border-border px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <Step n={1} title="Learn" sub="Vocabulary" active={stage === 'learn'} done={stageIdx > 0} />
-          <div className="flex-1 h-px bg-border" />
-          <Step n={2} title="Speak" sub="Practice Pronunciation" active={stage === 'speak'} done={stageIdx > 1} />
-          <div className="flex-1 h-px bg-border" />
-          <Step n={3} title="Write" sub="Practice Writing" active={stage === 'write'} done={false} />
+        <div className="max-w-4xl mx-auto flex items-center justify-center gap-2">
+          <button
+            onClick={onBack}
+            className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-muted flex items-center justify-center transition"
+            aria-label="Anterior"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setShowDescription((v) => !v)}
+            aria-expanded={showDescription}
+            className="flex items-center gap-2 px-4 h-9 rounded-lg border border-border bg-background hover:bg-muted text-sm font-semibold transition"
+          >
+            <Menu className="w-4 h-4" />
+            Descrição do Curso
+            <ChevronDown
+              className={cn('w-4 h-4 transition-transform', showDescription && 'rotate-180')}
+            />
+          </button>
+          <button
+            onClick={() => {
+              if (stage === 'learn') setStage('speak');
+              else if (stage === 'speak') setStage('write');
+              else onComplete();
+            }}
+            className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-muted flex items-center justify-center transition"
+            aria-label="Próximo"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
+
+        {showDescription && (
+          <div className="max-w-4xl mx-auto mt-3 rounded-xl border border-border bg-muted/40 p-4 animate-in fade-in slide-in-from-top-1">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+              {quest.title}
+            </div>
+            <p className="text-sm text-foreground leading-relaxed">
+              {quest.meaning}
+            </p>
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="rounded-lg bg-background border border-border p-3">
+                <div className="font-bold text-muted-foreground uppercase tracking-widest mb-1">Fórmula</div>
+                <div className="font-mono text-foreground">{quest.formula}</div>
+              </div>
+              <div className="rounded-lg bg-background border border-border p-3">
+                <div className="font-bold text-muted-foreground uppercase tracking-widest mb-1">Etapas</div>
+                <div className="text-foreground">Learn › Speak › Write</div>
+              </div>
+              <div className="rounded-lg bg-background border border-border p-3">
+                <div className="font-bold text-muted-foreground uppercase tracking-widest mb-1">Dica</div>
+                <div className="text-foreground line-clamp-2">{quest.toneNote}</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Body */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[minmax(0,360px)_1fr_minmax(0,260px)] gap-4 p-4 overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[minmax(0,360px)_1fr] gap-4 p-4 overflow-hidden">
         <TheoryPanel quest={quest} />
 
         <div className="min-h-0 overflow-auto">
@@ -109,12 +161,6 @@ export function ImModule({ quest, onBack, onComplete }: ImModuleProps) {
           {stage === 'speak' && <SpeakStage onNext={() => setStage('write')} />}
           {stage === 'write' && <WriteStage onComplete={onComplete} />}
         </div>
-
-        {stage !== 'write' ? (
-          <SidePanel stage={stage} stageIdx={stageIdx} />
-        ) : (
-          <div className="hidden lg:block" />
-        )}
       </div>
     </div>
   );
@@ -192,33 +238,6 @@ function TheoryPanel({ quest }: { quest: Quest }) {
       <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30">
         <Sparkles className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-amber-700 dark:text-amber-200">{quest.toneNote}</p>
-      </div>
-    </div>
-  );
-}
-
-function SidePanel({ stage, stageIdx }: { stage: Stage; stageIdx: number }) {
-  const tips =
-    stage === 'learn'
-      ? ['Listen carefully.', 'Repeat in your head.', 'Pay attention to pronunciation.']
-      : ['Speak clearly.', 'Pay attention to pronunciation.', "Don't worry about mistakes!"];
-
-  return (
-    <div className="space-y-4 overflow-y-auto">
-      <div className="bg-white dark:bg-card rounded-xl border border-border p-4">
-        <div className="flex items-center gap-2 text-violet-600 font-bold text-sm mb-2">
-          <Bulb className="w-4 h-4" /> Tips
-        </div>
-        <ul className="space-y-1.5 text-sm text-foreground list-disc pl-5">
-          {tips.map((t) => <li key={t}>{t}</li>)}
-        </ul>
-      </div>
-      <div className="bg-white dark:bg-card rounded-xl border border-border p-4">
-        <div className="font-bold text-sm">Progress</div>
-        <div className="text-xs text-muted-foreground mt-1">{stageIdx + 1} of 3 steps</div>
-        <div className="mt-2 w-full h-2 bg-zinc-200 rounded-full overflow-hidden">
-          <div className="h-full bg-violet-500" style={{ width: `${((stageIdx + 1) / 3) * 100}%` }} />
-        </div>
       </div>
     </div>
   );
