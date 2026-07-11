@@ -12,6 +12,8 @@ import {
   BookOpen,
   Lightbulb as Bulb,
   SkipForward,
+  Menu,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -50,6 +52,7 @@ function speak(text: string, rate = 0.9) {
 
 export function ImModule({ quest, onBack, onComplete }: ImModuleProps) {
   const [stage, setStage] = useState<Stage>('learn');
+  const [showDescription, setShowDescription] = useState(false);
 
   const stageIdx = stage === 'learn' ? 0 : stage === 'speak' ? 1 : 2;
   const progress = ((stageIdx + 1) / 3) * 100;
@@ -98,6 +101,64 @@ export function ImModule({ quest, onBack, onComplete }: ImModuleProps) {
           <div className="flex-1 h-px bg-border" />
           <Step n={3} title="Write" sub="Practice Writing" active={stage === 'write'} done={false} />
         </div>
+
+        {/* Course description control */}
+        <div className="max-w-4xl mx-auto mt-3 flex items-center justify-center gap-2">
+          <button
+            onClick={onBack}
+            className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-muted flex items-center justify-center transition"
+            aria-label="Anterior"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setShowDescription((v) => !v)}
+            aria-expanded={showDescription}
+            className="flex items-center gap-2 px-4 h-9 rounded-lg border border-border bg-background hover:bg-muted text-sm font-semibold transition"
+          >
+            <Menu className="w-4 h-4" />
+            Descrição do Curso
+            <ChevronDown
+              className={cn('w-4 h-4 transition-transform', showDescription && 'rotate-180')}
+            />
+          </button>
+          <button
+            onClick={() => {
+              if (stage === 'learn') setStage('speak');
+              else if (stage === 'speak') setStage('write');
+              else onComplete();
+            }}
+            className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-muted flex items-center justify-center transition"
+            aria-label="Próximo"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {showDescription && (
+          <div className="max-w-4xl mx-auto mt-3 rounded-xl border border-border bg-muted/40 p-4 animate-in fade-in slide-in-from-top-1">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+              {quest.title}
+            </div>
+            <p className="text-sm text-foreground leading-relaxed">
+              {quest.meaning}
+            </p>
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="rounded-lg bg-background border border-border p-3">
+                <div className="font-bold text-muted-foreground uppercase tracking-widest mb-1">Fórmula</div>
+                <div className="font-mono text-foreground">{quest.formula}</div>
+              </div>
+              <div className="rounded-lg bg-background border border-border p-3">
+                <div className="font-bold text-muted-foreground uppercase tracking-widest mb-1">Etapas</div>
+                <div className="text-foreground">Learn › Speak › Write</div>
+              </div>
+              <div className="rounded-lg bg-background border border-border p-3">
+                <div className="font-bold text-muted-foreground uppercase tracking-widest mb-1">Dica</div>
+                <div className="text-foreground line-clamp-2">{quest.toneNote}</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Body */}
