@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { QuestsHub } from './quests/QuestsHub';
 import { LearnFlixView } from './LearnFlixView';
+import { ChatRoomsView } from './ChatRoomsView';
 
 interface GameHubProps {
   languageName: string;
@@ -260,7 +261,11 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
           <LearnFlixView languageName={languageName} />
         )}
 
-        {section !== 'home' && section !== 'loja' && section !== 'quests' && section !== 'learnflix' && (
+        {section === 'batepapo' && (
+          <ChatRoomsView languageName={languageName} />
+        )}
+
+        {section !== 'home' && section !== 'loja' && section !== 'quests' && section !== 'learnflix' && section !== 'batepapo' && (
           <PlaceholderSection section={section} />
         )}
       </main>
