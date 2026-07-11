@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Play, Search, Trash2, X, Film } from 'lucide-react';
+import { Plus, Play, Search, Trash2, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -127,37 +127,37 @@ export function LearnFlixView({ languageName }: { languageName: string }) {
   const playingId = playing ? parseYouTubeId(playing.url) : null;
 
   return (
-    <div className="min-h-[calc(100vh-72px)] bg-black text-white">
+    <div className="min-h-[calc(100vh-72px)] bg-background text-foreground">
       {/* Sub-header */}
-      <div className="sticky top-0 z-20 bg-gradient-to-b from-black via-black/90 to-transparent px-4 md:px-10 pt-4 pb-6">
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border px-4 md:px-10 pt-4 pb-4">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg">
-              <Film className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-secondary border border-border flex items-center justify-center">
+              <Film className="w-5 h-5 text-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight">
-                Learn<span className="text-red-600">Flix</span>
+              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+                LearnFlix
               </h1>
-              <p className="text-xs md:text-sm text-white/60">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Sua biblioteca de vídeos em {languageName}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-3 py-1.5">
-              <Search className="w-4 h-4 text-white/60" />
+            <div className="flex items-center gap-2 bg-secondary border border-border rounded-md px-3 py-1.5">
+              <Search className="w-4 h-4 text-muted-foreground" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar vídeos..."
-                className="bg-transparent outline-none text-sm w-40 md:w-56 placeholder:text-white/40"
+                className="bg-transparent outline-none text-sm w-40 md:w-56 placeholder:text-muted-foreground text-foreground"
               />
             </div>
             <Button
               onClick={() => setAddOpen(true)}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-full"
+              size="sm"
             >
               <Plus className="w-4 h-4 mr-1" /> Adicionar vídeo
             </Button>
@@ -173,7 +173,7 @@ export function LearnFlixView({ languageName }: { languageName: string }) {
       )}
 
       {/* Rows */}
-      <div className="pb-20 mt-6 space-y-10">
+      <div className="pb-20 mt-8 space-y-10">
         {categories.map((cat) => {
           const items = filtered.filter((v) => v.category === cat);
           if (items.length === 0) return null;
@@ -189,7 +189,7 @@ export function LearnFlixView({ languageName }: { languageName: string }) {
         })}
 
         {filtered.length === 0 && videos.length > 0 && (
-          <div className="text-center text-white/60 py-16">
+          <div className="text-center text-muted-foreground py-16">
             Nenhum vídeo corresponde à sua busca.
           </div>
         )}
@@ -197,9 +197,9 @@ export function LearnFlixView({ languageName }: { languageName: string }) {
 
       {/* Add modal */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-lg">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-white">Adicionar vídeo</DialogTitle>
+            <DialogTitle>Adicionar vídeo</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Field label="Título *">
@@ -248,13 +248,12 @@ export function LearnFlixView({ languageName }: { languageName: string }) {
               />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="ghost" onClick={() => setAddOpen(false)} className="text-white hover:bg-white/10">
+              <Button variant="ghost" onClick={() => setAddOpen(false)}>
                 Cancelar
               </Button>
               <Button
                 onClick={handleAdd}
                 disabled={!fTitle.trim() || !fUrl.trim()}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold"
               >
                 Adicionar
               </Button>
@@ -265,10 +264,10 @@ export function LearnFlixView({ languageName }: { languageName: string }) {
 
       {/* Player */}
       <Dialog open={!!playing} onOpenChange={(o) => !o && setPlaying(null)}>
-        <DialogContent className="bg-black border-neutral-800 text-white max-w-4xl p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl p-0 overflow-hidden">
           {playing && (
             <div>
-              <div className="aspect-video w-full bg-black">
+              <div className="aspect-video w-full bg-secondary">
                 {playingId ? (
                   <iframe
                     src={`https://www.youtube.com/embed/${playingId}?autoplay=1`}
@@ -278,20 +277,20 @@ export function LearnFlixView({ languageName }: { languageName: string }) {
                     allowFullScreen
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-white/60 text-sm p-6 text-center">
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm p-6 text-center">
                     Formato de URL não suportado no player embutido.
                     <br />
-                    <a href={playing.url} target="_blank" rel="noreferrer" className="underline text-red-400 mt-2 inline-block">
+                    <a href={playing.url} target="_blank" rel="noreferrer" className="underline text-foreground mt-2 inline-block">
                       Abrir em nova aba
                     </a>
                   </div>
                 )}
               </div>
               <div className="p-5">
-                <h3 className="text-xl font-bold">{playing.title}</h3>
-                <div className="text-xs text-white/50 mt-1">{playing.category}</div>
+                <h3 className="text-xl font-semibold">{playing.title}</h3>
+                <div className="text-xs text-muted-foreground mt-1">{playing.category}</div>
                 {playing.description && (
-                  <p className="text-sm text-white/80 mt-3 whitespace-pre-wrap">{playing.description}</p>
+                  <p className="text-sm text-foreground/80 mt-3 whitespace-pre-wrap">{playing.description}</p>
                 )}
               </div>
             </div>
@@ -302,15 +301,15 @@ export function LearnFlixView({ languageName }: { languageName: string }) {
       <style>{`
         .input {
           width: 100%;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.15);
-          color: white;
+          background: hsl(var(--background));
+          border: 1px solid hsl(var(--border));
+          color: hsl(var(--foreground));
           border-radius: 0.5rem;
           padding: 0.5rem 0.75rem;
           font-size: 0.875rem;
           outline: none;
         }
-        .input:focus { border-color: #ef4444; }
+        .input:focus { border-color: hsl(var(--ring)); box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { scrollbar-width: none; }
       `}</style>
@@ -321,7 +320,7 @@ export function LearnFlixView({ languageName }: { languageName: string }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-xs font-semibold text-white/70 uppercase tracking-wide">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
       <div className="mt-1">{children}</div>
     </label>
   );
@@ -329,7 +328,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function FeaturedBanner({ video, onPlay }: { video: LearnFlixVideo; onPlay: () => void }) {
   return (
-    <div className="relative h-[46vh] min-h-[280px] w-full overflow-hidden">
+    <div className="relative h-[42vh] min-h-[260px] w-full overflow-hidden border-b border-border">
       {video.thumbnail ? (
         <img
           src={video.thumbnail}
@@ -337,21 +336,21 @@ function FeaturedBanner({ video, onPlay }: { video: LearnFlixVideo; onPlay: () =
           className="absolute inset-0 w-full h-full object-cover"
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-red-900 via-neutral-900 to-black" />
+        <div className="absolute inset-0 bg-secondary" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/30 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/40 to-transparent" />
       <div className="relative z-10 h-full flex flex-col justify-end px-4 md:px-10 pb-10 max-w-3xl">
-        <div className="text-xs text-red-500 font-bold tracking-widest uppercase mb-2">
+        <div className="text-xs text-muted-foreground font-medium tracking-widest uppercase mb-2">
           Em destaque
         </div>
-        <h2 className="text-3xl md:text-5xl font-black drop-shadow-lg">{video.title}</h2>
+        <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-foreground">{video.title}</h2>
         {video.description && (
-          <p className="mt-3 text-sm md:text-base text-white/80 line-clamp-3">{video.description}</p>
+          <p className="mt-3 text-sm md:text-base text-muted-foreground line-clamp-3">{video.description}</p>
         )}
         <div className="mt-5 flex gap-3">
-          <Button onClick={onPlay} className="bg-white text-black hover:bg-white/90 font-bold">
-            <Play className="w-4 h-4 mr-2 fill-black" /> Assistir
+          <Button onClick={onPlay}>
+            <Play className="w-4 h-4 mr-2" /> Assistir
           </Button>
         </div>
       </div>
@@ -361,12 +360,12 @@ function FeaturedBanner({ video, onPlay }: { video: LearnFlixVideo; onPlay: () =
 
 function EmptyBanner({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="relative h-[40vh] min-h-[260px] w-full overflow-hidden bg-gradient-to-br from-red-900 via-neutral-900 to-black flex items-center justify-center">
+    <div className="relative h-[40vh] min-h-[260px] w-full overflow-hidden bg-secondary border-b border-border flex items-center justify-center">
       <div className="text-center px-4">
-        <Film className="w-14 h-14 mx-auto text-red-500 mb-3" />
-        <h2 className="text-2xl md:text-4xl font-black">Sua LearnFlix está vazia</h2>
-        <p className="mt-2 text-white/70">Adicione seu primeiro vídeo para começar.</p>
-        <Button onClick={onAdd} className="mt-5 bg-red-600 hover:bg-red-700 text-white font-bold">
+        <Film className="w-14 h-14 mx-auto text-muted-foreground mb-3" />
+        <h2 className="text-2xl md:text-4xl font-semibold tracking-tight">Sua LearnFlix está vazia</h2>
+        <p className="mt-2 text-muted-foreground">Adicione seu primeiro vídeo para começar.</p>
+        <Button onClick={onAdd} className="mt-5">
           <Plus className="w-4 h-4 mr-2" /> Adicionar vídeo
         </Button>
       </div>
@@ -387,7 +386,7 @@ function VideoRow({
 }) {
   return (
     <section className="px-4 md:px-10">
-      <h3 className="text-lg md:text-xl font-bold mb-3">{title}</h3>
+      <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">{title}</h3>
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-3">
         {items.map((v) => (
           <VideoCard key={v.id} video={v} onPlay={() => onPlay(v)} onDelete={() => onDelete(v.id)} />
@@ -409,22 +408,22 @@ function VideoCard({
   return (
     <div
       className={cn(
-        'group relative shrink-0 w-56 md:w-64 aspect-video rounded-lg overflow-hidden bg-neutral-800',
-        'cursor-pointer transition-transform hover:scale-[1.04] hover:z-10 shadow-lg',
+        'group relative shrink-0 w-56 md:w-64 aspect-video rounded-md overflow-hidden bg-secondary border border-border',
+        'cursor-pointer transition-all hover:border-foreground/30 hover:shadow-md',
       )}
       onClick={onPlay}
     >
       {video.thumbnail ? (
         <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />
       ) : (
-        <div className="w-full h-full bg-gradient-to-br from-red-800 to-neutral-900 flex items-center justify-center">
-          <Film className="w-10 h-10 text-white/60" />
+        <div className="w-full h-full bg-secondary flex items-center justify-center">
+          <Film className="w-10 h-10 text-muted-foreground" />
         </div>
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-90" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-3">
-        <div className="text-sm font-bold line-clamp-2">{video.title}</div>
-        <div className="text-[10px] uppercase tracking-wider text-white/60 mt-0.5">
+        <div className="text-sm font-medium line-clamp-2 text-white">{video.title}</div>
+        <div className="text-[10px] uppercase tracking-wider text-white/70 mt-0.5">
           {video.category}
         </div>
       </div>
@@ -434,20 +433,17 @@ function VideoCard({
             e.stopPropagation();
             onDelete();
           }}
-          className="w-7 h-7 rounded-full bg-black/70 hover:bg-red-600 flex items-center justify-center"
+          className="w-7 h-7 rounded-md bg-black/70 hover:bg-black/90 flex items-center justify-center text-white"
           title="Remover"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-        <div className="w-12 h-12 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg">
+        <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-lg">
           <Play className="w-5 h-5 fill-black" />
         </div>
       </div>
     </div>
   );
 }
-
-// Prevent unused-import warning for X in some setups
-void X;
