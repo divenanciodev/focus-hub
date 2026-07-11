@@ -126,6 +126,42 @@ export function ImModule({ quest, onBack, onComplete }: ImModuleProps) {
           </button>
         </div>
 
+<<<<<<< HEAD
+=======
+        {/* Course description control */}
+        <div className="max-w-4xl mx-auto mt-3 flex items-center justify-center gap-2">
+          <button
+            onClick={onBack}
+            className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-muted flex items-center justify-center transition"
+            aria-label="Anterior"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setShowDescription((v) => !v)}
+            aria-expanded={showDescription}
+            className="flex items-center gap-2 px-4 h-9 rounded-lg border border-border bg-background hover:bg-muted text-sm font-semibold transition"
+          >
+            <Menu className="w-4 h-4" />
+            Descrição do Curso
+            <ChevronDown
+              className={cn('w-4 h-4 transition-transform', showDescription && 'rotate-180')}
+            />
+          </button>
+          <button
+            onClick={() => {
+              if (stage === 'learn') setStage('speak');
+              else if (stage === 'speak') setStage('write');
+              else onComplete();
+            }}
+            className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-muted flex items-center justify-center transition"
+            aria-label="Próximo"
+          >
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+
+>>>>>>> 225b28a3569d7ce17cbf9b4270fc1e661659890c
         {showDescription && (
           <div className="max-w-4xl mx-auto mt-3 rounded-xl border border-border bg-muted/40 p-4 animate-in fade-in slide-in-from-top-1">
             <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
