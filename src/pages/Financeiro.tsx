@@ -1065,7 +1065,7 @@ export default function Financeiro() {
                           <span className="font-medium text-foreground flex items-center gap-1">
                             {receivable.paidInstallments}
                             {isIndefinite ? (
-                              <Infinity className="w-4 h-4 text-muted-foreground" />
+                              <InfinityIcon className="w-4 h-4 text-muted-foreground" />
                             ) : (
                               <>/{receivable.installments}</>
                             )}
@@ -1656,7 +1656,7 @@ export default function Financeiro() {
                 onCheckedChange={(checked) => setNewReceivable({ ...newReceivable, isIndefinite: checked })}
               />
               <Label htmlFor="indefinite" className="flex items-center gap-1">
-                <Infinity className="w-4 h-4" />
+                <InfinityIcon className="w-4 h-4" />
                 Parcelas indefinidas
               </Label>
             </div>
@@ -1872,7 +1872,7 @@ export default function Financeiro() {
                   onCheckedChange={(checked) => setEditingReceivable({ ...editingReceivable, installments: checked ? null : 1 })}
                 />
                 <Label htmlFor="edit-indefinite" className="flex items-center gap-1">
-                  <Infinity className="w-4 h-4" />
+                  <InfinityIcon className="w-4 h-4" />
                   Parcelas indefinidas
                 </Label>
               </div>
@@ -2100,7 +2100,7 @@ export default function Financeiro() {
                     <p className="text-lg font-bold text-foreground flex items-center gap-1">
                       {viewingReceivable.paidInstallments}
                       {viewingReceivable.installments === null ? (
-                        <Infinity className="w-4 h-4 text-muted-foreground" />
+                        <InfinityIcon className="w-4 h-4 text-muted-foreground" />
                       ) : (
                         <>/{viewingReceivable.installments}</>
                       )}
