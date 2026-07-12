@@ -31,6 +31,7 @@ import {
 import { QuestsHub } from './quests/QuestsHub';
 import { LearnFlixView } from './LearnFlixView';
 import { ChatRoomsView } from './ChatRoomsView';
+import { BibliotecaView } from './BibliotecaView';
 
 interface GameHubProps {
   languageName: string;
@@ -120,10 +121,6 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
   ];
 
   const handleHomeButton = (key: HubSection) => {
-    if (key === 'biblioteca') {
-      onOpenLibrary();
-      return;
-    }
     setSection(key);
   };
 
@@ -261,11 +258,15 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
           <LearnFlixView languageName={languageName} />
         )}
 
+        {section === 'biblioteca' && (
+          <BibliotecaView languageName={languageName} />
+        )}
+
         {section === 'batepapo' && (
           <ChatRoomsView languageName={languageName} />
         )}
 
-        {section !== 'home' && section !== 'loja' && section !== 'quests' && section !== 'learnflix' && section !== 'batepapo' && (
+        {section !== 'home' && section !== 'loja' && section !== 'quests' && section !== 'learnflix' && section !== 'batepapo' && section !== 'biblioteca' && (
           <PlaceholderSection section={section} />
         )}
       </main>
