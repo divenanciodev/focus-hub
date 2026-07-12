@@ -87,7 +87,7 @@ export function QuestModules({ completedQuests, onOpenWorld }: QuestModulesProps
                 {/* Title */}
                 <div className="absolute bottom-4 left-4 right-4 text-white">
                   <div className="text-2xl font-extrabold drop-shadow-lg leading-tight">
-                    {world.title}
+                    {world.cardTitle ?? world.title}
                   </div>
                   {!locked && (
                     <div className="mt-1 flex items-center gap-3 text-xs font-bold text-white/90">

@@ -4,6 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import baseDoAvatar from '@/assets/avatar/base/base-do-avatar.svg';
+import item_short1 from '@/assets/avatar/shorts/1-short.svg';
+import item_camisa1 from '@/assets/avatar/camisas/1-camisa.svg';
+import item_sapato1 from '@/assets/avatar/sapatos/1-chinela.svg';
+import item_bone1 from '@/assets/avatar/acessórios/1-boné.svg';
 import {
   ArrowLeft,
   ArrowRight,
@@ -41,14 +46,14 @@ interface GameHubProps {
 
 type HubSection = 'home' | 'loja' | 'vestir' | 'moedas' | 'amigos' | 'batepapo' | 'quests' | 'learnflix' | 'biblioteca' | 'game';
 
-const BASE_AVATAR_URL = '/avatars/corpo-base.svg';
+const BASE_AVATAR_URL = baseDoAvatar;
 const AVATAR_LAYERS = {
-  corpo: '/avatars/corpo-base.svg',
-  short: '/avatars/short-item.svg',
-  blusa: '/avatars/blusa-item.svg',
-  sandalia: '/avatars/sandalia-item.svg',
-  boca: '/avatars/boca-base-item.svg',
-  bone: '/avatars/bone-item.svg',
+  corpo: baseDoAvatar,
+  short: item_short1,
+  blusa: item_camisa1,
+  sandalia: item_sapato1,
+  boca: '',
+  bone: item_bone1,
 } as const;
 
 const MOCK_RANKING = [
@@ -435,23 +440,18 @@ type LojaItem = {
 };
 
 const TAB_CONFIG: Record<Exclude<LojaTab, 'Tudo' | 'Vestindo'>, { equipKey: keyof AvatarEquipState; thumb: string }> = {
-  camisas: { equipKey: 'shirt', thumb: AVATAR_LAYERS.blusa },
-  Shorts: { equipKey: 'shorts', thumb: AVATAR_LAYERS.short },
-  'Tênis': { equipKey: 'sandals', thumb: AVATAR_LAYERS.sandalia },
-  'Acessórios': { equipKey: 'hat', thumb: AVATAR_LAYERS.bone },
+  camisas: { equipKey: 'shirt', thumb: item_camisa1 },
+  Shorts: { equipKey: 'shorts', thumb: item_short1 },
+  'Tênis': { equipKey: 'sandals', thumb: item_sapato1 },
+  'Acessórios': { equipKey: 'hat', thumb: item_bone1 },
 };
 
-// Generate 50 items per category for pagination demo
-const LOJA_ITEMS: LojaItem[] = (Object.keys(TAB_CONFIG) as Array<keyof typeof TAB_CONFIG>).flatMap((cat) =>
-  Array.from({ length: 50 }, (_, i) => ({
-    id: `${cat}-${i + 1}`,
-    tab: cat,
-    price: 350 + ((i * 10) % 200),
-    promoPrice: i % 4 === 1 ? 500 + (i % 5) * 50 : undefined,
-    equipKey: TAB_CONFIG[cat].equipKey,
-    thumb: TAB_CONFIG[cat].thumb,
-  }))
-);
+const LOJA_ITEMS: LojaItem[] = [
+  { id: 'camisas-1', tab: 'camisas', price: 350, equipKey: 'shirt', thumb: item_camisa1 },
+  { id: 'Shorts-1',  tab: 'Shorts',  price: 280, equipKey: 'shorts', thumb: item_short1 },
+  { id: 'Tênis-1',   tab: 'Tênis',   price: 420, equipKey: 'sandals', thumb: item_sapato1 },
+  { id: 'Acessórios-1', tab: 'Acessórios', price: 200, equipKey: 'hat', thumb: item_bone1 },
+];
 
 function LojaView({
   equip,
@@ -629,6 +629,11 @@ function avatarLayerClass() {
   return cn('absolute inset-0 block h-full w-full object-contain object-bottom pointer-events-none select-none');
 }
 
+// Accessor layers shifted slightly to the right relative to the base
+function avatarAccessoryClass() {
+  return cn('absolute inset-0 block h-full w-full object-contain object-bottom pointer-events-none select-none translate-x-[6%]');
+}
+
 function AvatarCharacter({
   equip,
   size = 'default',
@@ -639,6 +644,7 @@ function AvatarCharacter({
   enableFloat?: boolean;
 }) {
   const L = avatarLayerClass();
+  const A = avatarAccessoryClass();
   // Force-disable floating animation — avatar must stay still so SVG layers
   // line up exactly when overlaid.
   void enableFloat;
@@ -661,11 +667,10 @@ function AvatarCharacter({
     <div className={cn('relative leading-[0] flex flex-col items-center justify-end', sizeClass)}>
       <div className={innerClass}>
         <img src={AVATAR_LAYERS.corpo} alt="" className={L} aria-hidden />
-        {equip.shorts && <img src={AVATAR_LAYERS.short} alt="" className={cn(L, 'z-[1]')} aria-hidden />}
-        {equip.shirt && <img src={AVATAR_LAYERS.blusa} alt="" className={cn(L, 'z-[2]')} aria-hidden />}
-        {equip.sandals && <img src={AVATAR_LAYERS.sandalia} alt="" className={cn(L, 'z-[3]')} aria-hidden />}
-        {equip.mouth && <img src={AVATAR_LAYERS.boca} alt="" className={cn(L, 'z-[4]')} aria-hidden />}
-        {equip.hat && <img src={AVATAR_LAYERS.bone} alt="" className={cn(L, 'z-[5]')} aria-hidden />}
+        {equip.shorts && <img src={AVATAR_LAYERS.short} alt="" className={cn(A, 'z-[1]')} style={{ transform: `translateX(calc(6% - 20px))` }} aria-hidden />}
+        {equip.shirt && <img src={AVATAR_LAYERS.blusa} alt="" className={cn(A, 'z-[2]')} style={{ transform: `translateX(calc(6% - 20px))` }} aria-hidden />}
+        {equip.sandals && <img src={AVATAR_LAYERS.sandalia} alt="" className={cn(A, 'z-[3]')} style={{ transform: `translateX(calc(6% - 25px))` }} aria-hidden />}
+        {equip.hat && <img src={AVATAR_LAYERS.bone} alt="" className={cn(A, 'z-[5]')} style={{ transform: `translateX(calc(6% - 24px))` }} aria-hidden />}
 
         {/* Ground shadow under the feet */}
         <div

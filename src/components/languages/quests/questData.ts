@@ -30,11 +30,14 @@ export interface Quest {
   coinReward: number;
   unlocksSyntax?: { word: string; cat: SyntaxCategory };
   isBoss?: boolean;
+  isTheory?: boolean;
+  subtitle?: string;
 }
 
 export interface QuestWorld {
   id: string;
   title: string;
+  cardTitle?: string;
   subtitle: string;
   quests: Quest[];
   comingSoon?: boolean;
@@ -43,13 +46,15 @@ export interface QuestWorld {
 export const WORLDS: QuestWorld[] = [
   {
     id: 'self-mode',
-    title: 'Estruturas em Inglês I',
+    title: 'Greetings I',
+    cardTitle: 'Greetings',
     subtitle: 'Self Mode',
     quests: [
       {
         id: 'im',
         shortTitle: "I'm",
-        title: "I'm",
+        title: "O que são Greetings?",
+        isTheory: true,
         meaning: "I am = Eu sou / Eu estou",
         formula: "I'm + feeling / description / action",
         vocabulary: ['happy', 'tired', 'hungry'],
@@ -73,7 +78,7 @@ export const WORLDS: QuestWorld[] = [
       {
         id: 'im-feeling',
         shortTitle: 'feeling',
-        title: "I'm + feeling",
+        title: "Vocabulário",
         meaning: 'Expressar emoções e estados.',
         formula: "I'm + (feeling word)",
         vocabulary: ['excited', 'bored', 'nervous', 'fine'],

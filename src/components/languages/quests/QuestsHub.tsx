@@ -7,6 +7,7 @@ import { QuestChallenge } from './QuestChallenge';
 import { QuestReward } from './QuestReward';
 import { ImGoodAtModule } from './ImGoodAtModule';
 import { ImModule } from './ImModule';
+import { TheoryLesson } from './TheoryLesson';
 import { WORLDS } from './questData';
 
 interface QuestsHubProps {
@@ -74,7 +75,18 @@ export function QuestsHub(_props: QuestsHubProps) {
   };
 
   if (screen === 'lesson' && activeQuest) {
+    // Theory quests have their own dedicated screen
+    if (activeQuest.isTheory) {
+      return (
+        <TheoryLesson quest={activeQuest} onBack={goCurriculum} onComplete={finishChallenge} />
+      );
+    }
     if (activeQuest.id === 'im') {
+      return (
+        <ImModule quest={activeQuest} onBack={goCurriculum} onComplete={finishChallenge} />
+      );
+    }
+    if (activeQuest.id === 'im-feeling') {
       return (
         <ImModule quest={activeQuest} onBack={goCurriculum} onComplete={finishChallenge} />
       );
@@ -109,17 +121,6 @@ export function QuestsHub(_props: QuestsHubProps) {
   if (screen === 'curriculum' && activeWorld) {
     return (
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-white text-sm mb-3">
-            <Sparkles className="w-4 h-4" /> Currículo
-          </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg">
-            {activeWorld.title}
-          </h1>
-          <p className="text-white/80 mt-2">
-            Navegue pelos passos e conclua cada quest
-          </p>
-        </div>
         <QuestCurriculum
           world={activeWorld}
           completedQuests={completed}
@@ -137,7 +138,7 @@ export function QuestsHub(_props: QuestsHubProps) {
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 backdrop-blur-md text-white text-sm mb-3">
           <Sparkles className="w-4 h-4" /> Módulos
         </div>
-        <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-lg">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-purple-400">
           Escolha um módulo
         </h1>
         <p className="text-white/80 mt-2">
