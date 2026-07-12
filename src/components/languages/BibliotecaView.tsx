@@ -347,10 +347,10 @@ function Shelf({
 }) {
   return (
     <div className="relative">
-      {/* Books row */}
-      <div className="flex items-end gap-2 min-h-[220px] px-3 pb-1">
+      {/* Books row — front covers */}
+      <div className="flex items-end gap-4 min-h-[240px] px-3 pb-2 flex-wrap">
         {books.map((b) => (
-          <BookSpine key={b.id} book={b} onOpen={() => onOpen(b)} onDelete={() => onDelete(b.id)} />
+          <BookCover key={b.id} book={b} onOpen={() => onOpen(b)} onDelete={() => onDelete(b.id)} />
         ))}
         {books.length === 0 && (
           <div className="text-xs text-muted-foreground italic py-16 mx-auto">
@@ -374,9 +374,9 @@ function Shelf({
   );
 }
 
-/* ------------------------- Book Spine ------------------------ */
+/* ------------------------- Book Cover ------------------------ */
 
-function BookSpine({
+function BookCover({
   book,
   onOpen,
   onDelete,
@@ -385,40 +385,37 @@ function BookSpine({
   onOpen: () => void;
   onDelete: () => void;
 }) {
-  // Randomize height/width slightly, seeded by id for stability
-  const seed = useMemo(() => {
-    let s = 0;
-    for (let i = 0; i < book.id.length; i++) s = (s * 31 + book.id.charCodeAt(i)) >>> 0;
-    return s;
-  }, [book.id]);
-  const height = 160 + (seed % 50); // 160-210
-  const width = 32 + ((seed >> 3) % 20); // 32-52
-
   return (
-    <div className="relative group" style={{ height, width }}>
+    <div className="relative group" style={{ width: 140 }}>
       <button
         onClick={onOpen}
         title={`${book.title} — ${book.author}`}
         className={cn(
-          'relative w-full h-full rounded-sm overflow-hidden',
-          'shadow-[inset_-6px_0_10px_-6px_rgba(0,0,0,0.35),inset_6px_0_10px_-6px_rgba(255,255,255,0.15)]',
-          'transition-transform duration-200 origin-bottom hover:-translate-y-2 hover:shadow-lg',
-          'focus:outline-none focus:ring-2 focus:ring-ring',
+          'relative w-[140px] h-[200px] rounded-md overflow-hidden text-left',
+          'transition-transform duration-200 origin-bottom hover:-translate-y-2 hover:shadow-xl',
+          'shadow-md focus:outline-none focus:ring-2 focus:ring-ring',
+          // Front cover 3D-ish look: darker spine hint on the left
+          'before:content-[""] before:absolute before:inset-y-0 before:left-0 before:w-[10px] before:bg-black/25',
+          'after:content-[""] after:absolute after:inset-y-0 after:left-[10px] after:w-[2px] after:bg-white/15',
         )}
         style={{ backgroundColor: book.spineColor }}
       >
-        {/* Spine bands */}
-        <div className="absolute inset-x-0 top-2 h-[6px] bg-white/10" />
-        <div className="absolute inset-x-0 bottom-2 h-[6px] bg-white/10" />
+        {/* Inner border for cover */}
+        <div className="absolute inset-2 left-4 border border-white/20 rounded-sm pointer-events-none" />
 
-        {/* Vertical title */}
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
-        >
-          <span className="text-[11px] font-semibold text-white/90 px-2 line-clamp-1 tracking-wide">
-            {book.title}
-          </span>
+        {/* Title area */}
+        <div className="absolute inset-0 pl-5 pr-3 py-4 flex flex-col justify-between">
+          <div>
+            <h4 className="text-[13px] font-semibold text-white leading-tight line-clamp-4 drop-shadow">
+              {book.title}
+            </h4>
+          </div>
+          <div>
+            <div className="h-px bg-white/30 mb-2" />
+            <p className="text-[10px] uppercase tracking-wider text-white/80 line-clamp-1">
+              {book.author}
+            </p>
+          </div>
         </div>
       </button>
 
@@ -428,7 +425,7 @@ function BookSpine({
           e.stopPropagation();
           onDelete();
         }}
-        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-background border border-border text-destructive opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm"
+        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-background border border-border text-destructive opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm z-10"
         title="Excluir livro"
       >
         <Trash2 className="w-3 h-3" />
