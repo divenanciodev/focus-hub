@@ -32,8 +32,10 @@ import {
   Image,
   FileIcon,
   Square,
-  Play
+  Play,
+  Landmark
 } from 'lucide-react';
+import { MemoryPalace } from '@/components/training/memory-palace/MemoryPalace';
 import { toast } from 'sonner';
 
 // Tipos de método de aprendizado
@@ -78,6 +80,13 @@ const learningMethods = [
     name: 'Explicação em Áudio',
     description: 'Grave explicações sobre os conteúdos',
     icon: Mic,
+    available: true,
+  },
+  {
+    id: 'memory-palace' as TrainingType,
+    name: 'Palácio da Memória',
+    description: 'Associe conteúdos a lugares em um mapa visual',
+    icon: Landmark,
     available: true,
   },
 ];

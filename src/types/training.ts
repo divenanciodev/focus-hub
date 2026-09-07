@@ -7,7 +7,8 @@ export type TrainingType =
   | 'mindmap'
   | 'summary'
   | 'handwriting'
-  | 'audio-explanation';
+  | 'audio-explanation'
+  | 'memory-palace';
 
 export type FlashcardDifficulty = 'easy' | 'medium' | 'hard';
 
