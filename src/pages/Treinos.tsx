@@ -150,6 +150,7 @@ export default function Treinos() {
       'summary': 0,
       'handwriting': 0,
       'audio-explanation': 0,
+      'memory-palace': 0,
     },
     completedToday: 0,
   });
@@ -1118,6 +1119,27 @@ export default function Treinos() {
               </div>
             </div>
           )}
+        </div>
+      );
+    }
+
+    if (selectedMethod === 'memory-palace') {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedMethod(null)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            <div>
+              <h3 className="font-semibold text-foreground text-lg">Palácio da Memória</h3>
+              <p className="text-sm text-muted-foreground">
+                Monte um lugar mental e associe cada ambiente a um conteúdo
+              </p>
+            </div>
+          </div>
+
+          <MemoryPalace />
         </div>
       );
     }
