@@ -36,7 +36,7 @@ import {
 import { QuestsHub } from './quests/QuestsHub';
 import { LearnFlixView } from './LearnFlixView';
 import { ChatRoomsView } from './ChatRoomsView';
-import { BibliotecaView } from './BibliotecaView';
+import { BibliotecaEntry } from './BibliotecaEntry';
 
 interface GameHubProps {
   languageName: string;
@@ -264,7 +264,7 @@ export function GameHub({ languageName, onBack, onOpenLibrary }: GameHubProps) {
         )}
 
         {section === 'biblioteca' && (
-          <BibliotecaView languageName={languageName} />
+          <BibliotecaEntry languageName={languageName} />
         )}
 
         {section === 'batepapo' && (
