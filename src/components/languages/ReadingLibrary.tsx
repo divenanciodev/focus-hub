@@ -542,7 +542,7 @@ function BookCard({ book, onOpen }: { book: LibraryBook; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
-      className="group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg"
+      className="group block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg"
     >
       {/* CSS cover */}
       <div
