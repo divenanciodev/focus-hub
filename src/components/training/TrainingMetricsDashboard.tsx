@@ -25,6 +25,7 @@ const typeLabels: Record<TrainingType, { label: string; icon: React.ElementType 
   'summary': { label: 'Resumos', icon: FileText },
   'handwriting': { label: 'Escrita Manual', icon: PenTool },
   'audio-explanation': { label: 'Áudio', icon: Mic },
+  'memory-palace': { label: 'Palácio da Memória', icon: Building2 },
 };
 
 export function TrainingMetricsDashboard({ metrics }: TrainingMetricsDashboardProps) {

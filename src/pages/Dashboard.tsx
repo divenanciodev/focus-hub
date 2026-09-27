@@ -67,6 +67,7 @@ export default function Dashboard() {
       'summary': 0,
       'handwriting': 0,
       'audio-explanation': 0,
+      'memory-palace': 0,
     },
     completedToday: 0,
   };
